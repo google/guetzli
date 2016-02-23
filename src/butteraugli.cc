@@ -68,8 +68,8 @@ static void GaussBlurApproximation(size_t xsize, size_t ysize, double* channel,
 static double GammaDerivativeLut(double v) {
   static const double lut[256] = {
     // Generated with python:
-    // >>> ''.join(["%.6f, " % min(7.097, (0.43732443835227586 *
-    // (i / 255.) ** (-(2.2 / 1.0) / 2.2))) for i in range(1, 256)])
+    // >>> ''.join([7.097] + ["%.6f, " % min(7.097, (0.43732443835227586 *
+    // (i / 255.) ** (-(2.2 - 1.0) / 2.2))) for i in range(1, 256)])
     7.097, 7.097,
     6.155507, 4.934170, 4.217603, 3.734270,
     3.380772, 3.108132, 2.889798, 2.709980,
@@ -167,7 +167,7 @@ static void Transpose8x8(double data[64]) {
 }
 
 static void ScalingFactors(double data[64]) {
- // The scale of the discrete cosine transform.
+  // The scale of the discrete cosine transform.
   // dctf8x8Scale[i] = 1 if i==0 else 2*cos(pi*i/16)
   const double scale = 1/64.0;
   const double dctd8x8ScaleInverse[8] = {
@@ -902,19 +902,6 @@ void SuppressionRgb(const std::vector<std::vector<double> > &rgb,
       (*suppression)[2][idx] = SuppressionBlue(muls[2] * c + 0.1 * b);
     }
   }
-}
-
-double DiffValueFromDiffMap(const std::vector<double>& diffmap,
-                            size_t xsize, size_t ysize) {
-  double p = 16.0;
-  double sum = 0.0;
-  for (size_t y = 0; y + 7 < ysize; ++y) {
-    for (size_t x = 0; x + 7 < xsize; ++x) {
-      sum += pow(diffmap[y * xsize + x], p);
-    }
-  }
-  int squares = (xsize - 7) * (ysize - 7);
-  return pow(sum / squares, 1.0 / p);
 }
 
 bool ButteraugliInterface(size_t xsize, size_t ysize,
