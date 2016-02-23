@@ -37,9 +37,14 @@ namespace butteraugli {
 // the red image for c == 0, green for c == 1, blue for c == 2. Location index
 // px is calculated as y * xsize + x.
 //
-// Images rgb0 and rgb1 need to be gamma corrected, i.e., typically the
-// image values in a png file for example would be mapped with:
-// butteraugli_val = 255.0 * pow(png_val / 255.0, 1.0 / 2.2);
+// Value of pixels of images rgb0 and rgb1 need to be represented as raw
+// intensity. Most image formats store gamma corrected intensity in pixel
+// values. This gamma correction has to be removed, by applying the following
+// function:
+// butteraugli_val = 255.0 * pow(png_val / 255.0, gamma);
+// A typical value of gamma is 2.2. It is usually stored in the image header.
+// Take care not to confuse that value with its inverse. The gamma value should
+// be always greater than one.
 // Butteraugli does not work as intended if the caller does not perform
 // gamma correction.
 //
@@ -52,7 +57,7 @@ namespace butteraugli {
 // diffvalue larger than kButteraugliBad indicates that a difference between
 // the images can be observed.
 // A diffvalue between kButteraugliGood and kButteraugliBad indicates that
-// it a subtle difference can be observed between the images.
+// a subtle difference can be observed between the images.
 //
 // Returns true on success.
 
