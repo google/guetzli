@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <vector>
 
@@ -61,32 +62,49 @@ namespace butteraugli {
 //
 // Returns true on success.
 
-const double kButteraugliGood = 1.632;
-const double kButteraugliBad = 2.095;
+const double kButteraugliGood = 1.000;
+const double kButteraugliBad = 1.0563581223198708;
 
 bool ButteraugliInterface(size_t xsize, size_t ysize,
-                          const std::vector<std::vector<double> > &rgb0,
-                          const std::vector<std::vector<double> > &rgb1,
-                          std::vector<double> &diffmap,
+                          const std::vector<std::vector<float> > &rgb0,
+                          const std::vector<std::vector<float> > &rgb1,
+                          std::vector<float> &diffmap,
                           double &diffvalue);
+
+const double kButteraugliQuantLow = 0.26;
+const double kButteraugliQuantHigh = 1.454;
+
+// Converts the butteraugli score into fuzzy class values that are continuous
+// at the class boundary. The class boundary location is based on human
+// raters, but the slope is arbitrary. Particularly, it does not reflect
+// the expectation value of probabilities of the human raters. It is just
+// expected that a smoother class boundary will allow for higher-level
+// optimization algorithms to work faster.
+//
+// Returns 2.0 for a perfect match, and 1.0 for 'ok', 0.0 for bad. Because the
+// scoring is fuzzy, a butteraugli score of 0.96 would return a class of
+// around 1.9.
+double ButteraugliFuzzyClass(double score);
+
+// Returns a map which can be used for adaptive quantization. Values can
+// typically range from kButteraugliQuantLow to kButteraugliQuantHigh. Low
+// values require coarse quantization (e.g. near random noise), high values
+// require fine quantization (e.g. in smooth bright areas).
+bool ButteraugliAdaptiveQuantization(size_t xsize, size_t ysize,
+    const std::vector<std::vector<float> > &rgb, std::vector<float> &quant);
 
 // Implementation details, don't use anything below or your code will
 // break in the future.
+
 void ButteraugliMap(
     size_t xsize, size_t ysize,
-    const std::vector<std::vector<double> > &rgb0,
-    const std::vector<std::vector<double> > &rgb1,
-    std::vector<double> &diffmap);
+    const std::vector<std::vector<float> > &rgb0,
+    const std::vector<std::vector<float> > &rgb1,
+    std::vector<float> &diffmap);
 
 double ButteraugliDistanceFromMap(
     size_t xsize, size_t ysize,
-    const std::vector<double> &distmap);
-
-// Only referenced by butteraugli_test
-// Compute masking impact from the intensity values of a rgb image.
-void IntensityMasking(const std::vector<std::vector<double> > &rgb,
-                      size_t xsize, size_t ysize,
-                      double *mask);
+    const std::vector<float> &distmap);
 
 // Color difference evaluation for 'high frequency' color changes.
 //
@@ -131,6 +149,21 @@ double RgbDiffGammaLowFreq(double ave_r, double ave_g, double ave_b,
                            double r0, double g0, double b0,
                            double r1, double g1, double b1);
 
+// The high frequency color model used by RgbDiff().
+static inline void RgbToXyz(double r, double g, double b,
+                            double *valx, double *valy, double *valz) {
+  static const double mul0 = 1.346049931681325;
+  static const double mul1 = 1.2368889594842547;
+  static const double a0 = mul0 * 0.171;
+  static const double a1 = mul0 * -0.0812;
+  static const double b0 = mul1 * 0.08265;
+  static const double b1 = mul1 * 0.168;
+  static const double c0 = 0.2710592310046686;
+  *valx = a0 * r + a1 * g;
+  *valy = b0 * r + b1 * g;
+  *valz = c0 * b;
+}
+
 // Non-linearities for component-based suppression.
 double SuppressionRedPlusGreen(double delta);
 double SuppressionRedMinusGreen(double delta);
@@ -138,10 +171,43 @@ double SuppressionBlue(double delta);
 
 // Compute values of local frequency masking based on the activity
 // in the argb image.
-void SuppressionRgb(const std::vector<std::vector<double> > &rgb,
-                    const std::vector<std::vector<double> > &blurred,
+void SuppressionRgb(const std::vector<std::vector<float> > &rgb,
                     size_t xsize, size_t ysize,
-                    std::vector<std::vector<double> > *suppression);
+                    std::vector<std::vector<float> > *suppression);
+
+// The Dct computation used in butteraugli.
+void ButteraugliDctd8x8(double m[64]);
+
+// Compute distance map based on differences in 8x8 dct coefficients.
+void Dctd8x8mapWithRgbDiff(
+    const std::vector<std::vector<float> > &rgb0,
+    const std::vector<std::vector<float> > &rgb1,
+    const std::vector<std::vector<float> > &scale_xyz,
+    size_t xsize, size_t ysize,
+    std::vector<float> *result);
+
+// Rgbdiff for one 8x8 block.
+double ButteraugliDctd8x8RgbDiff(const double scale[3],
+                                 const double gamma[3],
+                                 double rgb0[192],
+                                 double rgb1[192]);
+
+double GammaDerivativeAvgMin(const double m0[64], const double m1[64]);
+
+// Makes a cluster of local errors to be more impactful than
+// just a single error.
+void ApplyErrorClustering(size_t xsize, size_t ysize,
+                          std::vector<float>* distmap);
+
+// Fills in coeffs[0..191] vector in such a way that if d[0..191] is the
+// difference vector of the XYZ-color space DCT coefficients of an 8x8 block,
+// then the butteraugli block error can be approximated with the
+//   SUM(coeffs[i] * d[i]^2; i in 0..191)
+// quadratic function.
+void ButteraugliQuadraticBlockDiffCoeffsXyz(const double scale[3],
+                                            const double gamma[3],
+                                            const double rgb[192],
+                                            double coeffs[192]);
 
 }  // namespace butteraugli
 

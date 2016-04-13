@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <cmath>
 #include <cstdio>
 #include <vector>
@@ -7,7 +8,7 @@ extern "C" {
 #include "png.h"
 }
 
-bool ReadPNG(FILE* f, std::vector<std::vector<double> >* rgb, int* xsize_out,
+bool ReadPNG(FILE* f, std::vector<std::vector<uint8_t> >* rgb, int* xsize_out,
              int* ysize_out) {
   png_structp png_ptr =
       png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -48,61 +49,9 @@ bool ReadPNG(FILE* f, std::vector<std::vector<double> >* rgb, int* xsize_out,
   const int components = png_get_channels(png_ptr, info_ptr);
 
   rgb->clear();
-  rgb->resize(3);
+  rgb->resize(components);
 
   switch (components) {
-    case 1: {
-      // Indexcolor or gray-scale.
-      png_bytep trans = 0;
-      int num_trans = 0;
-      png_color_16* trans_color = 0;
-      png_get_tRNS(png_ptr, info_ptr, &trans, &num_trans, &trans_color);
-
-      png_colorp palette;
-      int num_palette;
-      png_color_8_struct palette_with_alpha[256];
-      if (png_get_PLTE(png_ptr, info_ptr, &palette, &num_palette)) {
-        // We have a PLTE tag, the image is palettized.
-        for (int i = 0; i < num_palette; ++i) {
-          palette_with_alpha[i].red = palette[i].red;
-          palette_with_alpha[i].green = palette[i].green;
-          palette_with_alpha[i].blue = palette[i].blue;
-          palette_with_alpha[i].alpha = 255;
-        }
-      } else {
-        // We do not have a PLTE tag, the image is grayscale.
-        for (int i = 0; i < 256; ++i) {
-          palette_with_alpha[i].red = i;
-          palette_with_alpha[i].green = i;
-          palette_with_alpha[i].blue = i;
-          palette_with_alpha[i].alpha = 255;
-        }
-      }
-      for (int i = 0; i < num_trans; ++i) {
-        palette_with_alpha[trans[i]].alpha = 0;
-      }
-      for (int y = 0; y < ysize; ++y) {
-        for (int x = 0; x < xsize; ++x) {
-          const int i = row_pointers[y][x];
-          (*rgb)[0].push_back(palette_with_alpha[i].red);
-          (*rgb)[1].push_back(palette_with_alpha[i].green);
-          (*rgb)[2].push_back(palette_with_alpha[i].blue);
-          // ALPHA
-        }
-      }
-      break;
-    }
-    case 2:
-      // Grayscale with alpha.
-      for (int y = 0; y < ysize; ++y) {
-        for (int x = 0; x < xsize; ++x) {
-          (*rgb)[0].push_back(row_pointers[y][2 * x]);
-          (*rgb)[1].push_back(row_pointers[y][2 * x]);
-          (*rgb)[2].push_back(row_pointers[y][2 * x]);
-          // ALPHA
-        }
-      }
-      break;
     case 3: {
       // RGB
       for (int y = 0; y < ysize; ++y) {
@@ -121,7 +70,7 @@ bool ReadPNG(FILE* f, std::vector<std::vector<double> >* rgb, int* xsize_out,
           (*rgb)[0].push_back(row_pointers[y][4 * x + 0]);
           (*rgb)[1].push_back(row_pointers[y][4 * x + 1]);
           (*rgb)[2].push_back(row_pointers[y][4 * x + 2]);
-          // ALPHA
+          (*rgb)[3].push_back(row_pointers[y][4 * x + 3]);
         }
       }
       break;
@@ -134,10 +83,40 @@ bool ReadPNG(FILE* f, std::vector<std::vector<double> >* rgb, int* xsize_out,
   return true;
 }
 
-void ApplyGamma(std::vector<std::vector<double> >* rgb, double gamma) {
+const double* NewSrgbToLinearTable() {
+  double* table = new double[256];
+  for (int i = 0; i < 256; ++i) {
+    const double srgb = i / 255.0;
+    table[i] =
+        255.0 * (srgb <= 0.04045 ? srgb / 12.92
+                                 : std::pow((srgb + 0.055) / 1.055, 2.4));
+  }
+  return table;
+}
+
+// Translate R, G, B channels from sRGB to linear space. If an alpha channel
+// is present, overlay the image over a black or white background. Overlaying
+// is done in the sRGB space; while technically incorrect, this is aligned with
+// many other software (web browsers, WebP near lossless).
+void FromSrgbToLinear(const std::vector<std::vector<uint8_t> >& rgb,
+                      std::vector<std::vector<float> >& linear,
+                      int background) {
+  static const double* const kSrgbToLinearTable = NewSrgbToLinearTable();
+  linear.resize(3);
   for (int c = 0; c < 3; c++) {
-    for (size_t i = 0; i < (*rgb)[c].size(); i++) {
-      (*rgb)[c][i] = 255.0 * pow((*rgb)[c][i] / 255.0, gamma);
+    linear[c].resize(rgb[c].size());
+    for (size_t i = 0; i < rgb[c].size(); i++) {
+      int value;
+      if (rgb.size() == 3 || rgb[3][i] == 255) {
+        value = rgb[c][i];
+      } else if (rgb[3][i] == 0) {
+        value = background;
+      } else {
+        const int fg_weight = rgb[3][i];
+        const int bg_weight = 255 - fg_weight;
+        value = (rgb[c][i] * fg_weight + background * bg_weight + 127) / 255;
+      }
+      linear[c][i] = kSrgbToLinearTable[value];
     }
   }
 }
@@ -157,7 +136,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Cannot open %s\n", argv[2]);
     return 1;
   }
-  std::vector<std::vector<double> > rgb1, rgb2;
+  std::vector<std::vector<uint8_t> > rgb1, rgb2;
   int xsize1, ysize1, xsize2, ysize2;
   if (!ReadPNG(f1, &rgb1, &xsize1, &ysize1)) {
     fprintf(stderr, "Cannot parse PNG file %s\n", argv[1]);
@@ -172,24 +151,32 @@ int main(int argc, char** argv) {
             xsize1, ysize1, xsize2, ysize2);
     return 1;
   }
-  // TODO: Figure out if it is a good idea to fetch the kGamma from the
-  // image instead of having it hardcoded here.
-  const double kGamma = 2.2;
-  if (kGamma < 1.0) {
-    fprintf(stderr,
-            "Gamma is usually around 2.2, probably the gamma value "
-            "should be inverted for reasonable butteraugli results");
-    return 1;
-  }
-  ApplyGamma(&rgb1, kGamma);
-  ApplyGamma(&rgb2, kGamma);
-  std::vector<double> diffmap;
-  double diffvalue;
-  if (!butteraugli::ButteraugliInterface(xsize1, ysize1, rgb1, rgb2, diffmap,
-                                         diffvalue)) {
+  // TODO: Figure out if it is a good idea to fetch the gamma from the image
+  // instead of applying sRGB conversion.
+  std::vector<std::vector<float> > linear1, linear2;
+  // Overlay the image over a black background.
+  FromSrgbToLinear(rgb1, linear1, 0);
+  FromSrgbToLinear(rgb2, linear2, 0);
+  std::vector<float> diff_map;
+  double diff_value;
+  if (!butteraugli::ButteraugliInterface(xsize1, ysize1, linear1, linear2,
+                                         diff_map, diff_value)) {
     fprintf(stderr, "Butteraugli comparison failed\n");
     return 1;
   }
-  printf("%lf\n", diffvalue);
+  if (rgb1.size() == 4 || rgb2.size() == 4) {
+    // If the alpha channel is present, overlay the image over a white
+    // background as well.
+    FromSrgbToLinear(rgb1, linear1, 255);
+    FromSrgbToLinear(rgb2, linear2, 255);
+    double diff_value_on_white;
+    if (!butteraugli::ButteraugliInterface(xsize1, ysize1, linear1, linear2,
+                                           diff_map, diff_value_on_white)) {
+      fprintf(stderr, "Butteraugli comparison failed\n");
+      return 1;
+    }
+    if (diff_value_on_white > diff_value) diff_value = diff_value_on_white;
+  }
+  printf("%lf\n", diff_value);
   return 0;
 }
