@@ -26,8 +26,22 @@
 
 namespace butteraugli {
 
-static const double kInternalGoodQualityThreshold = 14.878153265541;
+static const double kInternalGoodQualityThreshold = 12.84;
 static const double kGlobalScale = 1.0 / kInternalGoodQualityThreshold;
+
+inline double DotProduct(const double u[3], const double v[3]) {
+  return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+}
+
+inline double DotProduct(const float u[3], const double v[3]) {
+  return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+}
+
+inline double DotProductWithMax(const float u[3], const double v[3]) {
+  return (std::max<double>(u[0], u[0] * v[0]) +
+          std::max<double>(u[1], u[1] * v[1]) +
+          std::max<double>(u[2], u[2] * v[2]));
+}
 
 // Computes a horizontal convolution and transposes the result.
 static void Convolution(size_t xsize, size_t ysize,
@@ -54,7 +68,7 @@ static void Convolution(size_t xsize, size_t ysize,
   }
 }
 
-static void GaussBlurApproximation(size_t xsize, size_t ysize, float* channel,
+void GaussBlurApproximation(size_t xsize, size_t ysize, float* channel,
                                    double sigma) {
   double m = 2.25;  // Accuracy increases when m is increased.
   const double scaler = -1.0 / (2 * sigma * sigma);
@@ -85,14 +99,13 @@ static void GaussBlurApproximation(size_t xsize, size_t ysize, float* channel,
   }
 }
 
-#ifdef REVERSE_SRGB
-// If we wanted to reverse the sRGB, we could use the code here.
 
+// Model of the gamma derivative in the human eye.
 static double GammaDerivativeRaw(double v) {
   // Derivative of the linear to sRGB translation.
-  return v <= 255.0 * 0.0031308
-             ? 12.92
-             : 1.055 / 2.4 * std::pow(v / 255.0, 1.0 / 2.4 - 1.0);
+  return (v <= 4.1533262364511305)
+      ? 6.34239659083478
+      : 0.3509337062449116 * pow(v / 255.0, -0.7171642149318425);
 }
 
 struct GammaDerivativeTableEntry {
@@ -107,10 +120,12 @@ static GammaDerivativeTableEntry *NewGammaDerivativeTable() {
     const double next = GammaDerivativeRaw(i + 1);
     const double slope = next - prev;
     const double constant = prev - slope * i;
-    kTable[i] = {slope, constant};
+    kTable[i].slope = slope;
+    kTable[i].constant = constant;
     prev = next;
   }
-  kTable[255] = {0.0, prev};
+  kTable[255].slope = 0.0;
+  kTable[255].constant = prev;
   return kTable;
 }
 
@@ -121,67 +136,74 @@ static double GammaDerivativeLut(double v) {
       kTable[static_cast<int>(std::min(std::max(0.0, v), 255.0))];
   return entry.slope * v + entry.constant;
 }
-#else
-static double GammaDerivativeLut(double v) {
-  static const double lut[256] = {
-    // Generated with python:
-    // >>> ''.join(["6.25, "] + ["%.6f, " % min(6.25, (0.4166 * (i / 255.) ** (-(2.4 - 1.0) / 2.2))) for i in range(1, 256)])
-    6.25, 6.250000, 6.250000, 6.250000, 5.861717, 5.085748, 4.528629, 4.105483,
-    3.771033, 3.498716, 3.271827, 3.079282, 2.913414, 2.768732, 2.641190, 2.527739,
-    2.426028, 2.334216, 2.250838, 2.174711, 2.104872, 2.040524, 1.981002, 1.925750,
-    1.874294, 1.826231, 1.781215, 1.738946, 1.699164, 1.661640, 1.626176, 1.592596,
-    1.560742, 1.530477, 1.501677, 1.474230, 1.448037, 1.423008, 1.399062, 1.376126,
-    1.354133, 1.333021, 1.312735, 1.293225, 1.274443, 1.256347, 1.238897, 1.222058,
-    1.205794, 1.190076, 1.174874, 1.160161, 1.145913, 1.132107, 1.118720, 1.105733,
-    1.093127, 1.080884, 1.068987, 1.057421, 1.046172, 1.035225, 1.024569, 1.014189,
-    1.004076, 0.994218, 0.984606, 0.975228, 0.966077, 0.957144, 0.948420, 0.939897,
-    0.931569, 0.923428, 0.915467, 0.907681, 0.900062, 0.892606, 0.885307, 0.878159,
-    0.871157, 0.864298, 0.857576, 0.850986, 0.844525, 0.838189, 0.831973, 0.825875,
-    0.819891, 0.814016, 0.808249, 0.802585, 0.797023, 0.791558, 0.786189, 0.780913,
-    0.775726, 0.770628, 0.765614, 0.760684, 0.755834, 0.751064, 0.746369, 0.741750,
-    0.737203, 0.732728, 0.728321, 0.723982, 0.719709, 0.715500, 0.711354, 0.707269,
-    0.703244, 0.699277, 0.695368, 0.691514, 0.687714, 0.683968, 0.680274, 0.676630,
-    0.673036, 0.669491, 0.665994, 0.662543, 0.659138, 0.655778, 0.652461, 0.649187,
-    0.645955, 0.642764, 0.639613, 0.636502, 0.633429, 0.630394, 0.627396, 0.624435,
-    0.621509, 0.618618, 0.615762, 0.612939, 0.610149, 0.607392, 0.604666, 0.601972,
-    0.599309, 0.596675, 0.594071, 0.591496, 0.588950, 0.586431, 0.583940, 0.581477,
-    0.579039, 0.576628, 0.574242, 0.571882, 0.569546, 0.567235, 0.564948, 0.562684,
-    0.560444, 0.558226, 0.556031, 0.553858, 0.551706, 0.549576, 0.547467, 0.545378,
-    0.543310, 0.541262, 0.539234, 0.537225, 0.535236, 0.533265, 0.531312, 0.529378,
-    0.527462, 0.525564, 0.523683, 0.521819, 0.519973, 0.518143, 0.516329, 0.514532,
-    0.512751, 0.510985, 0.509235, 0.507501, 0.505781, 0.504076, 0.502387, 0.500711,
-    0.499050, 0.497403, 0.495770, 0.494150, 0.492545, 0.490952, 0.489373, 0.487806,
-    0.486253, 0.484712, 0.483184, 0.481668, 0.480164, 0.478672, 0.477192, 0.475724,
-    0.474267, 0.472821, 0.471387, 0.469965, 0.468553, 0.467152, 0.465761, 0.464381,
-    0.463012, 0.461653, 0.460305, 0.458966, 0.457637, 0.456318, 0.455009, 0.453710,
-    0.452420, 0.451139, 0.449868, 0.448606, 0.447353, 0.446108, 0.444873, 0.443647,
-    0.442429, 0.441220, 0.440019, 0.438826, 0.437642, 0.436466, 0.435298, 0.434138,
-    0.432986, 0.431842, 0.430706, 0.429577, 0.428456, 0.427342, 0.426236, 0.425137,
-    0.424045, 0.422960, 0.421883, 0.420813, 0.419749, 0.418693, 0.417643, 0.416600,
-  };
-  if (v < 0) {
-    return lut[0];
-  }
-  int iv = int(v);
-  if (iv >= 254) {
-    return lut[255];
-  }
-  int frac = v - iv;
-  return frac * lut[iv + 1] + (1.0 - frac) * lut[iv];
-}
-#endif
 
 // Contrast sensitivity related weights.
 static const double *GetContrastSensitivityMatrix() {
-  static const double csf8x8[64] = {
-    0.4513821, 1.1849009, 0.9597666, 0.7657001, 0.5460047, 0.4145545, 0.3576890, 0.3400602,
-    1.1849009, 0.9956394, 0.8497080, 0.6374688, 0.4996464, 0.3667089, 0.3561453, 0.3142601,
-    0.9597666, 0.8497080, 0.7195796, 0.5646769, 0.3977972, 0.3698285, 0.3339006, 0.3120368,
-    0.7657001, 0.6374688, 0.5646769, 0.4669175, 0.3766784, 0.3570152, 0.3392428, 0.3176755,
-    0.5460047, 0.4996464, 0.3977972, 0.3766784, 0.3540639, 0.3518468, 0.3224825, 0.3042312,
-    0.4145545, 0.3667089, 0.3698285, 0.3570152, 0.3518468, 0.3475624, 0.3262351, 0.3072478,
-    0.3576890, 0.3561453, 0.3339006, 0.3392428, 0.3224825, 0.3262351, 0.3032862, 0.3026028,
-    0.3400602, 0.3142601, 0.3120368, 0.3176755, 0.3042312, 0.3072478, 0.3026028, 0.3008635,
+  static double csf8x8[64] = {
+    0.462845464,
+    1.48675033,
+    0.774522722,
+    0.656786477,
+    0.507984559,
+    0.51125,
+    0.51125,
+    0.55125,
+    1.48675033,
+    0.893383342,
+    0.729597657,
+    0.644616012,
+    0.47125,
+    0.47125,
+    0.53125,
+    0.53125,
+    0.774522722,
+    0.729597657,
+    0.669401271,
+    0.547687084,
+    0.47125,
+    0.47125,
+    0.53125,
+    0.53125,
+    0.656786477,
+    0.644616012,
+    0.547687084,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.507984559,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.51125,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.47125,
+    0.53125,
+    0.53125,
+    0.51125,
+    0.51125,
+    0.53125,
+    0.53125,
+    0.47125,
+    0.47125,
+    0.53125,
+    0.47125,
+    0.47125,
+    0.55125,
+    0.53125,
+    0.53125,
+    0.47125,
+    0.47125,
+    0.51125,
+    0.47125,
+    0.51125,
   };
   return &csf8x8[0];
 }
@@ -286,7 +308,7 @@ void ButteraugliDctd8x8(double m[64]) {
 
 // Mix a little bit of neighbouring pixels into the corners.
 void ButteraugliMixCorners(double m[64]) {
-  static const double c = 5.739760676622537;
+  static const double c = 5.772211696386835;
   const double w = 1.0 / (c + 2);
   m[0] = (c * m[0] + m[1] + m[8]) * w;
   m[7] = (c * m[7] + m[6] + m[15]) * w;
@@ -295,13 +317,13 @@ void ButteraugliMixCorners(double m[64]) {
 }
 
 // Computes 8x8 DCT (with corner mixing) of each channel of rgb0 and rgb1 and
-// returns the total scaled and squared rgbdiff of the two blocks.
-double ButteraugliDctd8x8RgbDiff(const double scale[3],
-                                 const double gamma[3],
-                                 double rgb0[192],
-                                 double rgb1[192]) {
+// adds the total squared 3-dimensional rgbdiff of the two blocks to diff_xyz.
+void ButteraugliDctd8x8RgbDiff(const double gamma[3],
+                               double rgb0[192],
+                               double rgb1[192],
+                               double diff_xyz_dc[3],
+                               double diff_xyz_ac[3]) {
   const double *csf8x8 = GetContrastSensitivityMatrix();
-  const double fabs_sum_norm = 0.052081605258397466;
   for (int c = 0; c < 3; ++c) {
     ButteraugliMixCorners(&rgb0[c * 64]);
     ButteraugliDctd8x8(&rgb0[c * 64]);
@@ -317,53 +339,36 @@ double ButteraugliDctd8x8RgbDiff(const double scale[3],
   double rmul = gamma[0];
   double gmul = gamma[1];
   double bmul = gamma[2];
-  double diff = 0;
-  diff += csf8x8[0] * csf8x8[0] *
-      RgbDiffLowFreqScaledSquared(rmul * (r0[0] - r1[0]),
-                                  gmul * (g0[0] - g1[0]),
-                                  bmul * (b0[0] - b1[0]),
-                                  0, 0, 0, &scale[0]);
-  double r_fabs_sum = 0;
-  double g_fabs_sum = 0;
-  double b_fabs_sum = 0;
+  RgbDiffLowFreqSquaredXyzAccumulate(rmul * (r0[0] - r1[0]),
+                                     gmul * (g0[0] - g1[0]),
+                                     bmul * (b0[0] - b1[0]),
+                                     0, 0, 0, csf8x8[0] * csf8x8[0],
+                                     diff_xyz_dc);
   for (size_t i = 1; i < 64; ++i) {
     double d = csf8x8[i] * csf8x8[i];
-    diff += d * RgbDiffScaledSquared(
+    RgbDiffSquaredXyzAccumulate(
         rmul * r0[i], gmul * g0[i], bmul * b0[i],
         rmul * r1[i], gmul * g1[i], bmul * b1[i],
-        &scale[0]);
-    if (i >= 24 || (i & 0x7) >= 3) {
-      r_fabs_sum += csf8x8[i] * (fabs(r0[i]) - fabs(r1[i]));
-      g_fabs_sum += csf8x8[i] * (fabs(g0[i]) - fabs(g1[i]));
-      b_fabs_sum += csf8x8[i] * (fabs(b0[i]) - fabs(b1[i]));
-    }
+        d, diff_xyz_ac);
   }
-  r_fabs_sum *= fabs_sum_norm;
-  g_fabs_sum *= fabs_sum_norm;
-  b_fabs_sum *= fabs_sum_norm;
-  diff += RgbDiffScaledSquared(rmul * r_fabs_sum,
-                               gmul * g_fabs_sum,
-                               bmul * b_fabs_sum,
-                               0, 0, 0, &scale[0]);
-  return diff;
 }
 
 // Direct model with low frequency edge detectors.
 // Two edge detectors are applied in each corner of the 8x8 square.
-double Butteraugli8x8CornerEdgeDetectorDiff(
+// The squared 3-dimensional error vector is added to diff_xyz.
+void Butteraugli8x8CornerEdgeDetectorDiff(
     const size_t pos_x,
     const size_t pos_y,
     const size_t xsize,
     const size_t ysize,
     const std::vector<std::vector<float> > &blurred0,
     const std::vector<std::vector<float> > &blurred1,
-    const double scale[3],
-    const double gamma[3]) {
-  double w = 0.913775;
+    const double gamma[3],
+    double diff_xyz[3]) {
+  double w = 0.9375862313610259;
   double gamma_scaled[3] = { gamma[0] * w, gamma[1] * w, gamma[2] * w };
-  double diff = 0.0;
   for (int k = 0; k < 4; ++k) {
-    double weight = 0.041709991396540254;
+    double weight = 0.04051114418675643;
     size_t step = 3;
     size_t offset[4][2] = { { 0, 0 }, { 0, 7 }, { 7, 0 }, { 7, 7 } };
     size_t x = pos_x + offset[k][0];
@@ -371,124 +376,249 @@ double Butteraugli8x8CornerEdgeDetectorDiff(
     if (x >= step && x + step < xsize) {
       size_t ix = y * xsize + (x - step);
       size_t ix2 = ix + 2 * step;
-      diff += weight * RgbDiffLowFreqScaledSquared(
+      RgbDiffLowFreqSquaredXyzAccumulate(
           gamma_scaled[0] * (blurred0[0][ix] - blurred0[0][ix2]),
           gamma_scaled[1] * (blurred0[1][ix] - blurred0[1][ix2]),
           gamma_scaled[2] * (blurred0[2][ix] - blurred0[2][ix2]),
           gamma_scaled[0] * (blurred1[0][ix] - blurred1[0][ix2]),
           gamma_scaled[1] * (blurred1[1][ix] - blurred1[1][ix2]),
           gamma_scaled[2] * (blurred1[2][ix] - blurred1[2][ix2]),
-          &scale[0]);
+          weight, diff_xyz);
     }
     if (y >= step && y + step < ysize) {
       size_t ix = (y - step) * xsize + x ;
       size_t ix2 = ix + 2 * step * xsize;
-      diff += weight * RgbDiffLowFreqScaledSquared(
+      RgbDiffLowFreqSquaredXyzAccumulate(
           gamma_scaled[0] * (blurred0[0][ix] - blurred0[0][ix2]),
           gamma_scaled[1] * (blurred0[1][ix] - blurred0[1][ix2]),
           gamma_scaled[2] * (blurred0[2][ix] - blurred0[2][ix2]),
           gamma_scaled[0] * (blurred1[0][ix] - blurred1[0][ix2]),
           gamma_scaled[1] * (blurred1[1][ix] - blurred1[1][ix2]),
           gamma_scaled[2] * (blurred1[2][ix] - blurred1[2][ix2]),
-          &scale[0]);
+          weight, diff_xyz);
     }
   }
-  return diff;
 }
 
-static const double Average(const double m[64]) {
-  double r = 0.0;
-  for (int i = 0; i < 64; ++i) r += m[i];
-  return r * (1.0 / 64.0);
+double GammaDerivativeWeightedAvg(const double m0[64],
+                                  const double m1[64]) {
+  double total = 0.0;
+  double total_level = 0.0;
+  static double slack = 32;
+  for (int i = 0; i < 64; ++i) {
+    double level = std::min(m0[i], m1[i]);
+    double w = GammaDerivativeLut(level) * fabs(m0[i] - m1[i]);
+    w += slack;
+    total += w;
+    total_level += w * level;
+  }
+  return GammaDerivativeLut(total_level / total);
 }
 
-double GammaDerivativeAvgMin(const double m0[64], const double m1[64]) {
-  return GammaDerivativeLut(std::min(Average(m0), Average(m1)));
+void MixGamma(double gamma[3]) {
+  const double gamma_r = gamma[0];
+  const double gamma_g = gamma[1];
+  const double gamma_b = gamma[2];
+  {
+    const double a1 = 0.031357286184508865;
+    const double a0 = 1.0700981209942968 - a1;
+    gamma[0] = pow(gamma_r, a0) * pow(gamma_g, a1);
+  }
+  {
+    const double a0 = 0.022412459763909404;
+    const double a1 = 1.0444144247574045 - a0;
+    gamma[1] = pow(gamma_r, a0) * pow(gamma_g, a1);
+  }
+  {
+    const double a0 = 0.021865296182264373;
+    const double a1 = 0.040708035758485354;
+    const double a2 = 0.9595217356556563 - a0 - a1;
+    gamma[2] = pow(gamma_r, a0) * pow(gamma_g, a1) * pow(gamma_b, a2);
+  }
 }
 
-// weight can be NULL if no weights are used
-// suppression can be NULL if no suppression is used.
-// result[y*xsize + x] is set for 0 <= x < xsize - 7 and 0 <= y < ysize - 7.
-// The value depends on rgb0[i*xsize + j] for x <= i < x + 8 and y <= j < y + 8
-// and suppression[i * xsize + j] if suppression != NULL.
-void Dctd8x8mapWithRgbDiff(
+ButteraugliComparator::ButteraugliComparator(
+    size_t xsize, size_t ysize, int step)
+    : xsize_(xsize),
+      ysize_(ysize),
+      num_pixels_(xsize * ysize),
+      step_(step),
+      res_xsize_((xsize + step - 1) / step),
+      res_ysize_((ysize + step - 1) / step),
+      scale_xyz_(3, std::vector<float>(num_pixels_)),
+      gamma_map_(3 * res_xsize_ * res_ysize_),
+      dct8x8map_dc_(3 * res_xsize_ * res_ysize_),
+      dct8x8map_ac_(3 * res_xsize_ * res_ysize_),
+      edge_detector_map_(3 * res_xsize_ * res_ysize_) {}
+
+void ButteraugliComparator::DistanceMap(
     const std::vector<std::vector<float> > &rgb0,
     const std::vector<std::vector<float> > &rgb1,
-    const std::vector<std::vector<float> > &scale_xyz,
-    size_t xsize, size_t ysize,
-    std::vector<float> *result) {
-  assert(8 <= xsize);
-  static const double kSigma[3] = {
-    1.9513615245943847,
-    2.015905890589516,
-    0.9280480893114391,
-  };
-  std::vector<std::vector<float> > blurred0(rgb0);
-  std::vector<std::vector<float> > blurred1(rgb1);
+    std::vector<float> &result) {
+  std::vector<bool> changed(res_xsize_ * res_ysize_, true);
+  blurred0_.clear();
+  DistanceMapIncremental(rgb0, rgb1, changed, result);
+}
+
+void ButteraugliComparator::DistanceMapIncremental(
+    const std::vector<std::vector<float> > &rgb0,
+    const std::vector<std::vector<float> > &rgb1,
+    const std::vector<bool>& changed,
+    std::vector<float> &result) {
+  assert(8 <= xsize_);
   for (int i = 0; i < 3; i++) {
-    GaussBlurApproximation(xsize, ysize, blurred0[i].data(), kSigma[i]);
-    GaussBlurApproximation(xsize, ysize, blurred1[i].data(), kSigma[i]);
+    assert(rgb0[i].size() == num_pixels_);
+    assert(rgb1[i].size() == num_pixels_);
   }
-  const int step = 3;
-  for (size_t res_y = 0; res_y + 7 < ysize; res_y += step) {
-    for (size_t res_x = 0; res_x + 7 < xsize; res_x += step) {
-      double scale[3];
+  Dct8x8mapIncremental(rgb0, rgb1, changed);
+  EdgeDetectorMap(rgb0, rgb1);
+  SuppressionMap(rgb0, rgb1);
+  FinalizeDistanceMap(&result);
+}
+
+void ButteraugliComparator::Dct8x8mapIncremental(
+    const std::vector<std::vector<float> > &rgb0,
+    const std::vector<std::vector<float> > &rgb1,
+    const std::vector<bool>& changed) {
+  for (size_t res_y = 0; res_y + 7 < ysize_; res_y += step_) {
+    for (size_t res_x = 0; res_x + 7 < xsize_; res_x += step_) {
+      size_t res_ix = (res_y * res_xsize_ + res_x) / step_;
+      if (!changed[res_ix]) continue;
       double block0[3 * 64];
       double block1[3 * 64];
       double gamma[3];
       for (int i = 0; i < 3; ++i) {
-        scale[i] = scale_xyz[i][res_y * xsize + res_x];
-        scale[i] *= scale[i];
         double* m0 = &block0[i * 64];
         double* m1 = &block1[i * 64];
         for (size_t y = 0; y < 8; y++) {
           for (size_t x = 0; x < 8; x++) {
-            m0[8 * y + x] = rgb0[i][(res_y + y) * xsize + res_x + x];
-            m1[8 * y + x] = rgb1[i][(res_y + y) * xsize + res_x + x];
+            m0[8 * y + x] = rgb0[i][(res_y + y) * xsize_ + res_x + x];
+            m1[8 * y + x] = rgb1[i][(res_y + y) * xsize_ + res_x + x];
           }
         }
-        gamma[i] = GammaDerivativeAvgMin(m0, m1);
+        gamma[i] = GammaDerivativeWeightedAvg(m0, m1);
       }
-      double diff =
-          ButteraugliDctd8x8RgbDiff(scale, gamma, block0, block1) +
-          Butteraugli8x8CornerEdgeDetectorDiff(res_x, res_y, xsize, ysize,
-                                               blurred0, blurred1,
-                                               scale, gamma);
-      diff = sqrt(diff);
-      for (size_t off_y = 0; off_y < step; ++off_y) {
-        for (size_t off_x = 0; off_x < step; ++off_x) {
-          (*result)[(res_y + off_y) * xsize + res_x + off_x] = diff;
-        }
+      MixGamma(gamma);
+      double diff_xyz_dc[3] = { 0.0 };
+      double diff_xyz_ac[3] = { 0.0 };
+      ButteraugliDctd8x8RgbDiff(gamma, block0, block1,
+                                diff_xyz_dc, diff_xyz_ac);
+      for (int i = 0; i < 3; ++i) {
+        gamma_map_[3 * res_ix + i] = gamma[i];
+        dct8x8map_dc_[3 * res_ix + i] = diff_xyz_dc[i];
+        dct8x8map_ac_[3 * res_ix + i] = diff_xyz_ac[i];
       }
     }
   }
+}
+
+void ButteraugliComparator::EdgeDetectorMap(
+    const std::vector<std::vector<float> > &rgb0,
+    const std::vector<std::vector<float> > &rgb1) {
+  static const double kSigma[3] = {
+    1.9467950320244936,
+    1.9844023344574777,
+    0.9443734014996432,
+  };
+  if (blurred0_.empty()) {
+    blurred0_ = rgb0;
+    for (int i = 0; i < 3; i++) {
+      GaussBlurApproximation(xsize_, ysize_, blurred0_[i].data(), kSigma[i]);
+    }
+  }
+  std::vector<std::vector<float> > blurred1(rgb1);
+  for (int i = 0; i < 3; i++) {
+    GaussBlurApproximation(xsize_, ysize_, blurred1[i].data(), kSigma[i]);
+  }
+  for (size_t res_y = 0; res_y + 7 < ysize_; res_y += step_) {
+    for (size_t res_x = 0; res_x + 7 < xsize_; res_x += step_) {
+      size_t res_ix = (res_y * res_xsize_ + res_x) / step_;
+      double gamma[3];
+      for (int i = 0; i < 3; ++i) {
+        gamma[i] = gamma_map_[3 * res_ix + i];
+      }
+      double diff_xyz[3] = { 0.0 };
+      Butteraugli8x8CornerEdgeDetectorDiff(res_x, res_y, xsize_, ysize_,
+                                           blurred0_, blurred1,
+                                           gamma, diff_xyz);
+      for (int i = 0; i < 3; ++i) {
+        edge_detector_map_[3 * res_ix + i] = diff_xyz[i];
+      }
+    }
+  }
+}
+
+void ButteraugliComparator::CombineChannels(std::vector<float>* result) {
+  result->resize(res_xsize_ * res_ysize_);
+  for (size_t res_y = 0; res_y + 7 < ysize_; res_y += step_) {
+    for (size_t res_x = 0; res_x + 7 < xsize_; res_x += step_) {
+      size_t res_ix = (res_y * res_xsize_ + res_x) / step_;
+      double scale[3];
+      for (int i = 0; i < 3; ++i) {
+        scale[i] = scale_xyz_[i][(res_y + 3) * xsize_ + (res_x + 3)];
+        scale[i] *= scale[i];
+      }
+      (*result)[res_ix] =
+          // Apply less suppression to the low frequency component, otherwise
+          // it will not rate a difference on a noisy image where the average
+          // color changes visibly (especially for blue) high enough. The "max"
+          // formula is chosen ad-hoc, as a balance between fixing the noisy
+          // image issue (the ideal fix would mean only multiplying the diff
+          // with a constant here), and staying aligned with user ratings on
+          // other images: take the highest diff of both options.
+          (DotProductWithMax(&dct8x8map_dc_[3 * res_ix], scale) +
+           DotProduct(&dct8x8map_ac_[3 * res_ix], scale) +
+           DotProduct(&edge_detector_map_[3 * res_ix], scale));
+    }
+  }
+}
+
+static double SoftClampHighValues(double v) {
+  if (v < 0) {
+    return 0;
+  }
+  return log(v + 1.0);
 }
 
 // Making a cluster of local errors to be more impactful than
 // just a single error.
 void ApplyErrorClustering(const size_t xsize, const size_t ysize,
+                          const int step,
                           std::vector<float>* distmap) {
+  // Upsample and take square root.
+  std::vector<float> distmap_out(xsize * ysize);
+  const size_t res_xsize = (xsize + step - 1) / step;
+  for (size_t res_y = 0; res_y + 7 < ysize; res_y += step) {
+    for (size_t res_x = 0; res_x + 7 < xsize; res_x += step) {
+      size_t res_ix = (res_y * res_xsize + res_x) / step;
+      double val = sqrt((*distmap)[res_ix]);
+      for (size_t off_y = 0; off_y < step; ++off_y) {
+        for (size_t off_x = 0; off_x < step; ++off_x) {
+          distmap_out[(res_y + off_y) * xsize + res_x + off_x] = val;
+        }
+      }
+    }
+  }
+  *distmap = distmap_out;
   {
-    static const double kSigma = 18.09238864420438;
-    static const double mul1 = 5.0;
+    static const double kSigma = 17.77401417750591;
+    static const double mul1 = 6.127295867565043;
+    static const double mul2 = 1.5735505590879941;
     std::vector<float> blurred(*distmap);
     GaussBlurApproximation(xsize, ysize, blurred.data(), kSigma);
     for (size_t i = 0; i < ysize * xsize; ++i) {
-      (*distmap)[i] += mul1 * sqrt(blurred[i]);
+      (*distmap)[i] += mul1 * SoftClampHighValues(mul2 * blurred[i]);
     }
   }
   {
-    static const double kSigma = 13.952277501928073;
-    static const double mul1 = 5.0;
+    static const double kSigma = 11.797090536094919;
+    static const double mul1 = 2.9304661498619393;
+    static const double mul2 = 2.5400911895122853;
     std::vector<float> blurred(*distmap);
     GaussBlurApproximation(xsize, ysize, blurred.data(), kSigma);
     for (size_t i = 0; i < ysize * xsize; ++i) {
-      (*distmap)[i] += mul1 * sqrt(blurred[i]);
+      (*distmap)[i] += mul1 * SoftClampHighValues(mul2 * blurred[i]);
     }
-  }
-  {
-    static const double kSigma = 0.8481105317429303;
-    GaussBlurApproximation(xsize, ysize, distmap->data(), kSigma);
   }
 }
 
@@ -517,25 +647,28 @@ void ButteraugliMap(
     const std::vector<std::vector<float> > &rgb0,
     const std::vector<std::vector<float> > &rgb1,
     std::vector<float> &result) {
-  const size_t size = xsize * ysize;
-  for (int i = 0; i < 3; i++) {
-    assert(rgb0[i].size() == size);
-    assert(rgb1[i].size() == size);
-  }
+  ButteraugliComparator butteraugli(xsize, ysize, 3);
+  butteraugli.DistanceMap(rgb0, rgb1, result);
+}
+
+void ButteraugliComparator::SuppressionMap(
+    const std::vector<std::vector<float> > &rgb0,
+    const std::vector<std::vector<float> > &rgb1) {
   std::vector<std::vector<float> > rgb_avg(3);
-  std::vector<std::vector<float> > scale_xyz(3);
   for (int i = 0; i < 3; i++) {
-    scale_xyz[i].resize(size);
-    rgb_avg[i].resize(size);
-    for (size_t x = 0; x < size; ++x) {
+    rgb_avg[i].resize(num_pixels_);
+    for (size_t x = 0; x < num_pixels_; ++x) {
       rgb_avg[i][x] = (rgb0[i][x] + rgb1[i][x]) * 0.5;
     }
   }
-  result.resize(size);
-  SuppressionRgb(rgb_avg, xsize, ysize, &scale_xyz);
-  Dctd8x8mapWithRgbDiff(rgb0, rgb1, scale_xyz, xsize, ysize, &result);
-  ApplyErrorClustering(xsize, ysize, &result);
-  ScaleImage(kGlobalScale, &result);
+  SuppressionRgb(rgb_avg, xsize_, ysize_, &scale_xyz_);
+}
+
+void ButteraugliComparator::FinalizeDistanceMap(
+    std::vector<float>* result) {
+  CombineChannels(result);
+  ApplyErrorClustering(xsize_, ysize_, step_, result);
+  ScaleImage(kGlobalScale, result);
 }
 
 double ButteraugliDistanceFromMap(
@@ -556,26 +689,26 @@ double ButteraugliDistanceFromMap(
 const double *GetHighFreqColorDiffDx() {
   static const double kHighFrequencyColorDiffDx[21] = {
     0,
-    0.2553299613,
-    0.3696647672,
-    0.4418093833,
-    0.4696826724,
-    1.2712216081,
-    1.7641138989,
-    2.5116164028,
-    3.2777716368,
-    4.5607862469,
-    5.0846053503,
-    5.8894534019,
-    6.6007295901,
-    7.1978563063,
-    7.755246382,
-    8.2531961336,
-    8.6833501161,
-    9.0542933365,
-    9.4040120294,
-    9.6589447105,
-    9.8798982545,
+    0.2907966745057564,
+    0.4051314804057564,
+    0.4772760965057564,
+    0.5051493856057564,
+    2.1729859604144055,
+    3.3884646055698626,
+    4.0229515574578265,
+    4.816434992428891,
+    4.902122343469863,
+    5.340254095828891,
+    5.575275366425944,
+    6.2865515546259445,
+    6.8836782708259445,
+    7.441068346525944,
+    7.939018098125944,
+    8.369172080625944,
+    8.985082806466515,
+    9.334801499366515,
+    9.589734180466515,
+    9.810687724466515,
   };
   return &kHighFrequencyColorDiffDx[0];
 };
@@ -583,26 +716,26 @@ const double *GetHighFreqColorDiffDx() {
 const double *GetLowFreqColorDiff() {
   static const double kLowFrequencyColorDiff[21] = {
     0,
-    0.3,
-    0.79,
-    0.9,
-    1.0,
-    1.05,
     1.1,
-    3.4,
-    4.9,
-    6.4,
-    6.7,
-    6.9,
-    7.1,
-    7.3,
-    7.4,
-    7.5,
-    7.6,
-    7.7,
-    7.8,
-    7.9,
-    8.0,
+    1.5876101261422835,
+    1.6976101261422836,
+    1.7976101261422834,
+    1.8476101261422835,
+    1.8976101261422835,
+    4.397240606610438,
+    4.686599568139378,
+    6.186599568139378,
+    6.486599568139378,
+    6.686599568139378,
+    6.886599568139378,
+    7.086599568139378,
+    7.229062896585699,
+    7.3290628965856985,
+    7.429062896585698,
+    7.529062896585699,
+    7.629062896585698,
+    7.729062896585699,
+    7.8290628965856985,
   };
   return &kLowFrequencyColorDiff[0];
 };
@@ -611,26 +744,26 @@ const double *GetLowFreqColorDiff() {
 const double *GetHighFreqColorDiffDy() {
   static const double kHighFrequencyColorDiffDy[21] = {
     0,
-    2.5055555555555555,
-    5.025128048592593,
-    6.0451851851851846,
-    6.9919222806,
-    8.031863896,
-    9.1596687733,
-    10.2235384948,
-    11.3821204748,
-    12.4913956039,
-    13.5751344527,
-    14.7400547825,
-    15.8345258728,
-    16.9169718525,
-    18.0305120521,
-    19.1343674743,
-    20.248418894,
-    21.3888830318,
-    22.4858211087,
-    23.5999084736,
-    24.703473013,
+    2.711686498564926,
+    6.372713948578674,
+    6.749065994565258,
+    7.206288924241256,
+    7.810763383046433,
+    9.06633982465914,
+    10.247027693354854,
+    11.405609673354855,
+    12.514884802454853,
+    13.598623651254854,
+    14.763543981054854,
+    15.858015071354854,
+    16.940461051054857,
+    18.044423211343567,
+    19.148278633543566,
+    20.262330053243566,
+    21.402794191043565,
+    22.499732267943568,
+    23.613819632843565,
+    24.717384172243566,
   };
   return &kHighFrequencyColorDiffDy[0];
 }
@@ -638,26 +771,26 @@ const double *GetHighFreqColorDiffDy() {
 const double *GetHighFreqColorDiffDz() {
   static const double kHighFrequencyColorDiffDz[21] = {
     0,
-    0.5240354062,
-    0.6115836358,
-    0.7874517703,
-    0.8474517703,
-    0.9774517703,
-    1.1074517703,
-    1.2374517703,
-    1.3674517703,
-    1.4974517703,
-    1.6519694734,
-    1.7795177031,
-    1.9174517703,
-    2.0874517703,
-    2.2874517703,
-    2.4874517703,
-    2.6874517703,
-    2.8874517703,
-    3.0874517703,
-    3.2874517703,
-    3.4874517703,
+    0.5238354062,
+    0.6113836358,
+    0.7872517703,
+    0.8472517703,
+    0.9772517703,
+    1.1072517703,
+    1.2372517703,
+    1.3672517703,
+    1.4972517703,
+    1.5919694734,
+    1.7005177031,
+    1.8374517703,
+    2.0024517703,
+    2.2024517703,
+    2.4024517703,
+    2.6024517703,
+    2.8654517703,
+    3.0654517703,
+    3.2654517703,
+    3.4654517703,
   };
   return &kHighFrequencyColorDiffDz[0];
 }
@@ -680,9 +813,9 @@ inline double Interpolate(const double *array, int size, double sx) {
 
 static inline void XyzToVals(double x, double y, double z,
                              double *valx, double *valy, double *valz) {
-  static const double xmul = 0.39901253189500346;
-  static const double ymul = 0.6048133735736677;
-  static const double zmul = 1.2517479414904453;
+  static const double xmul = 0.6111808709773186;
+  static const double ymul = 0.6254434332781222;
+  static const double zmul = 1.3392224065403562;
   *valx = xmul * Interpolate(GetHighFreqColorDiffDx(), 21, x);
   *valy = ymul * Interpolate(GetHighFreqColorDiffDy(), 21, y);
   *valz = zmul * Interpolate(GetHighFreqColorDiffDz(), 21, z);
@@ -698,38 +831,41 @@ static inline void RgbToVals(double r, double g, double b,
 // Rough psychovisual distance to gray for low frequency colors.
 static void RgbLowFreqToVals(double r, double g, double b,
                              double *valx, double *valy, double *valz) {
-  static const double mul0 = 1.0990671172402453;
-  static const double mul1 = 1.1274953108568997;
+  static const double mul0 = 1.174114936496674;
+  static const double mul1 = 1.1447743969198858;
   static const double a0 = mul0 * 0.1426666666666667;
   static const double a1 = mul0 * -0.065;
   static const double b0 = mul1 * 0.10;
   static const double b1 = mul1 * 0.12;
-  static const double b2 = mul1 * 0.02340234375;
-  static const double c0 = 0.14846361693942411;
+  static const double b2 = mul1 * 0.023721063454977084;
+  static const double c0 = 0.14367553580758044;
 
   double x = a0 * r + a1 * g;
   double y = b0 * r + b1 * g + b2 * b;
   double z = c0 * b;
-  static double xmul = 0.7670979081732033;
-  static double ymul = 0.9488415893585428;
-  static double zmul = 1.010766219034261;
+  static double xmul = 1.0175474206944557;
+  static double ymul = 1.0017393502266154;
+  static double zmul = 1.0378355409050648;
   *valx = xmul * Interpolate(GetLowFreqColorDiff(), 21, x);
   *valy = ymul * Interpolate(GetHighFreqColorDiffDy(), 21, y);
   // We use the same table for x and z for the low frequency colors.
   *valz = zmul * Interpolate(GetLowFreqColorDiff(), 21, z);
 }
 
-// Function to estimate the psychovisual impact of a high frequency difference.
-double RgbDiffSquared(double r0, double g0, double b0,
-                      double r1, double g1, double b1) {
+void RgbDiffSquaredXyzAccumulate(double r0, double g0, double b0,
+                                 double r1, double g1, double b1,
+                                 double factor, double res[3]) {
   double valx0, valy0, valz0;
   double valx1, valy1, valz1;
   if (r0 == r1 && g0 == g1 && b0 == b1) {
-    return 0.0;
+    return;
   }
   RgbToVals(r0, g0, b0, &valx0, &valy0, &valz0);
   if (r1 == 0.0 && g1 == 0.0 && b1 == 0.0) {
-    return valx0 * valx0 + valy0 * valy0 + valz0 * valz0;
+    res[0] += factor * valx0 * valx0;
+    res[1] += factor * valy0 * valy0;
+    res[2] += factor * valz0 * valz0;
+    return;
   }
   RgbToVals(r1, g1, b1, &valx1, &valy1, &valz1);
   // Approximate the distance of the colors by their respective distances
@@ -737,39 +873,26 @@ double RgbDiffSquared(double r0, double g0, double b0,
   double valx = valx0 - valx1;
   double valy = valy0 - valy1;
   double valz = valz0 - valz1;
-  return valx * valx + valy * valy + valz * valz;
+  res[0] += factor * valx * valx;
+  res[1] += factor * valy * valy;
+  res[2] += factor * valz * valz;
+}
+
+// Function to estimate the psychovisual impact of a high frequency difference.
+double RgbDiffSquared(double r0, double g0, double b0,
+                      double r1, double g1, double b1) {
+  double vals[3] = { 0 };
+  RgbDiffSquaredXyzAccumulate(r0, g0, b0, r1, g1, b1, 1.0, vals);
+  return vals[0] + vals[1] + vals[2];
 }
 
 // Function to estimate the psychovisual impact of a high frequency difference.
 double RgbDiffScaledSquared(double r0, double g0, double b0,
                             double r1, double g1, double b1,
                             const double scale[3]) {
-  double valx0, valy0, valz0;
-  double valx1, valy1, valz1;
-  if (r0 == r1 && g0 == g1 && b0 == b1) {
-    return 0.0;
-  }
-  RgbToVals(r0, g0, b0, &valx0, &valy0, &valz0);
-  if (r1 == 0.0 && g1 == 0.0 && b1 == 0.0) {
-    return valx0 * valx0 * scale[0] + valy0 * valy0 * scale[1]
-        + valz0 * valz0 * scale[2];
-  }
-  RgbToVals(r1, g1, b1, &valx1, &valy1, &valz1);
-  // Approximate the distance of the colors by their respective distances
-  // to gray.
-  double valx = valx0 - valx1;
-  double valy = valy0 - valy1;
-  double valz = valz0 - valz1;
-  return valx * valx * scale[0] + valy * valy * scale[1]
-      + valz * valz * scale[2];
-}
-
-void RgbDiffSquaredMultiChannel(double r0, double g0, double b0, double *diff) {
-  double valx, valy, valz;
-  RgbToVals(r0, g0, b0, &valx, &valy, &valz);
-  diff[0] = valx * valx;
-  diff[1] = valy * valy;
-  diff[2] = valz * valz;
+  double vals[3] = { 0 };
+  RgbDiffSquaredXyzAccumulate(r0, g0, b0, r1, g1, b1, 1.0, vals);
+  return DotProduct(vals, scale);
 }
 
 double RgbDiff(double r0, double g0, double b0,
@@ -777,13 +900,17 @@ double RgbDiff(double r0, double g0, double b0,
   return sqrt(RgbDiffSquared(r0, g0, b0, r1, g1, b1));
 }
 
-double RgbDiffLowFreqSquared(double r0, double g0, double b0,
-                             double r1, double g1, double b1) {
+void RgbDiffLowFreqSquaredXyzAccumulate(double r0, double g0, double b0,
+                                        double r1, double g1, double b1,
+                                        double factor, double res[3]) {
   double valx0, valy0, valz0;
   double valx1, valy1, valz1;
   RgbLowFreqToVals(r0, g0, b0, &valx0, &valy0, &valz0);
   if (r1 == 0.0 && g1 == 0.0 && b1 == 0.0) {
-    return valx0 * valx0 + valy0 * valy0 + valz0 * valz0;
+    res[0] += factor * valx0 * valx0;
+    res[1] += factor * valy0 * valy0;
+    res[2] += factor * valz0 * valz0;
+    return;
   }
   RgbLowFreqToVals(r1, g1, b1, &valx1, &valy1, &valz1);
   // Approximate the distance of the colors by their respective distances
@@ -791,27 +918,24 @@ double RgbDiffLowFreqSquared(double r0, double g0, double b0,
   double valx = valx0 - valx1;
   double valy = valy0 - valy1;
   double valz = valz0 - valz1;
-  return valx * valx + valy * valy + valz * valz;
+  res[0] += factor * valx * valx;
+  res[1] += factor * valy * valy;
+  res[2] += factor * valz * valz;
+}
+
+double RgbDiffLowFreqSquared(double r0, double g0, double b0,
+                             double r1, double g1, double b1) {
+  double vals[3] = { 0 };
+  RgbDiffLowFreqSquaredXyzAccumulate(r0, g0, b0, r1, g1, b1, 1.0, vals);
+  return vals[0] + vals[1] + vals[2];
 }
 
 double RgbDiffLowFreqScaledSquared(double r0, double g0, double b0,
                                    double r1, double g1, double b1,
                                    const double scale[3]) {
-  double valx0, valy0, valz0;
-  double valx1, valy1, valz1;
-  RgbLowFreqToVals(r0, g0, b0, &valx0, &valy0, &valz0);
-  if (r1 == 0.0 && g1 == 0.0 && b1 == 0.0) {
-    return valx0 * valx0 * scale[0] + valy0 * valy0 * scale[1]
-           + valz0 * valz0 * scale[2];
-  }
-  RgbLowFreqToVals(r1, g1, b1, &valx1, &valy1, &valz1);
-  // Approximate the distance of the colors by their respective distances
-  // to gray.
-  double valx = valx0 - valx1;
-  double valy = valy0 - valy1;
-  double valz = valz0 - valz1;
-  return valx * valx * scale[0] + valy * valy * scale[1]
-      + valz * valz * scale[2];
+  double vals[3] = { 0 };
+  RgbDiffLowFreqSquaredXyzAccumulate(r0, g0, b0, r1, g1, b1, 1.0, vals);
+  return DotProduct(vals, scale);
 }
 
 double RgbDiffLowFreq(double r0, double g0, double b0,
@@ -872,97 +996,77 @@ void ButteraugliQuadraticBlockDiffCoeffsXyz(const double scale[3],
 
 double SuppressionRedPlusGreen(double delta) {
   static double lut[] = {
-    2.2038456986630592,
-    1.5731079166300341,
-    1.5025796916608852,
-    1.240385560834905,
-    1.1080040420826909,
-    0.97302,
-    0.82587,
-    0.7401324462890625,
-    0.6623163635253906,
-    0.62287,
-    0.58227,
-    0.56027,
-    0.54027,
-    0.51627,
-    0.49227,
-    0.46777,
-    0.44327,
-    0.41527,
-    0.39227,
-    0.36727,
-    0.34527,
-    0.34527,
+    2.4080920167439297,
+    1.7310517871734234,
+    1.6530012641923442,
+    1.2793750898946559,
+    1.174310066587132,
+    1.08674227374109,
+    0.9395922737410899,
+    0.74560027001709,
+    0.625061913513,
+    0.585615549987,
+    0.545015549987,
+    0.523015549987,
+    0.523015549987,
   };
   return Interpolate(lut, sizeof(lut) / sizeof(lut[0]), delta);
 }
 
 double SuppressionRedMinusGreen(double delta) {
   static double lut[] = {
-    1.9132731619110555,
-    1.1827935095723001,
-    1.166906161979664,
-    1.14765450496,
-    1.0961,
-    0.97302,
+    3.439854711245826,
+    0.9057815912437459,
+    0.8795942436511097,
+    0.8691824600776474,
+    0.8591824600776476,
+    0.847448339843269,
     0.82587,
-    0.729,
-    0.6222,
-    0.5856,
-    0.519695,
-    0.497695,
-    0.477695,
-    0.453695,
-    0.429695,
-    0.405195,
-    0.380695,
-    0.352695,
-    0.329695,
-    0.304695,
-    0.282695,
-    0.282695,
+    0.80442724547356859,
+    0.69762724547356858,
+    0.66102724547356861,
+    0.59512224547356851,
+    0.57312224547356849,
+    0.55312224547356847,
+    0.52912224547356856,
+    0.50512224547356854,
+    0.50512224547356854,
   };
   return Interpolate(lut, sizeof(lut) / sizeof(lut[0]), delta);
 }
 
 double SuppressionBlue(double delta) {
   static double lut[] = {
-    1.7831013900451262,
-    1.7756117239303137,
-    1.733790483066747,
-    1.52,
-    1.4,
+    1.796130974060199,
+    1.7586413079453862,
+    1.7268200670818195,
+    1.6193338330644527,
+    1.4578801627801556,
     1.05,
     0.95,
     0.8963665327,
     0.7844709485,
-    0.5895605387,
-    0.5532016245,
-    0.5217229038,
-    0.5102898015,
-    0.5014958403,
-    0.467664025,
-    0.4395366717,
-    0.4079012311,
-    0.3799012311,
-    0.3569012311,
-    0.3319012311,
-    0.3099012311,
-    0.3099012311,
+    0.71381616456428487,
+    0.67745725036428484,
+    0.64597852966428482,
+    0.63454542736428488,
+    0.6257514661642849,
+    0.59191965086428489,
+    0.56379229756428484,
+    0.53215685696428483,
+    0.50415685696428492,
+    0.50415685696428492,
   };
   return Interpolate(lut, sizeof(lut) / sizeof(lut[0]), delta);
 }
 
-// mins[x + y * xsize] is the minimum of the values in the 14x14 square.
-// mins[x + y * xsize] is the minimum
-// of the values in the square_size square with coordinates
+// Replaces values[x + y * xsize] with the minimum of the values in the
+// square_size square with coordinates
 //   x - offset .. x + square_size - offset - 1,
 //   y - offset .. y + square_size - offset - 1.
 void MinSquareVal(size_t square_size, size_t offset,
                   size_t xsize, size_t ysize,
-                  const float *values,
-                  float *mins) {
+                  float *values) {
   // offset is not negative and smaller than square_size.
   assert(offset < square_size);
   std::vector<float> tmp(xsize * ysize);
@@ -985,16 +1089,17 @@ void MinSquareVal(size_t square_size, size_t offset,
       for (size_t j = minw + 1; j < maxw; ++j) {
         min = fmin(min, tmp[j + y * xsize]);
       }
-      mins[x + y * xsize] = min;
+      values[x + y * xsize] = min;
     }
   }
 }
 
 static const int kRadialWeightSize = 5;
 
-void RadialWeights(double* output) {
-  const double limit = 1.917;
-  const double range = 0.34;
+double RadialWeights(double* output) {
+  const double limit = 1.946968773063937;
+  const double range = 0.28838147488925875;
+  double total_weight = 0.0;
   for(int i=0;i<kRadialWeightSize;i++) {
     for(int j=0;j<kRadialWeightSize;j++) {
       int ddx = i - kRadialWeightSize / 2;
@@ -1009,84 +1114,101 @@ void RadialWeights(double* output) {
         result = 0;
       }
       output[i*kRadialWeightSize+j] = result;
+      total_weight += result;
     }
   }
+  return total_weight;
 }
 
 // ===== Functions used by Suppression() only =====
-void Average5x5(const std::vector<float> &localh,
-                  const std::vector<float> &localv,
-                  int xsize, int ysize, std::vector<float>* output) {
+void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
+  std::vector<float> tmp = *diffs;
   assert(kRadialWeightSize % 2 == 1);
   double patch[kRadialWeightSize*kRadialWeightSize];
-  RadialWeights(patch);
+  double total_weight = RadialWeights(patch);
+  double total_weight_inv = 1.0 / total_weight;
   for (int y = 0; y < ysize; y++) {
     for (int x = 0; x < xsize; x++) {
       double sum = 0.0;
-      double total_weight = 0.0;
       for(int dy = 0; dy < kRadialWeightSize; dy++) {
         int yy = y - kRadialWeightSize/2 + dy;
         if (yy < 0 || yy >= ysize) {
           continue;
         }
-        for (int xx = std::max(0, x - kRadialWeightSize / 2), dx = 0,
-                 xlim = std::min(xsize, x + kRadialWeightSize / 2 + 1);
+        int dx = 0;
+        const int xlim = std::min(xsize, x + kRadialWeightSize / 2 + 1);
+        for (int xx = std::max(0, x - kRadialWeightSize / 2);
              xx < xlim; xx++, dx++) {
           const int ix = yy * xsize + xx;
           double w = patch[dy * kRadialWeightSize + dx];
-          sum += w * (localh[ix] + localv[ix]);
-          total_weight += 2*w;
+          sum += w * tmp[ix];
         }
       }
-      (*output)[y * xsize + x] = sum / total_weight;
+      (*diffs)[y * xsize + x] = sum * total_weight_inv;
     }
   }
 }
 
 void DiffPrecompute(
     const std::vector<std::vector<float> > &rgb, size_t xsize, size_t ysize,
-    std::vector<std::vector<float> > *htab,
-    std::vector<std::vector<float> > *vtab) {
+    std::vector<std::vector<float> > *suppression) {
+  const size_t size = xsize * ysize;
+  static const double kSigma[3] = {
+    1.5406666666666667,
+    1.5745555555555555,
+    0.7178888888888888,
+  };
+  *suppression = rgb;
+  const double muls[3] = {
+    0.9594825346868103,
+    0.9594825346868103,
+    0.563781684306615,
+  };
   for (int i = 0; i < 3; ++i) {
-    (*vtab)[i].resize(xsize * ysize);
-    (*htab)[i].resize(xsize * ysize);
+    GaussBlurApproximation(xsize, ysize, (*suppression)[i].data(), kSigma[i]);
+    for (size_t x = 0; x < size; ++x) {
+      (*suppression)[i][x] = muls[i] * (rgb[i][x] + (*suppression)[i][x]);
+    }
   }
   for (size_t y = 0; y < ysize; ++y) {
     for (size_t x = 0; x < xsize; ++x) {
       size_t ix = x + xsize * y;
+      double valsh[3] = { 0.0 };
+      double valsv[3] = { 0.0 };
       if (x + 1 < xsize) {
         const int ix2 = ix + 1;
-        double ave_r = (rgb[0][ix] + rgb[0][ix2]) * 0.5;
-        double ave_g = (rgb[1][ix] + rgb[1][ix2]) * 0.5;
-        double ave_b = (rgb[2][ix] + rgb[2][ix2]) * 0.5;
-        double mul_r = GammaDerivativeLut(ave_r);
-        double mul_g = GammaDerivativeLut(ave_g);
-        double mul_b = GammaDerivativeLut(ave_b);
-        double diff[3];
-        RgbDiffSquaredMultiChannel(mul_r * (rgb[0][ix] - rgb[0][ix2]),
-                                   mul_g * (rgb[1][ix] - rgb[1][ix2]),
-                                   mul_b * (rgb[2][ix] - rgb[2][ix2]),
-                                   &diff[0]);
-        (*htab)[0][ix] = sqrt(diff[0]);
-        (*htab)[1][ix] = sqrt(diff[1]);
-        (*htab)[2][ix] = sqrt(diff[2]);
+        double ave_r = ((*suppression)[0][ix] + (*suppression)[0][ix2]) * 0.5;
+        double ave_g = ((*suppression)[1][ix] + (*suppression)[1][ix2]) * 0.5;
+        double ave_b = ((*suppression)[2][ix] + (*suppression)[2][ix2]) * 0.5;
+        double gamma[3] = {
+          GammaDerivativeLut(ave_r),
+          GammaDerivativeLut(ave_g),
+          GammaDerivativeLut(ave_b),
+        };
+        MixGamma(gamma);
+        double r0 = gamma[0] * ((*suppression)[0][ix] - (*suppression)[0][ix2]);
+        double g0 = gamma[1] * ((*suppression)[1][ix] - (*suppression)[1][ix2]);
+        double b0 = gamma[2] * ((*suppression)[2][ix] - (*suppression)[2][ix2]);
+        RgbToVals(r0, g0, b0, &valsh[0], &valsh[1], &valsh[2]);
       }
       if (y + 1 < ysize) {
         const int ix2 = ix + xsize;
-        double ave_r = (rgb[0][ix] + rgb[0][ix2]) * 0.5;
-        double ave_g = (rgb[1][ix] + rgb[1][ix2]) * 0.5;
-        double ave_b = (rgb[2][ix] + rgb[2][ix2]) * 0.5;
-        double mul_r = GammaDerivativeLut(ave_r);
-        double mul_g = GammaDerivativeLut(ave_g);
-        double mul_b = GammaDerivativeLut(ave_b);
-        double diff[3];
-        RgbDiffSquaredMultiChannel(mul_r * (rgb[0][ix] - rgb[0][ix2]),
-                                   mul_g * (rgb[1][ix] - rgb[1][ix2]),
-                                   mul_b * (rgb[2][ix] - rgb[2][ix2]),
-                                   &diff[0]);
-        (*vtab)[0][ix] = sqrt(diff[0]);
-        (*vtab)[1][ix] = sqrt(diff[1]);
-        (*vtab)[2][ix] = sqrt(diff[2]);
+        double ave_r = ((*suppression)[0][ix] + (*suppression)[0][ix2]) * 0.5;
+        double ave_g = ((*suppression)[1][ix] + (*suppression)[1][ix2]) * 0.5;
+        double ave_b = ((*suppression)[2][ix] + (*suppression)[2][ix2]) * 0.5;
+        double gamma[3] = {
+          GammaDerivativeLut(ave_r),
+          GammaDerivativeLut(ave_g),
+          GammaDerivativeLut(ave_b),
+        };
+        MixGamma(gamma);
+        double r0 = gamma[0] * ((*suppression)[0][ix] - (*suppression)[0][ix2]);
+        double g0 = gamma[1] * ((*suppression)[1][ix] - (*suppression)[1][ix2]);
+        double b0 = gamma[2] * ((*suppression)[2][ix] - (*suppression)[2][ix2]);
+        RgbToVals(r0, g0, b0, &valsv[0], &valsv[1], &valsv[2]);
+      }
+      for (int i = 0; i < 3; ++i) {
+        (*suppression)[i][ix] = 0.5 * (fabs(valsh[i]) + fabs(valsv[i]));
       }
     }
   }
@@ -1095,55 +1217,29 @@ void DiffPrecompute(
 void SuppressionRgb(const std::vector<std::vector<float> > &rgb,
                     size_t xsize, size_t ysize,
                     std::vector<std::vector<float> > *suppression) {
-  size_t size = xsize * ysize;
-  std::vector<std::vector<float> > localh(3);
-  std::vector<std::vector<float> > localv(3);
-  std::vector<std::vector<float> > local(3);
+  DiffPrecompute(rgb, xsize, ysize, suppression);
   for (int i = 0; i < 3; ++i) {
-    (*suppression)[i].resize(size);
-    localh[i].resize(size);
-    localv[i].resize(size);
-    local[i].resize(size);
-  }
-  static const double kSigma[3] = {
-    1.5806666666666667,
-    1.6145555555555555,
-    0.7578888888888888,
-  };
-  std::vector<std::vector<float> > rgb_blurred(rgb);
-  const double muls[3] = { 0.92,
-                           0.92,
-                           0.58 };
-  for (int i = 0; i < 3; ++i) {
-    GaussBlurApproximation(xsize, ysize, rgb_blurred[i].data(), kSigma[i]);
-    for (size_t x = 0; x < size; ++x) {
-      rgb_blurred[i][x] = muls[i] * (rgb[i][x] + rgb_blurred[i][x]);
-    }
-  }
-  DiffPrecompute(rgb_blurred, xsize, ysize, &localh, &localv);
-  for (int i = 0; i < 3; ++i) {
-    Average5x5(localh[i], localv[i], xsize, ysize, &local[i]);
-    MinSquareVal(14, 3, xsize, ysize,
-                 local[i].data(), (*suppression)[i].data());
+    Average5x5(xsize, ysize, &(*suppression)[i]);
+    MinSquareVal(14, 3, xsize, ysize, (*suppression)[i].data());
     static const double sigma[3] = {
-      16.442676435716145,
-      15.698088616478731,
-      9.33141632753124,
+      13.963188902126857,
+      14.912114324178102,
+      12.316604481444129,
     };
     GaussBlurApproximation(xsize, ysize, (*suppression)[i].data(), sigma[i]);
   }
   for (size_t y = 0; y < ysize; ++y) {
     for (size_t x = 0; x < xsize; ++x) {
       const double muls[3] = {
-        34.56456168215157,
-        4.163065644554275,
-        30.499881780067923,
+        34.702156451753055,
+        4.259296809697752,
+        30.51708015595755,
       };
       const size_t idx = y * xsize + x;
       const double a = (*suppression)[0][idx];
       const double b = (*suppression)[1][idx];
       const double c = (*suppression)[2][idx];
-      const double mix = 0.0;
+      const double mix = 0.003513839880391094;
       (*suppression)[0][idx] = SuppressionRedMinusGreen(muls[0] * a + mix * b);
       (*suppression)[1][idx] = SuppressionRedPlusGreen(muls[1] * b);
       (*suppression)[2][idx] = SuppressionBlue(muls[2] * c + mix * b);

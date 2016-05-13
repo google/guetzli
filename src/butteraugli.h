@@ -63,7 +63,7 @@ namespace butteraugli {
 // Returns true on success.
 
 const double kButteraugliGood = 1.000;
-const double kButteraugliBad = 1.0563581223198708;
+const double kButteraugliBad = 1.088091;
 
 bool ButteraugliInterface(size_t xsize, size_t ysize,
                           const std::vector<std::vector<float> > &rgb0,
@@ -95,6 +95,72 @@ bool ButteraugliAdaptiveQuantization(size_t xsize, size_t ysize,
 
 // Implementation details, don't use anything below or your code will
 // break in the future.
+
+// Allows incremental computation of the butteraugli map by keeping some
+// intermediate results.
+class ButteraugliComparator {
+ public:
+  ButteraugliComparator(size_t xsize, size_t ysize, int step);
+
+  // Computes the butteraugli map from scratch, updates all intermediate
+  // results.
+  void DistanceMap(const std::vector<std::vector<float> > &rgb0,
+                   const std::vector<std::vector<float> > &rgb1,
+                   std::vector<float> &result);
+
+  // Computes the butteraugli map by resuing some intermediate results from the
+  // previous run.
+  //
+  // Must be called with the same rgb0 image as in the last DistanceMap() call.
+  //
+  // If changed[res_y * res_xsize_ + res_x] is false, it assumes that rgb1
+  // did not change compared to the previous calls of this function or
+  // of DistanceMap() anywhere within an 8x8 block with upper-left corner in
+  // (step_ * res_x, step_ * res_y).
+  void DistanceMapIncremental(const std::vector<std::vector<float> > &rgb0,
+                              const std::vector<std::vector<float> > &rgb1,
+                              const std::vector<bool>& changed,
+                              std::vector<float> &result);
+
+  // Copies the suppression map computed by the previous call to DistanceMap()
+  // or DistanceMapIncremental() to *suppression.
+  void GetSuppressionMap(std::vector<std::vector<float> >* suppression) {
+    *suppression = scale_xyz_;
+  }
+
+ private:
+  void Dct8x8mapIncremental(const std::vector<std::vector<float> > &rgb0,
+                            const std::vector<std::vector<float> > &rgb1,
+                            const std::vector<bool>& changed);
+
+  void EdgeDetectorMap(const std::vector<std::vector<float> > &rgb0,
+                       const std::vector<std::vector<float> > &rgb1);
+
+  void SuppressionMap(const std::vector<std::vector<float> > &rgb0,
+                      const std::vector<std::vector<float> > &rgb1);
+
+  void CombineChannels(std::vector<float>* result);
+
+  void FinalizeDistanceMap(std::vector<float>* result);
+
+  const size_t xsize_;
+  const size_t ysize_;
+  const size_t num_pixels_;
+  const int step_;
+  const size_t res_xsize_;
+  const size_t res_ysize_;
+
+  // Contains the suppression map, 3 layers, each xsize_ * ysize_ in size.
+  std::vector<std::vector<float> > scale_xyz_;
+  // The blurred original used in the edge detector map.
+  std::vector<std::vector<float> > blurred0_;
+  // The following are all step_ x step_ subsampled maps containing
+  // 3-dimensional vectors.
+  std::vector<float> gamma_map_;
+  std::vector<float> dct8x8map_dc_;
+  std::vector<float> dct8x8map_ac_;
+  std::vector<float> edge_detector_map_;
+};
 
 void ButteraugliMap(
     size_t xsize, size_t ysize,
@@ -138,6 +204,14 @@ double RgbDiffLowFreqScaledSquared(double r0, double g0, double b0,
                                    double r1, double g1, double b1,
                                    const double scale[3]);
 
+void RgbDiffSquaredXyzAccumulate(double r0, double g0, double b0,
+                                 double r1, double g1, double b1,
+                                 double factor, double res[3]);
+
+void RgbDiffLowFreqSquaredXyzAccumulate(double r0, double g0, double b0,
+                                        double r1, double g1, double b1,
+                                        double factor, double res[3]);
+
 // Version of rgb diff that applies gamma correction to the diffs.
 // The rgb "background" values where the diffs occur are given as
 // ave_r, ave_g, ave_b.
@@ -152,13 +226,11 @@ double RgbDiffGammaLowFreq(double ave_r, double ave_g, double ave_b,
 // The high frequency color model used by RgbDiff().
 static inline void RgbToXyz(double r, double g, double b,
                             double *valx, double *valy, double *valz) {
-  static const double mul0 = 1.346049931681325;
-  static const double mul1 = 1.2368889594842547;
-  static const double a0 = mul0 * 0.171;
-  static const double a1 = mul0 * -0.0812;
-  static const double b0 = mul1 * 0.08265;
-  static const double b1 = mul1 * 0.168;
-  static const double c0 = 0.2710592310046686;
+  static const double a0 = 0.19334520917582404;
+  static const double a1 = -0.08311773494921797;
+  static const double b0 = 0.07713792858953174;
+  static const double b1 = 0.2208810782725995;
+  static const double c0 = 0.26188332580170837;
   *valx = a0 * r + a1 * g;
   *valy = b0 * r + b1 * g;
   *valz = c0 * b;
@@ -178,26 +250,16 @@ void SuppressionRgb(const std::vector<std::vector<float> > &rgb,
 // The Dct computation used in butteraugli.
 void ButteraugliDctd8x8(double m[64]);
 
-// Compute distance map based on differences in 8x8 dct coefficients.
-void Dctd8x8mapWithRgbDiff(
-    const std::vector<std::vector<float> > &rgb0,
-    const std::vector<std::vector<float> > &rgb1,
-    const std::vector<std::vector<float> > &scale_xyz,
-    size_t xsize, size_t ysize,
-    std::vector<float> *result);
-
 // Rgbdiff for one 8x8 block.
-double ButteraugliDctd8x8RgbDiff(const double scale[3],
-                                 const double gamma[3],
-                                 double rgb0[192],
-                                 double rgb1[192]);
+void ButteraugliDctd8x8RgbDiff(const double gamma[3],
+                               double rgb0[192],
+                               double rgb1[192],
+                               double diff_xyz_dc[3],
+                               double diff_xyz_ac[3]);
 
 double GammaDerivativeAvgMin(const double m0[64], const double m1[64]);
 
-// Makes a cluster of local errors to be more impactful than
-// just a single error.
-void ApplyErrorClustering(size_t xsize, size_t ysize,
-                          std::vector<float>* distmap);
+void MixGamma(double gamma[3]);
 
 // Fills in coeffs[0..191] vector in such a way that if d[0..191] is the
 // difference vector of the XYZ-color space DCT coefficients of an 8x8 block,
@@ -208,6 +270,10 @@ void ButteraugliQuadraticBlockDiffCoeffsXyz(const double scale[3],
                                             const double gamma[3],
                                             const double rgb[192],
                                             double coeffs[192]);
+
+void GaussBlurApproximation(size_t xsize, size_t ysize, float* channel,
+                            double sigma);
+
 
 }  // namespace butteraugli
 
