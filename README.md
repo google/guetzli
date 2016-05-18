@@ -1,6 +1,6 @@
-# butteraugli -- a tool for measuring differences between images
+# Butteraugli — a tool for measuring differences between images
 
-## introduction
+## Introduction
 
 Butteraugli is a project that estimates the psychovisual similarity of two
 images. It gives a score for the images that is reliable in the domain of
