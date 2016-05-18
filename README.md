@@ -1,8 +1,6 @@
-# butteraugli
+# butteraugli -- a tool for measuring differences between images
 
-> A tool for measuring differences between images
-
-## Introduction
+## introduction
 
 Butteraugli is a project that estimates the psychovisual similarity of two
 images. It gives a score for the images that is reliable in the domain of
@@ -36,10 +34,3 @@ Only a C++ interface is provided. The interface takes two images, gives out a
 map and a scalar value defining the difference. The scalar value can be
 compared to two reference values that divide the value space into three
 experience classes: 'great', 'acceptable' and 'not acceptable'. 
-
-## Building the CLI
-This will generate a binary executable named `compare_pngs`
-
-_unix based oparting systems_
-- Install [libpng](http://www.libpng.org/)
-- Run the `make` command inside of the `src` directory
