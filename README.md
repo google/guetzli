@@ -22,14 +22,20 @@ To try out Guetzli you need to [build](#building) or
 binary reads a PNG or JPEG image and creates an optimized JPEG image:
 
 ```bash
-bazel-bin/guetzli original.png output.jpg
-bazel-bin/guetzli original.jpg output.jpg
+bazel-bin/guetzli [--quality Q] [--verbose] original.png output.jpg
+bazel-bin/guetzli [--quality Q] [--verbose] original.jpg output.jpg
 ```
+
+Note that Guetzli is designed to work on high quality images (e.g. that haven't
+been already compressed with other JPEG encoders). While it will work on other
+images too, results will be poorer. You can try compressing an enclosed [sample
+high quality
+image](https://github.com/google/guetzli/releases/download/v0/bees.png).
 
 You can pass a `--quality Q` parameter to set quality in units equivalent to
 libjpeg quality. You can also pass a `--verbose` flag to see a trace of encoding
 attempts made.
 
-Please note that JPEG images do not support alpha channel (transparency). If
-the input is a PNG with an alpha channel, it will be overlaid on black
-background before encoding.
+Please note that JPEG images do not support alpha channel (transparency). If the
+input is a PNG with an alpha channel, it will be overlaid on black background
+before encoding.
