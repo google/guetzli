@@ -104,7 +104,7 @@ bool EncodeSOF(const JPEGData& jpg, JPEGOutput out) {
   std::vector<uint8_t> data(marker_len + 2);
   size_t pos = 0;
   data[pos++] = 0xff;
-  data[pos++] = 0xc0;
+  data[pos++] = 0xc1;
   data[pos++] = marker_len >> 8;
   data[pos++] = marker_len & 0xff;
   data[pos++] = kJpegPrecision;
