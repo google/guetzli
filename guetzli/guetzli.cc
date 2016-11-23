@@ -24,6 +24,12 @@
 #include "guetzli/quality.h"
 #include "guetzli/stats.h"
 
+#ifndef GFLAGS_NAMESPACE
+using namespace gflags;
+#else
+using namespace GFLAGS_NAMESPACE;
+#endif
+
 
 DEFINE_bool(verbose, false,
             "Print a verbose trace of all attempts to standard output.");
@@ -173,12 +179,13 @@ void WriteFileOrDie(FILE* f, const std::string& contents) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  gflags::SetUsageMessage("Guetzli JPEG compressor. Usage: \n"
-                          "guetzli [flags] input_filename output_filename");
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  SetUsageMessage(
+      "Guetzli JPEG compressor. Usage: \n"
+      "guetzli [flags] input_filename output_filename");
+  ParseCommandLineFlags(&argc, &argv, true);
 
   if (argc != 3) {
-    gflags::ShowUsageWithFlags(argv[0]);
+    ShowUsageWithFlags(argv[0]);
     return 1;
   }
 

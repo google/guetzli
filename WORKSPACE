@@ -30,8 +30,7 @@ bind(
     actual = "@gflags_git//:gflags",
 )
 
-git_repository(
+local_repository(
     name = "butteraugli",
-    commit = "037eff792f5b1cc7c21cc2cdd325de712c387e11",
-    remote = "https://github.com/google/butteraugli",
+    path = "third_party/butteraugli/",
 )

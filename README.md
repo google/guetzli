@@ -11,9 +11,17 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     downloading an
     [archive](https://github.com/google/guetzli/archive/master.zip) and
     unpacking it.
-2.  Install [Bazel](https://www.bazel.io) by following its [installation
-    instructions](https://www.bazel.io/versions/master/docs/install.html).
-3.  Run `bazel build -c opt :guetzli` in the directory this README file is in.
+2.  Install [libpng](http://www.libpng.org/pub/png/libpng.html) and
+    [gflags](https://github.com/gflags/gflags). If using your operating system
+    package manager, install development versions of the packages if the
+    distinction exists.
+    * On Ubuntu, do `apt-get install libpng-dev libgflags-dev`.
+    * On Arch Linux, do `pacman -S libpng gflags`.
+3. Run `make` and expect the binary to be created in `bin/Release/guetzli`.
+
+There's also a [Bazel](https://bazel.build) build configuration provided. If
+you have Bazel installed, you can also compile Guetzli by running
+`bazel -c opt :guetzli`.
 
 # Using
 
@@ -22,8 +30,8 @@ To try out Guetzli you need to [build](#building) or
 binary reads a PNG or JPEG image and creates an optimized JPEG image:
 
 ```bash
-bazel-bin/guetzli [--quality Q] [--verbose] original.png output.jpg
-bazel-bin/guetzli [--quality Q] [--verbose] original.jpg output.jpg
+guetzli [--quality Q] [--verbose] original.png output.jpg
+guetzli [--quality Q] [--verbose] original.jpg output.jpg
 ```
 
 Note that Guetzli is designed to work on high quality images (e.g. that haven't
