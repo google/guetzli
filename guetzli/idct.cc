@@ -18,6 +18,7 @@
 
 #include "guetzli/idct.h"
 
+#include <algorithm>
 #include <math.h>
 
 namespace guetzli {

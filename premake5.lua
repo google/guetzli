@@ -11,9 +11,10 @@ workspace "guetzli"
   project "guetzli"
     kind "ConsoleApp"
     language "C++"
-    nuget { "gflags:2.1.2.1", "libpng:1.6.26.1" }
     includedirs { ".", "third_party/butteraugli" }
-    linkoptions { "-lpng", "-lgflags_nothreads" }
+    filter "action:gmake"
+      linkoptions { "-lpng", "-lgflags_nothreads" }
+    filter {}
     -- This should work with gflags 2.x. The gflags namespace is absent in
     -- gflags-2.0, which is the version in Ubuntu Trusty package repository.
     defines { "GFLAGS_NAMESPACE=google" }

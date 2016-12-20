@@ -16,6 +16,7 @@
 
 #include "guetzli/preprocess_downsample.h"
 
+#include <algorithm>
 #include <assert.h>
 #include <string.h>
 #include <cmath>
