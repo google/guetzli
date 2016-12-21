@@ -7,6 +7,8 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
 
 # Building
 
+## On POSIX systems
+
 1.  Get a copy of the source code, either by cloning this repository, or by
     downloading an
     [archive](https://github.com/google/guetzli/archive/master.zip) and
@@ -15,13 +17,29 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     [gflags](https://github.com/gflags/gflags). If using your operating system
     package manager, install development versions of the packages if the
     distinction exists.
-    * On Ubuntu, do `apt-get install libpng-dev libgflags-dev`.
-    * On Arch Linux, do `pacman -S libpng gflags`.
-3. Run `make` and expect the binary to be created in `bin/Release/guetzli`.
+    *   On Ubuntu, do `apt-get install libpng-dev libgflags-dev`.
+    *   On Arch Linux, do `pacman -S libpng gflags`.
+3.  Run `make` and expect the binary to be created in `bin/Release/guetzli`.
 
-There's also a [Bazel](https://bazel.build) build configuration provided. If
-you have Bazel installed, you can also compile Guetzli by running
-`bazel -c opt :guetzli`.
+## On Windows
+
+1.  Get a copy of the source code, either by cloning this repository, or by
+    downloading an
+    [archive](https://github.com/google/guetzli/archive/master.zip) and
+    unpacking it.
+2.  Install [Visual Studio 2015](https://www.visualstudio.com) and
+    [vcpkg](https://github.com/Microsoft/vcpkg)
+3.  Install `libpng` and `gflags` using vcpkg: `.\vcpkg install libpng gflags`.
+4.  Cause the installed packages to be available system-wide: `.\vcpkg integrate
+    install`. If you prefer not to do this, refer to [vcpkg's
+    documentation](https://github.com/Microsoft/vcpkg/blob/master/docs/EXAMPLES.md#example-1-2).
+5.  Open the Visual Studio project enclosed in the repository and build it.
+
+## With Bazel
+
+There's also a [Bazel](https://bazel.build) build configuration provided. If you
+have Bazel installed, you can also compile Guetzli by running `bazel -c opt
+:guetzli`.
 
 # Using
 

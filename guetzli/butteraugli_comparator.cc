@@ -16,6 +16,8 @@
 
 #include "guetzli/butteraugli_comparator.h"
 
+#include <algorithm>
+
 #include "guetzli/debug_print.h"
 #include "guetzli/gamma_correct.h"
 #include "guetzli/score.h"

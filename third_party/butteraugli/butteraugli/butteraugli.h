@@ -118,7 +118,7 @@ bool ButteraugliAdaptiveQuantization(size_t xsize, size_t ysize,
 // break in the future.
 
 #ifdef _MSC_VER
-#define BUTTERAUGLI_RESTRICT __restrict
+#define BUTTERAUGLI_RESTRICT
 #else
 #define BUTTERAUGLI_RESTRICT __restrict__
 #endif
@@ -212,7 +212,7 @@ class Image {
  public:
   using T = ComponentType;
 
-  Image() : xsize_(0), ysize_(0), bytes_per_row_(0), bytes_(nullptr, Ignore) {}
+  Image() : xsize_(0), ysize_(0), bytes_per_row_(0), bytes_(static_cast<uint8_t*>(nullptr), Ignore) {}
 
   Image(const size_t xsize, const size_t ysize)
       : xsize_(xsize),

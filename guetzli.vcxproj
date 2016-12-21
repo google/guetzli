@@ -1,0 +1,145 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C9FCBE14-35DC-3DB0-3EF4-C886AA52A411}</ProjectGuid>
+    <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>guetzli</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>bin\Release\</OutDir>
+    <IntDir>obj\Release\</IntDir>
+    <TargetName>guetzli</TargetName>
+    <TargetExt>.exe</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>bin\Debug\</OutDir>
+    <IntDir>obj\Debug\</IntDir>
+    <TargetName>guetzli</TargetName>
+    <TargetExt>.exe</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>GFLAGS_NAMESPACE=google;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;third_party\butteraugli;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Full</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <StringPooling>true</StringPooling>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>GFLAGS_NAMESPACE=google;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;third_party\butteraugli;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="guetzli\butteraugli_comparator.h" />
+    <ClInclude Include="guetzli\color_transform.h" />
+    <ClInclude Include="guetzli\comparator.h" />
+    <ClInclude Include="guetzli\dct_double.h" />
+    <ClInclude Include="guetzli\debug_print.h" />
+    <ClInclude Include="guetzli\entropy_encode.h" />
+    <ClInclude Include="guetzli\fast_log.h" />
+    <ClInclude Include="guetzli\fdct.h" />
+    <ClInclude Include="guetzli\gamma_correct.h" />
+    <ClInclude Include="guetzli\idct.h" />
+    <ClInclude Include="guetzli\jpeg_bit_writer.h" />
+    <ClInclude Include="guetzli\jpeg_data.h" />
+    <ClInclude Include="guetzli\jpeg_data_decoder.h" />
+    <ClInclude Include="guetzli\jpeg_data_encoder.h" />
+    <ClInclude Include="guetzli\jpeg_data_reader.h" />
+    <ClInclude Include="guetzli\jpeg_data_writer.h" />
+    <ClInclude Include="guetzli\jpeg_error.h" />
+    <ClInclude Include="guetzli\jpeg_huffman_decode.h" />
+    <ClInclude Include="guetzli\output_image.h" />
+    <ClInclude Include="guetzli\preprocess_downsample.h" />
+    <ClInclude Include="guetzli\processor.h" />
+    <ClInclude Include="guetzli\quality.h" />
+    <ClInclude Include="guetzli\quantize.h" />
+    <ClInclude Include="guetzli\score.h" />
+    <ClInclude Include="guetzli\stats.h" />
+    <ClInclude Include="third_party\butteraugli\butteraugli\butteraugli.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="guetzli\butteraugli_comparator.cc" />
+    <ClCompile Include="guetzli\dct_double.cc" />
+    <ClCompile Include="guetzli\debug_print.cc" />
+    <ClCompile Include="guetzli\entropy_encode.cc" />
+    <ClCompile Include="guetzli\fdct.cc" />
+    <ClCompile Include="guetzli\gamma_correct.cc" />
+    <ClCompile Include="guetzli\guetzli.cc" />
+    <ClCompile Include="guetzli\idct.cc" />
+    <ClCompile Include="guetzli\jpeg_data.cc" />
+    <ClCompile Include="guetzli\jpeg_data_decoder.cc" />
+    <ClCompile Include="guetzli\jpeg_data_encoder.cc" />
+    <ClCompile Include="guetzli\jpeg_data_reader.cc" />
+    <ClCompile Include="guetzli\jpeg_data_writer.cc" />
+    <ClCompile Include="guetzli\jpeg_huffman_decode.cc" />
+    <ClCompile Include="guetzli\output_image.cc" />
+    <ClCompile Include="guetzli\preprocess_downsample.cc" />
+    <ClCompile Include="guetzli\processor.cc" />
+    <ClCompile Include="guetzli\quality.cc" />
+    <ClCompile Include="guetzli\quantize.cc" />
+    <ClCompile Include="guetzli\score.cc" />
+    <ClCompile Include="third_party\butteraugli\butteraugli\butteraugli.cc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

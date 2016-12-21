@@ -16,6 +16,7 @@
 
 #include "guetzli/jpeg_data_reader.h"
 
+#include <algorithm>
 #include <stdio.h>
 #include <string.h>
 

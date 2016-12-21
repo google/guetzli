@@ -16,6 +16,7 @@
 
 #include "guetzli/jpeg_data_encoder.h"
 
+#include <algorithm>
 #include <string.h>
 
 #include "guetzli/fdct.h"
