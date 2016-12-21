@@ -13,7 +13,9 @@ workspace "guetzli"
     language "C++"
     includedirs { ".", "third_party/butteraugli" }
     filter "action:gmake"
-      linkoptions { "-lpng", "-lgflags_nothreads" }
+      linkoptions { "-lpng", "-lgflags_nothreads", "-lz" }
+    filter "action:vs*"
+      links { "shlwapi" }
     filter {}
     -- This should work with gflags 2.x. The gflags namespace is absent in
     -- gflags-2.0, which is the version in Ubuntu Trusty package repository.
