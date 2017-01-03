@@ -14,9 +14,9 @@ new_http_archive(
 new_http_archive(
     name = "zlib_archive",
     build_file = "zlib.BUILD",
-    sha256 = "36658cb768a54c1d4dec43c3116c27ed893e88b02ecfcb44f2166f9c0b7f2a0d",
-    strip_prefix = "zlib-1.2.8",
-    url = "http://zlib.net/zlib-1.2.8.tar.gz",
+    sha256 = "73ab302ef31ed1e74895d2af56f52f5853f26b0370f3ef21954347acec5eaa21",
+    strip_prefix = "zlib-1.2.9",
+    url = "http://zlib.net/zlib-1.2.9.tar.gz",
 )
 
 git_repository(
