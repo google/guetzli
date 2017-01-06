@@ -38,8 +38,7 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
 ## With Bazel
 
 There's also a [Bazel](https://bazel.build) build configuration provided. If you
-have Bazel installed, you can also compile Guetzli by running `bazel -c opt
-:guetzli`.
+have Bazel installed, you can also compile Guetzli by running `bazel build -c opt //:guetzli`.
 
 # Using
 
