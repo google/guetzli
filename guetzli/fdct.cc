@@ -28,7 +28,7 @@ namespace {
 // Cosine table: C(k) = cos(k.pi/16)/sqrt(2), k = 1..7 using 15 bits signed
 const coeff_t kTable04[7] = { 22725, 21407, 19266, 16384, 12873,  8867, 4520 };
 // rows #1 and #7 are pre-multiplied by 2.C(1) before the 2nd pass.
-// This multiply is merged in the table of constants used during 1rst pass:
+// This multiply is merged in the table of constants used during 1st pass:
 const coeff_t kTable17[7] = { 31521, 29692, 26722, 22725, 17855, 12299, 6270 };
 // rows #2 and #6 are pre-multiplied by 2.C(2):
 const coeff_t kTable26[7] = { 29692, 27969, 25172, 21407, 16819, 11585, 5906 };
