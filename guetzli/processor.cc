@@ -265,7 +265,7 @@ class QuantMatrixGenerator {
   const bool downsample_;
   // Lower bound for quant matrix heuristic score used in binary search.
   double hscore_a_;
-  // Upper boun for quant matrix heuristic score used in binary search, or 0.0
+  // Upper bound for quant matrix heuristic score used in binary search, or 0.0
   // if no upper bound is found yet.
   double hscore_b_;
   // Cached value of the sum of all ContrastSensitivity() values over all
