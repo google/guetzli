@@ -13,7 +13,9 @@ workspace "guetzli"
     language "C++"
     includedirs { ".", "third_party/butteraugli" }
     filter "action:gmake"
-      linkoptions { "-lpng", "-lgflags_nothreads", "-lz" }
+      -- We add pthread, because gflags_nothreads depends on it (sic!) for some
+      -- versions of gflags.
+      links { "png", "gflags_nothreads", "z", "pthread" }
     filter "action:vs*"
       links { "shlwapi" }
     filter {}
