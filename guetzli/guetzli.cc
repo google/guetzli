@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <memory>
 #include <string>
+#include <string.h>
 #include "gflags/gflags.h"
 #include "png.h"
 #include "guetzli/processor.h"

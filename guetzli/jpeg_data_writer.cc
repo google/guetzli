@@ -18,6 +18,7 @@
 
 #include <assert.h>
 #include <cstdlib>
+#include <string.h>
 
 #include "guetzli/entropy_encode.h"
 #include "guetzli/fast_log.h"
