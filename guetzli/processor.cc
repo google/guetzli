@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <set>
+#include <string.h>
 #include <vector>
 
 #include "guetzli/butteraugli_comparator.h"
