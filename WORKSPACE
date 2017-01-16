@@ -16,7 +16,7 @@ new_http_archive(
     build_file = "zlib.BUILD",
     sha256 = "8d7e9f698ce48787b6e1c67e6bff79e487303e66077e25cb9784ac8835978017",
     strip_prefix = "zlib-1.2.10",
-    url = "http://zlib.net/zlib-1.2.10.tar.gz",
+    url = "http://zlib.net/fossils/zlib-1.2.10.tar.gz",
 )
 
 git_repository(
