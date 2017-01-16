@@ -13,7 +13,7 @@ workspace "guetzli"
     language "C++"
     includedirs { ".", "third_party/butteraugli" }
     filter "action:gmake"
-      linkoptions { "-lpng", "-lgflags_nothreads", "-lz" }
+      linkoptions { "-lpng", "-lgflags_nothreads", "-lz", "-lpthread" }
     filter "action:vs*"
       links { "shlwapi" }
     filter {}
