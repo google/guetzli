@@ -253,6 +253,7 @@ std::array<double, 21> MakeHighFreqColorDiffDx() {
   std::array<double, 21> lut;
   static const double off = 11.38708334481672;
   static const double inc = 14.550189611520716;
+  lut[0] = 0.0;
   lut[1] = off;
   for (int i = 2; i < 21; ++i) {
     lut[i] = lut[i - 1] + inc;
@@ -269,6 +270,7 @@ std::array<double, 21> MakeHighFreqColorDiffDy() {
   std::array<double, 21> lut;
   static const double off = 1.4103373714040413;
   static const double inc = 0.7084088867024;
+  lut[0] = 0.0;
   lut[1] = off;
   for (int i = 2; i < 21; ++i) {
     lut[i] = lut[i - 1] + inc;
@@ -284,6 +286,7 @@ const double *GetHighFreqColorDiffDy() {
 std::array<double, 21> MakeLowFreqColorDiffDy() {
   std::array<double, 21> lut;
   static const double inc = 5.2511644570349185;
+  lut[0] = 0.0;
   for (int i = 1; i < 21; ++i) {
     lut[i] = lut[i - 1] + inc;
   }
