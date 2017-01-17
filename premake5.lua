@@ -1,5 +1,7 @@
 workspace "guetzli"
   configurations { "Release", "Debug" }
+  filter "action:vs*"
+    platforms { "x86_64", "x86" }
 
   flags { "C++11" }
 
@@ -11,6 +13,7 @@ workspace "guetzli"
   project "guetzli"
     kind "ConsoleApp"
     language "C++"
+    flags "C++11"
     includedirs { ".", "third_party/butteraugli" }
     filter "action:gmake"
       -- We add pthread, because gflags_nothreads depends on it (sic!) for some
@@ -18,6 +21,10 @@ workspace "guetzli"
       links { "png", "gflags_nothreads", "z", "pthread" }
     filter "action:vs*"
       links { "shlwapi" }
+    filter "platforms:x86"
+      architecture "x86"
+    filter "platforms:x86_64"
+      architecture "x86_64"
     filter {}
     -- This should work with gflags 2.x. The gflags namespace is absent in
     -- gflags-2.0, which is the version in Ubuntu Trusty package repository.
