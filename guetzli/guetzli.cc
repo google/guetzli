@@ -158,7 +158,7 @@ std::string ReadFileOrDie(FILE* f) {
     exit(1);
   }
   std::unique_ptr<char[]> buf(new char[size]);
-  if (fread(buf.get(), 1, size, f) != size) {
+  if (fread(buf.get(), 1, size, f) != (size_t)size) {
     perror("fread");
     exit(1);
   }
