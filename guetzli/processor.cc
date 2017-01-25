@@ -845,6 +845,10 @@ bool Process(const Params& params, ProcessStats* stats,
     return false;
   }
   std::vector<uint8_t> rgb = DecodeJpegToRGB(jpg);
+  if (rgb.empty()) {
+    fprintf(stderr, "Invalid input JPEG file\n");
+    return false;
+  }
   GuetzliOutput out;
   ProcessStats dummy_stats;
   if (stats == nullptr) {
