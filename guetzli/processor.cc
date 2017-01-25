@@ -854,9 +854,13 @@ bool Process(const Params& params, ProcessStats* stats,
   if (stats == nullptr) {
     stats = &dummy_stats;
   }
-  ButteraugliComparator comparator(jpg.width, jpg.height, rgb,
-                                   params.butteraugli_target, stats);
-  bool ok = ProcessJpegData(params, jpg, &comparator, &out, stats);
+  std::unique_ptr<ButteraugliComparator> comparator;
+  if (jpg.width >= 32 && jpg.height >= 32) {
+    comparator.reset(
+        new ButteraugliComparator(jpg.width, jpg.height, rgb,
+                                  params.butteraugli_target, stats));
+  }
+  bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
   *jpg_out = out.jpeg_data;
   return ok;
 }
@@ -874,9 +878,13 @@ bool Process(const Params& params, ProcessStats* stats,
   if (stats == nullptr) {
     stats = &dummy_stats;
   }
-  ButteraugliComparator comparator(jpg.width, jpg.height, rgb,
-                                   params.butteraugli_target, stats);
-  bool ok = ProcessJpegData(params, jpg, &comparator, &out, stats);
+  std::unique_ptr<ButteraugliComparator> comparator;
+  if (jpg.width >= 32 && jpg.height >= 32) {
+    comparator.reset(
+        new ButteraugliComparator(jpg.width, jpg.height, rgb,
+                                  params.butteraugli_target, stats));
+  }
+  bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
   *jpg_out = out.jpeg_data;
   return ok;
 }
