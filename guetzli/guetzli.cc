@@ -16,6 +16,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <memory>
 #include <string>
 #include <string.h>
@@ -177,9 +178,16 @@ void WriteFileOrDie(FILE* f, const std::string& contents) {
   }
 }
 
+void TerminateHandler() {
+  fprintf(stderr, "Unhandled expection. Most likely insufficient memory available.\n"
+          "Make sure that there is 300MB/MPix of memory available.\n");
+  _exit(1);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+  std::set_terminate(TerminateHandler);
   SetUsageMessage(
       "Guetzli JPEG compressor. Usage: \n"
       "guetzli [flags] input_filename output_filename");

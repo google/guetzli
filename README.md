@@ -42,6 +42,9 @@ have Bazel installed, you can also compile Guetzli by running `bazel build -c op
 
 # Using
 
+**Note:** Guetzli uses a large amount of memory. You should provide 300MB of
+memory per 1MPix of the input image.
+
 To try out Guetzli you need to [build](#building) or
 [download](https://github.com/google/guetzli/releases) the Guetzli binary. The
 binary reads a PNG or JPEG image and creates an optimized JPEG image:
