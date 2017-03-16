@@ -35,6 +35,16 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     documentation](https://github.com/Microsoft/vcpkg/blob/master/docs/EXAMPLES.md#example-1-2).
 5.  Open the Visual Studio project enclosed in the repository and build it.
 
+## On OSX
+
+1.  Get a copy of the source code, either by cloning this repository, or by
+    downloading an
+    [archive](https://github.com/google/guetzli/archive/master.zip) and
+    unpacking it.
+2.  Install [Homebrew](https://brew.sh/)
+3.  Install `libpng` and `gflags` using brew: `brew install libpng gflags`.
+4.  Run `make` and expect the binary to be created in `bin/Release/guetzli`.
+
 ## With Bazel
 
 There's also a [Bazel](https://bazel.build) build configuration provided. If you
