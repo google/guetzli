@@ -19,6 +19,7 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     distinction exists.
     *   On Ubuntu, do `apt-get install libpng-dev libgflags-dev`.
     *   On Arch Linux, do `pacman -S libpng gflags`.
+    *   On Fedora Linux, do `dnf install gflags-devel libpng-devel`.
 3.  Run `make` and expect the binary to be created in `bin/Release/guetzli`.
 
 ## On Windows
