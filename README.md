@@ -47,7 +47,7 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     *   Using MacPorts: `port install libpng gflags` (You may need to use `sudo`).
 4.  Run the following command to build the binary in `bin/Release/guetzli`.
     *   If you installed using Homebrew simply use `make`
-    *   If you installed using Macports use `CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib'`
+    *   If you installed using Macports use `CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' make`
 
 ## With Bazel
 
