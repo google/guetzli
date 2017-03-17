@@ -37,17 +37,22 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
 
 ## On macOS
 
+To install using [Homebrew](https://brew.sh/):
+1. Install [Homebrew](https://brew.sh/)
+2. `brew install guetzli`
+
+To install using the repository:
 1.  Get a copy of the source code, either by cloning this repository, or by
     downloading an
     [archive](https://github.com/google/guetzli/archive/master.zip) and
     unpacking it.
 2.  Install [Homebrew](https://brew.sh/) or [MacPorts](https://www.macports.org/)
-3.  Install `libpng` and `gflags` 
-    *   Using Homebrew: `brew install libpng gflags`.
-    *   Using MacPorts: `port install libpng gflags` (You may need to use `sudo`).
+3.  Install `libpng` and `gflags`
+    *   Using [Homebrew](https://brew.sh/): `brew install libpng gflags`.
+    *   Using [MacPorts](https://www.macports.org/): `port install libpng gflags` (You may need to use `sudo`).
 4.  Run the following command to build the binary in `bin/Release/guetzli`.
-    *   If you installed using Homebrew simply use `make`
-    *   If you installed using Macports use `CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' make`
+    *   If you installed using [Homebrew](https://brew.sh/) simply use `make`
+    *   If you installed using [MacPorts](https://www.macports.org/) use `CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' make`
 
 ## With Bazel
 
