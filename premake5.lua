@@ -20,9 +20,8 @@ workspace "guetzli"
     flags "C++11"
     includedirs { ".", "third_party/butteraugli" }
     filter "action:gmake"
-      -- We add pthread, because gflags_nothreads depends on it (sic!) for some
-      -- versions of gflags.
-      links { "png", "gflags_nothreads", "z", "pthread" }
+      linkoptions { "`pkg-config --libs libpng libgflags`" }
+      buildoptions { "`pkg-config --cflags libpng libgflags`" }
     filter "action:vs*"
       links { "shlwapi" }
     filter "platforms:x86"
