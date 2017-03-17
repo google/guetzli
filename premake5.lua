@@ -5,6 +5,10 @@ workspace "guetzli"
 
   flags { "C++11" }
 
+  -- workaround for #41
+  filter "action:gmake"
+    symbols "On"
+
   filter "configurations:Debug"
     symbols "On"
   filter "configurations:Release"
