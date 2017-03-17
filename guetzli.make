@@ -15,7 +15,7 @@ ifeq ($(config),release)
   TARGETDIR = bin/Release
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Release
-  DEFINES += -DGFLAGS_NAMESPACE=google
+  DEFINES +=
   INCLUDES += -I. -Ithird_party/butteraugli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
@@ -42,7 +42,7 @@ ifeq ($(config),debug)
   TARGETDIR = bin/Debug
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Debug
-  DEFINES += -DGFLAGS_NAMESPACE=google
+  DEFINES +=
   INCLUDES += -I. -Ithird_party/butteraugli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)

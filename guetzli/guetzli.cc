@@ -27,11 +27,13 @@
 #include "guetzli/quality.h"
 #include "guetzli/stats.h"
 
-#ifndef GFLAGS_NAMESPACE
+// Workaround for differences between versions of gflags.
+namespace gflags {
+}
 using namespace gflags;
-#else
-using namespace GFLAGS_NAMESPACE;
-#endif
+namespace google {
+}
+using namespace google;
 
 
 DEFINE_bool(verbose, false,
