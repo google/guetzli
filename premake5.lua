@@ -26,9 +26,6 @@ workspace "guetzli"
     filter "platforms:x86_64"
       architecture "x86_64"
     filter {}
-    -- This should work with gflags 2.x. The gflags namespace is absent in
-    -- gflags-2.0, which is the version in Ubuntu Trusty package repository.
-    defines { "GFLAGS_NAMESPACE=google" }
     files
       {
         "guetzli/*.cc",
