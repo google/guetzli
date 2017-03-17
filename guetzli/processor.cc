@@ -775,7 +775,7 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
   OutputJpeg(jpg, &encoded_jpg);
   final_output_->score = -1;
   GUETZLI_LOG(stats, "Original Out[%7zd]", encoded_jpg.size());
-  if (jpg.width < 2 || jpg.height < 2) {
+  if (comparator_ == nullptr) {
     GUETZLI_LOG(stats, " <image too small for Butteraugli>\n");
     final_output_->jpeg_data = encoded_jpg;
     final_output_->distmap = std::vector<float>(jpg.width * jpg.height, 0.0);
@@ -789,9 +789,6 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
   img.CopyFromJpegData(jpg);
   comparator_->Compare(img);
   MaybeOutput(encoded_jpg);
-  if (jpg.width < 32 || jpg.height < 32) {
-    return true;
-  }
   int try_420 = (input_is_420 || params_.force_420 ||
                  (params_.try_420 && !IsGrayscale(jpg))) ? 1 : 0;
   int force_420 = (input_is_420 || params_.force_420) ? 1 : 0;
