@@ -323,9 +323,9 @@ void OutputImage::Downsample(const DownsampleConfig& cfg) {
     components_[c].ToFloatPixels(&yuv[c][0], 1);
   }
 
-  yuv = PreProcessChannel(width_, height_, 2, 1.3, 0.5,
+  yuv = PreProcessChannel(width_, height_, 2, 1.3f, 0.5f,
                           cfg.u_sharpen, cfg.u_blur, yuv);
-  yuv = PreProcessChannel(width_, height_, 1, 1.3, 0.5,
+  yuv = PreProcessChannel(width_, height_, 1, 1.3f, 0.5f,
                           cfg.v_sharpen, cfg.v_blur, yuv);
 
   // Do the actual downsampling (averaging) and forward-DCT.

@@ -1342,8 +1342,8 @@ void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
     // TODO: Make this work for small dimensions as well.
     return;
   }
-  static const float w = 0.679144890667;
-  static const float scale = 1.0 / (5.0 + 4 * w);
+  static const float w = 0.679144890667f;
+  static const float scale = 1.0f / (5.0f + 4 * w);
   std::vector<float> result = *diffs;
   std::vector<float> tmp0 = *diffs;
   std::vector<float> tmp1 = *diffs;
