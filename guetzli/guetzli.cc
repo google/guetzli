@@ -20,7 +20,6 @@
 #include <memory>
 #include <string>
 #include <string.h>
-#include <unistd.h>
 #include "gflags/gflags.h"
 #include "png.h"
 #include "guetzli/processor.h"
