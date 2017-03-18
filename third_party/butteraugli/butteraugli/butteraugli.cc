@@ -962,7 +962,7 @@ static void ScaleImage(double scale, std::vector<float> *result) {
 // Making a cluster of local errors to be more impactful than
 // just a single error.
 void CalculateDiffmap(const size_t xsize, const size_t ysize,
-                      const int step,
+                      const size_t step,
                       std::vector<float>* diffmap) {
   PROFILER_FUNC;
   // Shift the diffmap more correctly above the pixels, from 2.5 pixels to 0.5

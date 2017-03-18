@@ -527,7 +527,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
   const int width = img->width();
   const int height = img->height();
   const int last_c = Log2FloorNonZero(comp_mask);
-  if (last_c >= jpg.components.size()) return;
+  if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
   const int factor_x = img->component(last_c).factor_x();
   const int factor_y = img->component(last_c).factor_y();
   const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
@@ -610,7 +610,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                              block_weight[block_ix]);
                 global_order.push_back(std::make_pair(block_ix, val));
               }
-              blocks_to_change += (last_index < order.size() ? 1 : 0);
+              blocks_to_change += (static_cast<size_t>(last_index) < order.size() ? 1 : 0);
             } else {
               for (int i = last_index - 1; i >= 0; --i) {
                 float val = ((max_err - order[i].block_err) /

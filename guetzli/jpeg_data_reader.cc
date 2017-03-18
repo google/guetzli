@@ -168,7 +168,8 @@ bool ProcessSOS(const uint8_t* data, const size_t len, size_t* pos,
   VERIFY_LEN(3);
   size_t marker_len = ReadUint16(data, pos);
   int comps_in_scan = ReadUint8(data, pos);
-  VERIFY_INPUT(comps_in_scan, 1, jpg->components.size(), COMPS_IN_SCAN);
+  VERIFY_INPUT(comps_in_scan, 1, static_cast<int>(jpg->components.size()),
+               COMPS_IN_SCAN);
 
   JPEGScanInfo scan_info;
   scan_info.components.resize(comps_in_scan);
