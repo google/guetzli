@@ -106,14 +106,14 @@ bool EncodeSOF(const JPEGData& jpg, JPEGOutput out) {
   size_t pos = 0;
   data[pos++] = 0xff;
   data[pos++] = 0xc1;
-  data[pos++] = marker_len >> 8;
+  data[pos++] = static_cast<uint8_t>(marker_len >> 8);
   data[pos++] = marker_len & 0xff;
   data[pos++] = kJpegPrecision;
   data[pos++] = jpg.height >> 8;
   data[pos++] = jpg.height & 0xff;
   data[pos++] = jpg.width >> 8;
   data[pos++] = jpg.width & 0xff;
-  data[pos++] = ncomps;
+  data[pos++] = static_cast<uint8_t>(ncomps);
   for (size_t i = 0; i < ncomps; ++i) {
     data[pos++] = jpg.components[i].id;
     data[pos++] = ((jpg.components[i].h_samp_factor << 4) |
@@ -401,7 +401,7 @@ bool BuildAndEncodeHuffmanCodes(const JPEGData& jpg, JPEGOutput out,
   size_t pos = 0;
   data[pos++] = 0xff;
   data[pos++] = 0xc4;
-  data[pos++] = dht_marker_len >> 8;
+  data[pos++] = static_cast<uint8_t>(dht_marker_len >> 8);
   data[pos++] = dht_marker_len & 0xff;
 
   // Compute Huffman codes for each histograms.
@@ -426,7 +426,7 @@ bool BuildAndEncodeHuffmanCodes(const JPEGData& jpg, JPEGOutput out,
     --counts[max_length];
     int total_count = 0;
     for (int j = 0; j <= max_length; ++j) total_count += counts[j];
-    data[pos++] = is_dc ? i : i - num_dc_histo + 0x10;
+    data[pos++] = is_dc ? i : static_cast<uint8_t>(i - num_dc_histo + 0x10);
     for (size_t j = 1; j <= kJpegHuffmanMaxBitLength; ++j) {
       data[pos++] = counts[j];
     }
@@ -438,7 +438,7 @@ bool BuildAndEncodeHuffmanCodes(const JPEGData& jpg, JPEGOutput out,
   // Emit SOS marker data.
   data[pos++] = 0xff;
   data[pos++] = 0xda;
-  data[pos++] = sos_marker_len >> 8;
+  data[pos++] = static_cast<uint8_t>(sos_marker_len >> 8);
   data[pos++] = sos_marker_len & 0xff;
   data[pos++] = ncomps;
   for (int i = 0; i < ncomps; ++i) {
