@@ -154,7 +154,7 @@ struct JPEGComponent {
   int h_samp_factor;
   int v_samp_factor;
   // The index of the quantization table used for this component.
-  int quant_idx;
+  size_t quant_idx;
   // The dimensions of the component measured in 8x8 blocks.
   int width_in_blocks;
   int height_in_blocks;
