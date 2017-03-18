@@ -190,7 +190,7 @@ void ButteraugliComparator::ComputeBlockErrorAdjustmentWeights(
             int d = std::max(std::abs(y - block_y), std::abs(x - block_x));
             int ix = y * block_width + x;
             (*block_weight)[ix] = std::max<float>(
-                (*block_weight)[ix], 1.0 / (d + 1.0));
+                (*block_weight)[ix], 1.0f / (d + 1.0f));
           }
         }
       }

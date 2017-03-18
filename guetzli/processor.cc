@@ -327,8 +327,8 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
   // Don't try to go up to exactly the target distance when selecting a
   // quantization matrix, since we will need some slack to do the frequency
   // masking later.
-  const float target_mul_high = 0.97;
-  const float target_mul_low = 0.95;
+  const float target_mul_high = 0.97f;
+  const float target_mul_low = 0.95f;
 
   QuantData best = TryQuantMatrix(jpg_in, target_mul_high, best_q, img,
                                   quantized_out);
@@ -399,7 +399,7 @@ void Processor::ComputeBlockZeroingOrder(
   coeff_t processed_block[kBlockSize];
   memcpy(processed_block, block, sizeof(processed_block));
   while (!input_order.empty()) {
-    float best_err = 1e17;
+    float best_err = 1e17f;
     int best_i = 0;
     for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
                                          input_order.size());
@@ -664,11 +664,11 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
       double min_size_delta = base_size * rel_size_delta;
 
       float coeffs_to_change_per_block =
-          direction > 0 ? 2.0 : factor_x * factor_y * 0.2;
+          direction > 0 ? 2.0f : factor_x * factor_y * 0.2f;
       int min_coeffs_to_change = coeffs_to_change_per_block * blocks_to_change;
 
       if (first_up_iter) {
-        const float limit = 0.75 * comparator_->BlockErrorLimit();
+        const float limit = 0.75f * comparator_->BlockErrorLimit();
         auto it = std::partition_point(global_order.begin(), global_order.end(),
                                        [=](const std::pair<int, float>& a) {
                                          return a.second < limit; });
@@ -842,7 +842,7 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     if (!downsample) {
       SelectFrequencyMasking(jpg, &img, 7, 1.0, false);
     } else {
-      const float ymul = jpg.components.size() == 1 ? 1.0 : 0.97;
+      const float ymul = jpg.components.size() == 1 ? 1.0f : 0.97f;
       SelectFrequencyMasking(jpg, &img, 1, ymul, false);
       SelectFrequencyMasking(jpg, &img, 6, 1.0, true);
     }
