@@ -183,7 +183,7 @@ void WriteFileOrDie(FILE* f, const std::string& contents) {
 void TerminateHandler() {
   fprintf(stderr, "Unhandled exception. Most likely insufficient memory available.\n"
           "Make sure that there is 300MB/MPix of memory available.\n");
-  _exit(1);
+  exit(1);
 }
 
 }  // namespace
