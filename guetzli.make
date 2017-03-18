@@ -19,12 +19,12 @@ ifeq ($(config),release)
   INCLUDES += -I. -Ithird_party/butteraugli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
-  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --cflags libpng libgflags`
+  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --silence-errors --cflags libgflags || pkg-config --cflags gflags` `pkg-config --cflags libpng`
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS) -std=c++11
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
   LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --libs libpng libgflags`
+  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --silence-errors --libs libgflags || pkg-config --libs gflags` `pkg-config --libs libpng`
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
   define PREBUILDCMDS
   endef
@@ -46,12 +46,12 @@ ifeq ($(config),debug)
   INCLUDES += -I. -Ithird_party/butteraugli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
-  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --cflags libpng libgflags`
+  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --silence-errors --cflags libgflags || pkg-config --cflags gflags` `pkg-config --cflags libpng`
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS) -std=c++11
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
   LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --libs libpng libgflags`
+  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --silence-errors --libs libgflags || pkg-config --libs gflags` `pkg-config --libs libpng`
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
   define PREBUILDCMDS
   endef
