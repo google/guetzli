@@ -1,3 +1,17 @@
 bin/
 obj/
 /bazel-*
+
+# Visual Studio 2015 cache/options directory
+.vs/
+
+# Visual C++ cache files
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
