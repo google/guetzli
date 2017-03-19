@@ -179,6 +179,7 @@ struct JPEGData {
                error(JPEG_OK) {}
 
   bool Is420() const;
+  bool Is422() const;
   bool Is444() const;
 
   int width;

@@ -841,6 +841,12 @@ bool Process(const Params& params, ProcessStats* stats,
     fprintf(stderr, "Can't read jpg data from input file\n");
     return false;
   }
+  if (jpg.Is422()) {
+    fprintf(stderr, 
+            "JPEG input file (YUV422) is not supported yet.\n"
+            "Please first convert it to PNG as a workaround.\n");
+    return false;
+  }
   std::vector<uint8_t> rgb = DecodeJpegToRGB(jpg);
   if (rgb.empty()) {
     fprintf(stderr, "Invalid input JPEG file\n");
