@@ -843,7 +843,9 @@ bool Process(const Params& params, ProcessStats* stats,
   }
   std::vector<uint8_t> rgb = DecodeJpegToRGB(jpg);
   if (rgb.empty()) {
-    fprintf(stderr, "Invalid input JPEG file\n");
+    fprintf(stderr, "Unsupported input JPEG file (e.g. unsupported "
+            "downsampling mode).\nPlease provide the input image as "
+            "a PNG file.\n");
     return false;
   }
   GuetzliOutput out;
