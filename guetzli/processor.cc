@@ -795,12 +795,10 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
   for (int downsample = force_420; downsample <= try_420; ++downsample) {
     OutputImage img(jpg.width, jpg.height);
     img.CopyFromJpegData(jpg);
-    JPEGData tmp_jpg;
+    JPEGData tmp_jpg = jpg;
     if (downsample) {
       DownsampleImage(&img);
       img.SaveToJpegData(&tmp_jpg);
-    } else {
-      tmp_jpg = jpg;
     }
     int best_q[3][kDCTBlockSize];
     memcpy(best_q, q_in, sizeof(best_q));
@@ -843,7 +841,9 @@ bool Process(const Params& params, ProcessStats* stats,
   }
   std::vector<uint8_t> rgb = DecodeJpegToRGB(jpg);
   if (rgb.empty()) {
-    fprintf(stderr, "Invalid input JPEG file\n");
+    fprintf(stderr, "Unsupported input JPEG file (e.g. unsupported "
+            "downsampling mode).\nPlease provide the input image as "
+            "a PNG file.\n");
     return false;
   }
   GuetzliOutput out;
