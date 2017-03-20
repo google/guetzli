@@ -20,25 +20,10 @@
 #include <memory>
 #include <string>
 #include <string.h>
-#include "gflags/gflags.h"
 #include "png.h"
 #include "guetzli/processor.h"
 #include "guetzli/quality.h"
 #include "guetzli/stats.h"
-
-// Workaround for differences between versions of gflags.
-namespace gflags {
-}
-using namespace gflags;
-namespace google {
-}
-using namespace google;
-
-
-DEFINE_bool(verbose, false,
-            "Print a verbose trace of all attempts to standard output.");
-DEFINE_double(quality, 95,
-              "Visual quality to aim for, expressed as a JPEG quality value.");
 
 namespace {
 
@@ -186,21 +171,45 @@ void TerminateHandler() {
   exit(1);
 }
 
+void Usage() {
+  fprintf(stderr,
+      "Guetzli JPEG compressor. Usage: \n"
+      "guetzli [flags] input_filename output_filename\n"
+      "\n"
+      "Flags:\n"
+      "  --verbose   - Print a verbose trace of all attempts to standard output.\n"
+      "  --quality Q - Visual quality to aim for, expressed as a JPEG quality value.\n");
+  exit(1);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
   std::set_terminate(TerminateHandler);
-  SetUsageMessage(
-      "Guetzli JPEG compressor. Usage: \n"
-      "guetzli [flags] input_filename output_filename");
-  ParseCommandLineFlags(&argc, &argv, true);
 
-  if (argc != 3) {
-    ShowUsageWithFlags(argv[0]);
-    return 1;
+  int verbose = 0;
+  int quality = 95;
+
+  int opt_idx = 1;
+  for(;opt_idx < argc;opt_idx++) {
+    if (argv[opt_idx][0] != '-')
+      break;
+    if (!strcmp(argv[opt_idx], "--verbose")) {
+      verbose = 1;
+    } else if (!strcmp(argv[opt_idx], "--quality")) {
+      opt_idx++;
+      quality = atoi(argv[opt_idx]);
+    } else {
+      fprintf(stderr, "Unknown commandline flag: %s\n", argv[opt_idx]);
+      Usage();
+    }
   }
 
-  FILE* fin = fopen(argv[1], "rb");
+  if (argc - opt_idx != 2) {
+    Usage();
+  }
+
+  FILE* fin = fopen(argv[opt_idx], "rb");
   if (!fin) {
     fprintf(stderr, "Can't open input file\n");
     return 1;
@@ -211,11 +220,11 @@ int main(int argc, char** argv) {
 
   guetzli::Params params;
   params.butteraugli_target =
-      guetzli::ButteraugliScoreForQuality(FLAGS_quality);
+      guetzli::ButteraugliScoreForQuality(quality);
 
   guetzli::ProcessStats stats;
 
-  if (FLAGS_verbose) {
+  if (verbose) {
     stats.debug_output_file = stdout;
   }
 
@@ -243,7 +252,7 @@ int main(int argc, char** argv) {
 
   fclose(fin);
 
-  FILE* fout = fopen(argv[2], "wb");
+  FILE* fout = fopen(argv[opt_idx + 1], "wb");
   if (!fout) {
     fprintf(stderr, "Can't open output file for writing\n");
     return 1;

@@ -20,8 +20,8 @@ workspace "guetzli"
     flags "C++11"
     includedirs { ".", "third_party/butteraugli" }
     filter "action:gmake"
-      linkoptions { "`pkg-config --silence-errors --libs libpng libgflags || pkg-config --libs libpng gflags`" }
-      buildoptions { "`pkg-config --silence-errors --cflags libpng libgflags || pkg-config --cflags libpng gflags`" }
+      linkoptions { "`pkg-config --libs libpng`" }
+      buildoptions { "`pkg-config --cflags libpng`" }
     filter "action:vs*"
       links { "shlwapi" }
     filter "platforms:x86"

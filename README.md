@@ -13,12 +13,12 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     downloading an
     [archive](https://github.com/google/guetzli/archive/master.zip) and
     unpacking it.
-2.  Install [libpng](http://www.libpng.org/pub/png/libpng.html) and
-    [gflags](https://github.com/gflags/gflags). If using your operating system
+2.  Install [libpng](http://www.libpng.org/pub/png/libpng.html).
+    If using your operating system
     package manager, install development versions of the packages if the
     distinction exists.
-    *   On Ubuntu, do `apt-get install libpng-dev libgflags-dev`.
-    *   On Arch Linux, do `pacman -S libpng gflags`.
+    *   On Ubuntu, do `apt-get install libpng-dev`.
+    *   On Arch Linux, do `pacman -S libpng`.
 3.  Run `make` and expect the binary to be created in `bin/Release/guetzli`.
 
 ## On Windows
@@ -29,7 +29,7 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     unpacking it.
 2.  Install [Visual Studio 2015](https://www.visualstudio.com) and
     [vcpkg](https://github.com/Microsoft/vcpkg)
-3.  Install `libpng` and `gflags` using vcpkg: `.\vcpkg install libpng gflags`.
+3.  Install `libpng` using vcpkg: `.\vcpkg install `libpng.
 4.  Cause the installed packages to be available system-wide: `.\vcpkg integrate
     install`. If you prefer not to do this, refer to [vcpkg's
     documentation](https://github.com/Microsoft/vcpkg/blob/master/docs/EXAMPLES.md#example-1-2).
@@ -47,9 +47,9 @@ To install using the repository:
     [archive](https://github.com/google/guetzli/archive/master.zip) and
     unpacking it.
 2.  Install [Homebrew](https://brew.sh/) or [MacPorts](https://www.macports.org/)
-3.  Install `libpng` and `gflags`
-    *   Using [Homebrew](https://brew.sh/): `brew install libpng gflags`.
-    *   Using [MacPorts](https://www.macports.org/): `port install libpng gflags` (You may need to use `sudo`).
+3.  Install `libpng`
+    *   Using [Homebrew](https://brew.sh/): `brew install libpng`.
+    *   Using [MacPorts](https://www.macports.org/): `port install libpng` (You may need to use `sudo`).
 4.  Run the following command to build the binary in `bin/Release/guetzli`.
     *   If you installed using [Homebrew](https://brew.sh/) simply use `make`
     *   If you installed using [MacPorts](https://www.macports.org/) use `CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' make`
