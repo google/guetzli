@@ -21,11 +21,20 @@
 #include <string>
 #include <string.h>
 #include "png.h"
+#include "guetzli/jpeg_data.h"
+#include "guetzli/jpeg_data_reader.h"
 #include "guetzli/processor.h"
 #include "guetzli/quality.h"
 #include "guetzli/stats.h"
 
 namespace {
+
+// An upper estimate of memory usage of Guetzli. The bound is
+// max(kLowerMemusaeMB * 1<<20, pixel_count * kBytesPerPixel)
+constexpr int kBytesPerPixel = 300;
+constexpr int kLowestMemusageMB = 100; // in MB
+
+constexpr int kDefaultMemlimitMB = 6000; // in MB
 
 inline uint8_t BlendOnBlack(const uint8_t val, const uint8_t alpha) {
   return (static_cast<int>(val) * static_cast<int>(alpha) + 128) / 255;
@@ -177,8 +186,11 @@ void Usage() {
       "guetzli [flags] input_filename output_filename\n"
       "\n"
       "Flags:\n"
-      "  --verbose   - Print a verbose trace of all attempts to standard output.\n"
-      "  --quality Q - Visual quality to aim for, expressed as a JPEG quality value.\n");
+      "  --verbose    - Print a verbose trace of all attempts to standard output.\n"
+      "  --quality Q  - Visual quality to aim for, expressed as a JPEG quality value.\n"
+      "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
+      "                 the limit. Default is %d MB\n"
+      "  --nomemlimit - Do not limit memory usage.\n", kDefaultMemlimitMB);
   exit(1);
 }
 
@@ -189,6 +201,7 @@ int main(int argc, char** argv) {
 
   int verbose = 0;
   int quality = 95;
+  int memlimit_mb = kDefaultMemlimitMB;
 
   int opt_idx = 1;
   for(;opt_idx < argc;opt_idx++) {
@@ -199,6 +212,11 @@ int main(int argc, char** argv) {
     } else if (!strcmp(argv[opt_idx], "--quality")) {
       opt_idx++;
       quality = atoi(argv[opt_idx]);
+    } else if (!strcmp(argv[opt_idx], "--memlimit")) {
+      opt_idx++;
+      memlimit_mb = atoi(argv[opt_idx]);
+    } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
+      memlimit_mb = -1;
     } else {
       fprintf(stderr, "Unknown commandline flag: %s\n", argv[opt_idx]);
       Usage();
@@ -239,11 +257,30 @@ int main(int argc, char** argv) {
       fprintf(stderr, "Error reading PNG data from input file\n");
       return 1;
     }
+    int pixels = xsize * ysize;
+    if (memlimit_mb != -1
+        && (pixels * kBytesPerPixel / (1 << 20) > memlimit_mb
+            || memlimit_mb < kLowestMemusageMB)) {
+      fprintf(stderr, "Memory limit would be exceeded. Failing.\n");
+      return 1;
+    }
     if (!guetzli::Process(params, &stats, rgb, xsize, ysize, &out_data)) {
       fprintf(stderr, "Guetzli processing failed\n");
       return 1;
     }
   } else {
+    guetzli::JPEGData jpg_header;
+    if (!guetzli::ReadJpeg(in_data, guetzli::JPEG_READ_HEADER, &jpg_header)) {
+      fprintf(stderr, "Error reading JPG data from input file\n");
+      return 1;
+    }
+    int pixels = jpg_header.width * jpg_header.height;
+    if (memlimit_mb != -1
+        && (pixels * kBytesPerPixel / (1 << 20) > memlimit_mb
+            || memlimit_mb < kLowestMemusageMB)) {
+      fprintf(stderr, "Memory limit would be exceeded. Failing.\n");
+      return 1;
+    }
     if (!guetzli::Process(params, &stats, in_data, &out_data)) {
       fprintf(stderr, "Guetzli processing failed\n");
       return 1;
