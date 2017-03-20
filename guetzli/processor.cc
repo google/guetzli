@@ -795,12 +795,10 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
   for (int downsample = force_420; downsample <= try_420; ++downsample) {
     OutputImage img(jpg.width, jpg.height);
     img.CopyFromJpegData(jpg);
-    JPEGData tmp_jpg;
+    JPEGData tmp_jpg = jpg;
     if (downsample) {
       DownsampleImage(&img);
       img.SaveToJpegData(&tmp_jpg);
-    } else {
-      tmp_jpg = jpg;
     }
     int best_q[3][kDCTBlockSize];
     memcpy(best_q, q_in, sizeof(best_q));
