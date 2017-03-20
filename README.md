@@ -67,6 +67,9 @@ memory per 1MPix of the input image.
 **Note:** Guetzli uses a significant amount of CPU time. You should count on
 using about 1 minute of CPU per 1 MPix of input image.
 
+**Note:** Guetzli assumes that input is in **sRGB profile** with a **gamma of
+2.2**. Guetzli will ignore any color-profile metadata in the image.
+
 To try out Guetzli you need to [build](#building) or
 [download](https://github.com/google/guetzli/releases) the Guetzli binary. The
 binary reads a PNG or JPEG image and creates an optimized JPEG image:
