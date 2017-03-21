@@ -30,7 +30,7 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     unpacking it.
 2.  Install [Visual Studio 2015](https://www.visualstudio.com) and
     [vcpkg](https://github.com/Microsoft/vcpkg)
-3.  Install `libpng` using vcpkg: `.\vcpkg install `libpng.
+3.  Install `libpng` using vcpkg: `.\vcpkg install libpng`.
 4.  Cause the installed packages to be available system-wide: `.\vcpkg integrate
     install`. If you prefer not to do this, refer to [vcpkg's
     documentation](https://github.com/Microsoft/vcpkg/blob/master/docs/EXAMPLES.md#example-1-2).
