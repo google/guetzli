@@ -66,10 +66,9 @@ bool ReadPNG(const std::string& data, int* xsize, int* ysize,
     std::istringstream& memstream = *static_cast<std::istringstream*>(png_get_io_ptr(png_ptr));
     
     memstream.read(reinterpret_cast<char*>(outBytes), byteCountToRead);
-    if (memstream.fail()) {
-      perror("read from memory");
-      exit(1);
-    }
+
+    if (memstream.eof()) png_error(png_ptr, "unexpected end of data");
+    if (memstream.fail()) png_error(png_ptr, "read from memory error");
   });
 
   // The png_transforms flags are as follows:
