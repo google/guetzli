@@ -61,9 +61,18 @@ bool ReadPNG(const std::string& data, int* xsize, int* ysize,
     return false;
   }
 
-  std::istringstream memstream(data, std::ios::in | std::ios::binary);
+  struct nocopy_streambuf : public std::streambuf {
+    nocopy_streambuf(const std::string& data) {
+      char *dataptr = const_cast<char*>(data.data());
+      setg(dataptr, dataptr, dataptr + data.size());
+    }
+  };
+
+  nocopy_streambuf buf(data);
+  std::istream memstream(&buf);
+
   png_set_read_fn(png_ptr, static_cast<void*>(&memstream), [](png_structp png_ptr, png_bytep outBytes, png_size_t byteCountToRead) {
-    std::istringstream& memstream = *static_cast<std::istringstream*>(png_get_io_ptr(png_ptr));
+    std::istream& memstream = *static_cast<std::istream*>(png_get_io_ptr(png_ptr));
     
     memstream.read(reinterpret_cast<char*>(outBytes), byteCountToRead);
 
