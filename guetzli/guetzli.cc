@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
   guetzli::ProcessStats stats;
 
   if (verbose) {
-    stats.debug_output_file = stdout;
+    stats.debug_output_file = stderr;
   }
 
   static const unsigned char kPNGMagicBytes[] = {
