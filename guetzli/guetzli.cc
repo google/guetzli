@@ -29,6 +29,8 @@
 
 namespace {
 
+constexpr int kDefaultJPEGQuality = 95;
+
 // An upper estimate of memory usage of Guetzli. The bound is
 // max(kLowerMemusaeMB * 1<<20, pixel_count * kBytesPerPixel)
 constexpr int kBytesPerPixel = 300;
@@ -188,9 +190,10 @@ void Usage() {
       "Flags:\n"
       "  --verbose    - Print a verbose trace of all attempts to standard output.\n"
       "  --quality Q  - Visual quality to aim for, expressed as a JPEG quality value.\n"
+      "                 Default value is %d.\n"
       "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
-      "                 the limit. Default is %d MB\n"
-      "  --nomemlimit - Do not limit memory usage.\n", kDefaultMemlimitMB);
+      "                 the limit. Default limit is %d MB.\n"
+      "  --nomemlimit - Do not limit memory usage.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
   exit(1);
 }
 
@@ -200,7 +203,7 @@ int main(int argc, char** argv) {
   std::set_terminate(TerminateHandler);
 
   int verbose = 0;
-  int quality = 95;
+  int quality = kDefaultJPEGQuality;
   int memlimit_mb = kDefaultMemlimitMB;
 
   int opt_idx = 1;
