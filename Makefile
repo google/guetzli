@@ -9,17 +9,25 @@ ifndef verbose
 endif
 
 ifeq ($(config),release)
+  guetzli_static_config = release
   guetzli_config = release
 endif
 ifeq ($(config),debug)
+  guetzli_static_config = debug
   guetzli_config = debug
 endif
 
-PROJECTS := guetzli
+PROJECTS := guetzli_static guetzli
 
 .PHONY: all clean help $(PROJECTS) 
 
 all: $(PROJECTS)
+
+guetzli_static:
+ifneq (,$(guetzli_static_config))
+	@echo "==== Building guetzli_static ($(guetzli_static_config)) ===="
+	@${MAKE} --no-print-directory -C . -f guetzli_static.make config=$(guetzli_static_config)
+endif
 
 guetzli:
 ifneq (,$(guetzli_config))
@@ -28,6 +36,7 @@ ifneq (,$(guetzli_config))
 endif
 
 clean:
+	@${MAKE} --no-print-directory -C . -f guetzli_static.make clean
 	@${MAKE} --no-print-directory -C . -f guetzli.make clean
 
 help:
@@ -40,6 +49,7 @@ help:
 	@echo "TARGETS:"
 	@echo "   all (default)"
 	@echo "   clean"
+	@echo "   guetzli_static"
 	@echo "   guetzli"
 	@echo ""
 	@echo "For more information, see http://industriousone.com/premake/quick-start"
