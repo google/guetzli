@@ -246,6 +246,9 @@ int main(int argc, char** argv) {
       memlimit_mb = atoi(argv[opt_idx]);
     } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
       memlimit_mb = -1;
+    } else if (!strcmp(argv[opt_idx], "--")) {
+      opt_idx++;
+      break;
     } else {
       fprintf(stderr, "Unknown commandline flag: %s\n", argv[opt_idx]);
       Usage();
