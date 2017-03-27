@@ -19,6 +19,7 @@
 #include <exception>
 #include <memory>
 #include <string>
+#include <sstream>
 #include <string.h>
 #include "png.h"
 #include "guetzli/jpeg_data.h"
@@ -42,7 +43,7 @@ inline uint8_t BlendOnBlack(const uint8_t val, const uint8_t alpha) {
   return (static_cast<int>(val) * static_cast<int>(alpha) + 128) / 255;
 }
 
-bool ReadPNG(FILE* f, int* xsize, int* ysize,
+bool ReadPNG(const std::string& data, int* xsize, int* ysize,
              std::vector<uint8_t>* rgb) {
   png_structp png_ptr =
       png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
@@ -62,8 +63,15 @@ bool ReadPNG(FILE* f, int* xsize, int* ysize,
     return false;
   }
 
-  rewind(f);
-  png_init_io(png_ptr, f);
+  std::istringstream memstream(data, std::ios::in | std::ios::binary);
+  png_set_read_fn(png_ptr, static_cast<void*>(&memstream), [](png_structp png_ptr, png_bytep outBytes, png_size_t byteCountToRead) {
+    std::istringstream& memstream = *static_cast<std::istringstream*>(png_get_io_ptr(png_ptr));
+    
+    memstream.read(reinterpret_cast<char*>(outBytes), byteCountToRead);
+
+    if (memstream.eof()) png_error(png_ptr, "unexpected end of data");
+    if (memstream.fail()) png_error(png_ptr, "read from memory error");
+  });
 
   // The png_transforms flags are as follows:
   // packing == convert 1,2,4 bit images,
@@ -142,30 +150,51 @@ bool ReadPNG(FILE* f, int* xsize, int* ysize,
   return true;
 }
 
-std::string ReadFileOrDie(FILE* f) {
-  if (fseek(f, 0, SEEK_END) != 0) {
+std::string ReadFileOrDie(const char* filename) {
+  bool read_from_stdin = strncmp(filename, "-", 2) == 0;
+
+  FILE* f = read_from_stdin ? stdin : fopen(filename, "rb");
+  if (!f) {
+    perror("Can't open input file");
+    exit(1);
+  }
+
+  std::string result;
+  off_t buffer_size = 8192;
+
+  if (fseek(f, 0, SEEK_END) == 0) {
+    buffer_size = ftell(f);
+    if (fseek(f, 0, SEEK_SET) != 0) {
+      perror("fseek");
+      exit(1);
+    }
+  } else if (ferror(f)) {
     perror("fseek");
     exit(1);
   }
-  off_t size = ftell(f);
-  if (size < 0) {
-    perror("ftell");
-    exit(1);
+
+  std::unique_ptr<char[]> buf(new char[buffer_size]);
+  while (!feof(f)) {
+    size_t read_bytes = fread(buf.get(), sizeof(char), buffer_size, f);
+    if (ferror(f)) {
+      perror("fread");
+      exit(1);
+    }
+    result.append(buf.get(), read_bytes);
   }
-  if (fseek(f, 0, SEEK_SET) != 0) {
-    perror("fseek");
-    exit(1);
-  }
-  std::unique_ptr<char[]> buf(new char[size]);
-  if (fread(buf.get(), 1, size, f) != (size_t)size) {
-    perror("fread");
-    exit(1);
-  }
-  std::string result(buf.get(), size);
+
+  fclose(f);
   return result;
 }
 
-void WriteFileOrDie(FILE* f, const std::string& contents) {
+void WriteFileOrDie(const char* filename, const std::string& contents) {
+  bool write_to_stdout = strncmp(filename, "-", 2) == 0;
+
+  FILE* f = write_to_stdout ? stdout : fopen(filename, "wb");
+  if (!f) {
+    perror("Can't open output file for writing");
+    exit(1);
+  }
   if (fwrite(contents.data(), 1, contents.size(), f) != contents.size()) {
     perror("fwrite");
     exit(1);
@@ -208,7 +237,7 @@ int main(int argc, char** argv) {
 
   int opt_idx = 1;
   for(;opt_idx < argc;opt_idx++) {
-    if (argv[opt_idx][0] != '-')
+    if (strnlen(argv[opt_idx], 2) < 2 || argv[opt_idx][0] != '-' || argv[opt_idx][1] != '-')
       break;
     if (!strcmp(argv[opt_idx], "--verbose")) {
       verbose = 1;
@@ -220,6 +249,9 @@ int main(int argc, char** argv) {
       memlimit_mb = atoi(argv[opt_idx]);
     } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
       memlimit_mb = -1;
+    } else if (!strcmp(argv[opt_idx], "--")) {
+      opt_idx++;
+      break;
     } else {
       fprintf(stderr, "Unknown commandline flag: %s\n", argv[opt_idx]);
       Usage();
@@ -230,13 +262,7 @@ int main(int argc, char** argv) {
     Usage();
   }
 
-  FILE* fin = fopen(argv[opt_idx], "rb");
-  if (!fin) {
-    fprintf(stderr, "Can't open input file\n");
-    return 1;
-  }
-
-  std::string in_data = ReadFileOrDie(fin);
+  std::string in_data = ReadFileOrDie(argv[opt_idx]);
   std::string out_data;
 
   guetzli::Params params;
@@ -246,7 +272,7 @@ int main(int argc, char** argv) {
   guetzli::ProcessStats stats;
 
   if (verbose) {
-    stats.debug_output_file = stdout;
+    stats.debug_output_file = stderr;
   }
 
   static const unsigned char kPNGMagicBytes[] = {
@@ -256,7 +282,7 @@ int main(int argc, char** argv) {
       memcmp(in_data.data(), kPNGMagicBytes, sizeof(kPNGMagicBytes)) == 0) {
     int xsize, ysize;
     std::vector<uint8_t> rgb;
-    if (!ReadPNG(fin, &xsize, &ysize, &rgb)) {
+    if (!ReadPNG(in_data, &xsize, &ysize, &rgb)) {
       fprintf(stderr, "Error reading PNG data from input file\n");
       return 1;
     }
@@ -290,14 +316,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  fclose(fin);
-
-  FILE* fout = fopen(argv[opt_idx + 1], "wb");
-  if (!fout) {
-    fprintf(stderr, "Can't open output file for writing\n");
-    return 1;
-  }
-
-  WriteFileOrDie(fout, out_data);
+  WriteFileOrDie(argv[opt_idx + 1], out_data);
   return 0;
 }
