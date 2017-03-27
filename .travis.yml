@@ -1,0 +1,23 @@
+language: cpp
+sudo: false
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: BUILD_SYSTEM=bazel
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - wget
+            - pkg-config
+
+    - os: osx
+      env: BUILD_SYSTEM=bazel
+
+install:
+- ./.travis.sh install
+script:
+- ./.travis.sh script
