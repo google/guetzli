@@ -18,7 +18,7 @@ case "$1" in
     "script")
 	case "${BUILD_SYSTEM}" in
 	    "bazel")
-		bazel test -c opt ...:all
+		bazel build -c opt ...:all
 		;;
 	esac
 	;;
