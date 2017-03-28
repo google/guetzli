@@ -13,19 +13,19 @@ endif
 ifeq ($(config),release)
   RESCOMP = windres
   TARGETDIR = bin/Release
-  TARGET = $(TARGETDIR)/guetzli
-  OBJDIR = obj/Release/guetzli
+  TARGET = $(TARGETDIR)/libguetzli_static.a
+  OBJDIR = obj/Release/guetzli_static
   DEFINES +=
   INCLUDES += -I. -Ithird_party/butteraugli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
-  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --cflags libpng`
-  ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -O3 -g -std=c++11 `pkg-config --cflags libpng`
+  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --static --cflags libpng`
+  ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -O3 -g -std=c++11 `pkg-config --static --cflags libpng`
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
   LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --libs libpng`
-  LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
+  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --static --libs libpng`
+  LINKCMD = $(AR) -rcs "$@" $(OBJECTS)
   define PREBUILDCMDS
   endef
   define PRELINKCMDS
@@ -40,19 +40,19 @@ endif
 ifeq ($(config),debug)
   RESCOMP = windres
   TARGETDIR = bin/Debug
-  TARGET = $(TARGETDIR)/guetzli
-  OBJDIR = obj/Debug/guetzli
+  TARGET = $(TARGETDIR)/libguetzli_static.a
+  OBJDIR = obj/Debug/guetzli_static
   DEFINES +=
   INCLUDES += -I. -Ithird_party/butteraugli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
-  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --cflags libpng`
-  ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 `pkg-config --cflags libpng`
+  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --static --cflags libpng`
+  ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 `pkg-config --static --cflags libpng`
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
   LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --libs libpng`
-  LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
+  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --static --libs libpng`
+  LINKCMD = $(AR) -rcs "$@" $(OBJECTS)
   define PREBUILDCMDS
   endef
   define PRELINKCMDS
@@ -71,7 +71,6 @@ OBJECTS := \
 	$(OBJDIR)/entropy_encode.o \
 	$(OBJDIR)/fdct.o \
 	$(OBJDIR)/gamma_correct.o \
-	$(OBJDIR)/guetzli.o \
 	$(OBJDIR)/idct.o \
 	$(OBJDIR)/jpeg_data.o \
 	$(OBJDIR)/jpeg_data_decoder.o \
@@ -100,7 +99,7 @@ ifeq (/bin,$(findstring /bin,$(SHELL)))
 endif
 
 $(TARGET): $(GCH) ${CUSTOMFILES} $(OBJECTS) $(LDDEPS) $(RESOURCES)
-	@echo Linking guetzli
+	@echo Linking guetzli_static
 	$(SILENT) $(LINKCMD)
 	$(POSTBUILDCMDS)
 
@@ -121,7 +120,7 @@ else
 endif
 
 clean:
-	@echo Cleaning guetzli
+	@echo Cleaning guetzli_static
 ifeq (posix,$(SHELLTYPE))
 	$(SILENT) rm -f  $(TARGET)
 	$(SILENT) rm -rf $(OBJDIR)
@@ -159,9 +158,6 @@ $(OBJDIR)/fdct.o: guetzli/fdct.cc
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/gamma_correct.o: guetzli/gamma_correct.cc
-	@echo $(notdir $<)
-	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/guetzli.o: guetzli/guetzli.cc
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/idct.o: guetzli/idct.cc

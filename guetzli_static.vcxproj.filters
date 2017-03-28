@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="guetzli">
+      <UniqueIdentifier>{C9FCBE14-35DC-3DB0-3EF4-C886AA52A411}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party">
+      <UniqueIdentifier>{0FB18DF1-7B66-06E7-045B-00BE700FFDEA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\butteraugli">
+      <UniqueIdentifier>{468B2B32-B2C2-73C9-BBCC-D7EC27839AC2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\butteraugli\butteraugli">
+      <UniqueIdentifier>{FD6FCB41-6929-36EC-F288-50C65E41EC5B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="guetzli\butteraugli_comparator.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\color_transform.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\comparator.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\dct_double.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\debug_print.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\entropy_encode.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\fast_log.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\fdct.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\gamma_correct.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\idct.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\jpeg_bit_writer.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\jpeg_data.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\jpeg_data_decoder.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\jpeg_data_encoder.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\jpeg_data_reader.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\jpeg_data_writer.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\jpeg_error.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\jpeg_huffman_decode.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\output_image.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\preprocess_downsample.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\processor.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\quality.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\quantize.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\score.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="guetzli\stats.h">
+      <Filter>guetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\butteraugli\butteraugli\butteraugli.h">
+      <Filter>third_party\butteraugli\butteraugli</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="guetzli\butteraugli_comparator.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\dct_double.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\debug_print.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\entropy_encode.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\fdct.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\gamma_correct.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\idct.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\jpeg_data.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\jpeg_data_decoder.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\jpeg_data_encoder.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\jpeg_data_reader.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\jpeg_data_writer.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\jpeg_huffman_decode.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\output_image.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\preprocess_downsample.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\processor.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\quality.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\quantize.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="guetzli\score.cc">
+      <Filter>guetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\butteraugli\butteraugli\butteraugli.cc">
+      <Filter>third_party\butteraugli\butteraugli</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
