@@ -12,7 +12,6 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - wget
-            - pkg-config
 
     - os: osx
       env: BUILD_SYSTEM=bazel

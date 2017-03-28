@@ -10,7 +10,6 @@ case "$1" in
 		;;
 	    "osx")
 		brew update
-		brew install binutils
 		brew install bazel
 		;;
 	esac
