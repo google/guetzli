@@ -16,6 +16,7 @@ fi
 
 for i in $INPUT_DIR_PNG/*.png; do
   pngtopnm < $i | cjpeg -sample 1x1 -quality 100 > $INPUT_DIR_JPG/$(basename $i .png).jpg || exit 2
+  pngtopnm < $i | cjpeg -sample 1x1 -progressive -quality 100 > $INPUT_DIR_JPG/$(basename $i .png)-progressive.jpg || exit 2
   pngtopnm < $i | cjpeg -sample 2x2,1x1,1x1 -quality 100 > $INPUT_DIR_JPG/$(basename $i .png)-420.jpg || exit 2
 done
 
