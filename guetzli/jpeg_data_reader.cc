@@ -63,6 +63,10 @@ namespace {
     return false;                                                       \
   }
 
+inline int SignedLeftshift(int v, int s) {
+  return (v >= 0) ? (v << s) : -((-v) << s);
+}
+
 // Returns ceil(a/b).
 inline int DivCeil(int a, int b) {
   return (a + b - 1) / b;
@@ -519,7 +523,7 @@ int ReadSymbol(const HuffmanTableEntry* table, BitReaderState* br) {
 // Returns the DC diff or AC value for extra bits value x and prefix code s.
 // See Tables F.1 and F.2 of the spec.
 int HuffExtend(int x, int s) {
-  return (x < (1 << (s - 1)) ? x - ((1) << s ) + 1 : x);
+  return (x < (1 << (s - 1)) ? x - (1 << s) + 1 : x);
 }
 
 // Decodes one 8x8 block of DCT coefficients from the bit stream.
@@ -589,7 +593,7 @@ bool DecodeDCTBlock(const HuffmanTableEntry* dc_huff,
       }
       r = br->ReadBits(s);
       s = HuffExtend(r, s);
-      coeffs[kJPEGNaturalOrder[k]] = s << Al;
+      coeffs[kJPEGNaturalOrder[k]] = SignedLeftshift(s, Al);
     } else if (r == 15) {
       k += 15;
     } else {
