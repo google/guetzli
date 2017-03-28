@@ -19,17 +19,6 @@ new_http_archive(
     url = "http://zlib.net/fossils/zlib-1.2.10.tar.gz",
 )
 
-git_repository(
-    name = "gflags_git",
-    commit = "cce68f0c9c5d054017425e6e6fd54f696d36e8ee",
-    remote = "https://github.com/gflags/gflags.git",
-)
-
-bind(
-    name = "gflags",
-    actual = "@gflags_git//:gflags",
-)
-
 local_repository(
     name = "butteraugli",
     path = "third_party/butteraugli/",

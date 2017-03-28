@@ -28,7 +28,7 @@ namespace guetzli {
 
 struct Params {
   float butteraugli_target = 1.0;
-  bool clear_metadata = false;
+  bool clear_metadata = true;
   bool try_420 = false;
   bool force_420 = false;
   bool use_silver_screen = false;

@@ -20,14 +20,8 @@ cc_library(
 cc_binary(
     name = "guetzli",
     srcs = ["guetzli/guetzli.cc"],
-    linkopts = [
-        # TODO(robryk): Remove once https://github.com/gflags/gflags/issues/176
-        # is fixed
-        "-lpthread",
-    ],
     deps = [
         ":guetzli_lib",
-        "//external:gflags",
         "@png_archive//:png",
     ],
 )
