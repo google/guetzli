@@ -20,13 +20,7 @@ done
 
 for i in $INPUT_DIR_PNG/*.png $INPUT_DIR_JPG/*.jpg; do
   echo $i $OUTPUT_DIR/$(basename $i).guetzli.jpg
-done | (
-  if which parallel >& /dev/null; then
-    parallel --eta --colsep ' ' $GUETZLI {1} {2}
-  else
-    xargs -L 1 -t $GUETZLI
-  fi
-)
+done | xargs -L 1 -P $(getconf _NPROCESSORS_ONLN) -t $GUETZLI
 
 if [[ -n "$UPDATE_GOLDEN" ]]; then
   (cd $OUTPUT_DIR ; sha256sum *) > $(dirname $0)/golden_checksums.txt
