@@ -2,7 +2,7 @@
 
 GUETZLI=${1:-bin/Release/guetzli}
 BEES_PNG=$(dirname $0)/bees.png
-BEES_JPG=$(mktemp --tmpdir beesXXXX.jpg)
+BEES_JPG=$(mktemp ${TMPDIR:-/tmp}/beesXXXX.jpg)
 BUTTERAUGLI=$2
 
 pngtopnm < $BEES_PNG | cjpeg -sample 1x1 -quality 100 > $BEES_JPG || exit 2
@@ -10,7 +10,7 @@ pngtopnm < $BEES_PNG | cjpeg -sample 1x1 -quality 100 > $BEES_JPG || exit 2
 function run_test() {
   # png/jpeg stdin/file stdout/file flags...
   local in=
-  local out=$(mktemp --tmpdir beesXXX.guetzli.jpg)
+  local out=$(mktemp ${TMPDIR:-/tmp}/beesXXX.guetzli.jpg)
   echo "Testing $@, output in $out"
   case "$1" in
     png) in=$BEES_PNG ;;
