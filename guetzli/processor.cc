@@ -196,7 +196,11 @@ class QuantMatrixGenerator {
         if (hscore_a_ == -1.0) {
           hscore = downsample_ ? 0.0 : total_csf_;
         } else {
-          hscore = hscore_a_ + total_csf_;
+          if (hscore_a_ < 5.0 * total_csf_) {
+            hscore = hscore_a_ + total_csf_;
+          } else {
+            hscore = 2 * (hscore_a_ + total_csf_);
+          }
         }
         if (hscore > 100 * total_csf_) {
           // We could not find a quantization matrix that creates enough
