@@ -19,7 +19,6 @@ matrix:
 
     - os: linux
       dist: trusty
-      sudo: required
       env: BUILD_SYSTEM=make
       addons:
         apt:
