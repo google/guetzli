@@ -248,7 +248,7 @@ OutputImage::OutputImage(int w, int h)
       components_(3, OutputImageComponent(w, h)) {}
 
 void OutputImage::CopyFromJpegData(const JPEGData& jpg) {
-  for (int i = 0; i < jpg.components.size(); ++i) {
+  for (size_t i = 0; i < jpg.components.size(); ++i) {
     const JPEGComponent& comp = jpg.components[i];
     assert(jpg.max_h_samp_factor % comp.h_samp_factor == 0);
     assert(jpg.max_v_samp_factor % comp.v_samp_factor == 0);
@@ -414,7 +414,7 @@ std::vector<uint8_t> OutputImage::ToSRGB(int xmin, int ymin,
   for (int c = 0; c < 3; ++c) {
     components_[c].ToPixels(xmin, ymin, xsize, ysize, &rgb[c], 3);
   }
-  for (int p = 0; p < rgb.size(); p += 3) {
+  for (size_t p = 0; p < rgb.size(); p += 3) {
     ColorTransformYCbCrToRGB(&rgb[p]);
   }
   return rgb;

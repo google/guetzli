@@ -61,12 +61,12 @@ bool EncodeMetadata(const JPEGData& jpg, bool strip_metadata, JPEGOutput out) {
     return JPEGWrite(out, kApp0Data, sizeof(kApp0Data));
   }
   bool ok = true;
-  for (int i = 0; i < jpg.app_data.size(); ++i) {
+  for (size_t i = 0; i < jpg.app_data.size(); ++i) {
     uint8_t data[1] = { 0xff };
     ok = ok && JPEGWrite(out, data, sizeof(data));
     ok = ok && JPEGWrite(out, jpg.app_data[i]);
   }
-  for (int i = 0; i < jpg.com_data.size(); ++i) {
+  for (size_t i = 0; i < jpg.com_data.size(); ++i) {
     uint8_t data[2] = { 0xff, 0xfe };
     ok = ok && JPEGWrite(out, data, sizeof(data));
     ok = ok && JPEGWrite(out, jpg.com_data[i]);
@@ -76,7 +76,7 @@ bool EncodeMetadata(const JPEGData& jpg, bool strip_metadata, JPEGOutput out) {
 
 bool EncodeDQT(const std::vector<JPEGQuantTable>& quant, JPEGOutput out) {
   int marker_len = 2;
-  for (int i = 0; i < quant.size(); ++i) {
+  for (size_t i = 0; i < quant.size(); ++i) {
     marker_len += 1 + (quant[i].precision ? 2 : 1) * kDCTBlockSize;
   }
   std::vector<uint8_t> data(marker_len + 2);
@@ -85,7 +85,7 @@ bool EncodeDQT(const std::vector<JPEGQuantTable>& quant, JPEGOutput out) {
   data[pos++] = 0xdb;
   data[pos++] = marker_len >> 8;
   data[pos++] = marker_len & 0xff;
-  for (int i = 0; i < quant.size(); ++i) {
+  for (size_t i = 0; i < quant.size(); ++i) {
     const JPEGQuantTable& table = quant[i];
     data[pos++] = (table.precision << 4) + table.index;
     for (int k = 0; k < kDCTBlockSize; ++k) {
@@ -118,7 +118,7 @@ bool EncodeSOF(const JPEGData& jpg, JPEGOutput out) {
     data[pos++] = jpg.components[i].id;
     data[pos++] = ((jpg.components[i].h_samp_factor << 4) |
                       (jpg.components[i].v_samp_factor));
-    const int quant_idx = jpg.components[i].quant_idx;
+    const size_t quant_idx = jpg.components[i].quant_idx;
     if (quant_idx >= jpg.quant.size()) {
       return false;
     }
@@ -232,7 +232,7 @@ size_t HistogramEntropyCost(const JpegHistogram& histo,
 }
 
 void BuildDCHistograms(const JPEGData& jpg, JpegHistogram* histo) {
-  for (int i = 0; i < jpg.components.size(); ++i) {
+  for (size_t i = 0; i < jpg.components.size(); ++i) {
     const JPEGComponent& c = jpg.components[i];
     JpegHistogram* dc_histogram = &histo[i];
     coeff_t last_dc_coeff = 0;
@@ -256,10 +256,10 @@ void BuildDCHistograms(const JPEGData& jpg, JpegHistogram* histo) {
 }
 
 void BuildACHistograms(const JPEGData& jpg, JpegHistogram* histo) {
-  for (int i = 0; i < jpg.components.size(); ++i) {
+  for (size_t i = 0; i < jpg.components.size(); ++i) {
     const JPEGComponent& c = jpg.components[i];
     JpegHistogram* ac_histogram = &histo[i];
-    for (int j = 0; j < c.coeffs.size(); j += kDCTBlockSize) {
+    for (size_t j = 0; j < c.coeffs.size(); j += kDCTBlockSize) {
       UpdateACHistogramForDCTBlock(&c.coeffs[j], ac_histogram);
     }
   }
@@ -272,16 +272,16 @@ size_t JpegHeaderSize(const JPEGData& jpg, bool strip_metadata) {
   if (strip_metadata) {
     num_bytes += 18;  // APP0
   } else {
-    for (int i = 0; i < jpg.app_data.size(); ++i) {
+    for (size_t i = 0; i < jpg.app_data.size(); ++i) {
       num_bytes += 1 + jpg.app_data[i].size();
     }
-    for (int i = 0; i < jpg.com_data.size(); ++i) {
+    for (size_t i = 0; i < jpg.com_data.size(); ++i) {
       num_bytes += 2 + jpg.com_data[i].size();
     }
   }
   // DQT
   num_bytes += 4;
-  for (int i = 0; i < jpg.quant.size(); ++i) {
+  for (size_t i = 0; i < jpg.quant.size(); ++i) {
     num_bytes += 1 + (jpg.quant[i].precision ? 2 : 1) * kDCTBlockSize;
   }
   num_bytes += 10 + 3 * jpg.components.size();  // SOF
@@ -335,7 +335,7 @@ size_t ClusterHistograms(JpegHistogram* histo, size_t* num,
     }
   }
   size_t total_cost = 0;
-  for (int i = 0; i < *num; ++i) {
+  for (size_t i = 0; i < *num; ++i) {
     total_cost += costs[i];
   }
   return (total_cost + 7) / 8;
@@ -391,7 +391,7 @@ bool BuildAndEncodeHuffmanCodes(const JPEGData& jpg, JPEGOutput out,
   int num_histo = num_dc_histo + num_ac_histo;
   histograms.resize(num_histo);
   int total_count = 0;
-  for (int i = 0; i < histograms.size(); ++i) {
+  for (size_t i = 0; i < histograms.size(); ++i) {
     total_count += histograms[i].NumSymbols();
   }
   const size_t dht_marker_len =
@@ -405,8 +405,8 @@ bool BuildAndEncodeHuffmanCodes(const JPEGData& jpg, JPEGOutput out,
   data[pos++] = dht_marker_len & 0xff;
 
   // Compute Huffman codes for each histograms.
-  for (size_t i = 0; i < num_histo; ++i) {
-    const bool is_dc = i < num_dc_histo;
+  for (int i = 0; i < num_histo; ++i) {
+    const bool is_dc = static_cast<size_t>(i) < num_dc_histo;
     const int idx = is_dc ? i : i - num_dc_histo;
     int counts[kJpegHuffmanMaxBitLength + 1] = { 0 };
     int values[JpegHistogram::kSize] = { 0 };
@@ -430,7 +430,7 @@ bool BuildAndEncodeHuffmanCodes(const JPEGData& jpg, JPEGOutput out,
     for (size_t j = 1; j <= kJpegHuffmanMaxBitLength; ++j) {
       data[pos++] = counts[j];
     }
-    for (size_t j = 0; j < total_count; ++j) {
+    for (int j = 0; j < total_count; ++j) {
       data[pos++] = values[j];
     }
   }
@@ -508,7 +508,7 @@ bool EncodeScan(const JPEGData& jpg,
   for (int mcu_y = 0; mcu_y < jpg.MCU_rows; ++mcu_y) {
     for (int mcu_x = 0; mcu_x < jpg.MCU_cols; ++mcu_x) {
       // Encode one MCU
-      for (int i = 0; i < jpg.components.size(); ++i) {
+      for (size_t i = 0; i < jpg.components.size(); ++i) {
         const JPEGComponent& c = jpg.components[i];
         int nblocks_y = c.v_samp_factor;
         int nblocks_x = c.h_samp_factor;
