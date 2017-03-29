@@ -585,7 +585,6 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
 
   std::vector<float> max_block_error(num_blocks);
   std::vector<int> last_indexes(num_blocks);
-  std::vector<float> distmap(width * height);
 
   bool first_up_iter = true;
   for (int direction : {1, -1}) {
@@ -604,6 +603,10 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
       std::vector<float> block_weight;
       for (int rblock = 1; rblock <= 4; ++rblock) {
         block_weight = std::vector<float>(num_blocks);
+        std::vector<float> distmap(width * height);
+        if (!first_up_iter) {
+          distmap = comparator_->distmap();
+        }
         comparator_->ComputeBlockErrorAdjustmentWeights(
             direction, rblock, target_mul, factor_x, factor_y, distmap,
             &block_weight);
@@ -733,7 +736,6 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                   100.0 - (100.0 * est_jpg_size) / encoded_jpg.size());
       comparator_->Compare(*img);
       MaybeOutput(encoded_jpg);
-      distmap = comparator_->distmap();
       prev_size = est_jpg_size;
     }
   }
