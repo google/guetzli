@@ -807,7 +807,7 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     int best_q[3][kDCTBlockSize];
     memcpy(best_q, q_in, sizeof(best_q));
     GuetzliOutput quantized_out;
-    if (!SelectQuantMatrix(tmp_jpg, downsample, best_q, &quantized_out)) {
+    if (!SelectQuantMatrix(tmp_jpg, downsample != 0, best_q, &quantized_out)) {
       for (int c = 0; c < 3; ++c) {
         for (int i = 0; i < kDCTBlockSize; ++i) {
           best_q[c][i] = 1;

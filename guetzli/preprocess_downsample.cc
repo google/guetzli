@@ -261,9 +261,9 @@ std::vector<std::vector<float>> PreProcessChannel(
     for (int x = 0; x < w; x++) {
       size_t index = y * w + x;
 
-      if (sharpenmap[index] > 0) {
+      if (sharpenmap[index]) {
         if (sharpen) yuv[channel][index] = sharpened[index];
-      } else if (blurmap[index] > 0) {
+      } else if (blurmap[index]) {
         if (blur) yuv[channel][index] = blurred[index];
       }
     }
