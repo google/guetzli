@@ -44,8 +44,8 @@ struct CoeffData {
 };
 struct QuantData {
   int q[3][kDCTBlockSize];
+  size_t jpg_size;
   bool dist_ok;
-  GuetzliOutput out;
 };
 class Processor {
  public:
@@ -67,7 +67,8 @@ class Processor {
                          GuetzliOutput* quantized_out);
   QuantData TryQuantMatrix(const JPEGData& jpg_in,
                            const float target_mul,
-                           int q[3][kDCTBlockSize]);
+                           int q[3][kDCTBlockSize],
+                           GuetzliOutput* out);
   void MaybeOutput(const std::string& encoded_jpg);
   void DownsampleImage(OutputImage* img);
   void OutputJpeg(const JPEGData& in, std::string* out);
@@ -136,7 +137,7 @@ void Processor::MaybeOutput(const std::string& encoded_jpg) {
 bool CompareQuantData(const QuantData& a, const QuantData& b) {
   if (a.dist_ok && !b.dist_ok) return true;
   if (!a.dist_ok && b.dist_ok) return false;
-  return a.out.jpeg_data.size() < b.out.jpeg_data.size();
+  return a.jpg_size < b.jpg_size;
 }
 
 // Compares a[0..kBlockSize) and b[0..kBlockSize) vectors, and returns
@@ -283,7 +284,8 @@ class QuantMatrixGenerator {
 
 QuantData Processor::TryQuantMatrix(const JPEGData& jpg_in,
                                     const float target_mul,
-                                    int q[3][kDCTBlockSize]) {
+                                    int q[3][kDCTBlockSize],
+                                    GuetzliOutput* out) {
   QuantData data;
   memcpy(data.q, q, sizeof(data.q));
   OutputImage img(jpg_in.width, jpg_in.height);
@@ -304,10 +306,11 @@ QuantData Processor::TryQuantMatrix(const JPEGData& jpg_in,
   ++stats_->counters[kNumItersCnt];
   comparator_->Compare(img);
   data.dist_ok = comparator_->DistanceOK(target_mul);
-  data.out.jpeg_data = encoded_jpg;
-  data.out.distmap = comparator_->distmap();
-  data.out.distmap_aggregate = comparator_->distmap_aggregate();
-  data.out.score = comparator_->ScoreOutputSize(encoded_jpg.size());
+  data.jpg_size = encoded_jpg.size();
+  out->jpeg_data = encoded_jpg;
+  out->distmap = comparator_->distmap();
+  out->distmap_aggregate = comparator_->distmap_aggregate();
+  out->score = comparator_->ScoreOutputSize(encoded_jpg.size());
   MaybeOutput(encoded_jpg);
   return data;
 }
@@ -322,18 +325,20 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
   const float target_mul_high = 0.97;
   const float target_mul_low = 0.95;
 
-  QuantData best = TryQuantMatrix(jpg_in, target_mul_high, best_q);
+  QuantData best = TryQuantMatrix(jpg_in, target_mul_high, best_q,
+                                  quantized_out);
   for (;;) {
     int q_next[3][kDCTBlockSize];
     if (!qgen.GetNext(q_next)) {
       break;
     }
 
-    QuantData data =
-        TryQuantMatrix(jpg_in, target_mul_high, q_next);
+    GuetzliOutput out;
+    QuantData data = TryQuantMatrix(jpg_in, target_mul_high, q_next, &out);
     qgen.Add(data);
     if (CompareQuantData(data, best)) {
       best = data;
+      *quantized_out = out;
       if (data.dist_ok && !comparator_->DistanceOK(target_mul_low)) {
         break;
       }
@@ -341,7 +346,6 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
   }
 
   memcpy(&best_q[0][0], &best.q[0][0], kBlockSize * sizeof(best_q[0][0]));
-  *quantized_out = best.out;
   GUETZLI_LOG(stats_, "\n%s selected quantization matrix:\n",
               downsample ? "YUV420" : "YUV444");
   GUETZLI_LOG_QUANT(stats_, best_q);
