@@ -291,10 +291,12 @@ QuantData Processor::TryQuantMatrix(const JPEGData& jpg_in,
   OutputImage img(jpg_in.width, jpg_in.height);
   img.CopyFromJpegData(jpg_in);
   img.ApplyGlobalQuantization(data.q);
-  JPEGData jpg_out = jpg_in;
-  img.SaveToJpegData(&jpg_out);
   std::string encoded_jpg;
-  OutputJpeg(jpg_out, &encoded_jpg);
+  {
+    JPEGData jpg_out = jpg_in;
+    img.SaveToJpegData(&jpg_out);
+    OutputJpeg(jpg_out, &encoded_jpg);
+  }
   GUETZLI_LOG(stats_, "Iter %2d: %s quantization matrix:\n",
               stats_->counters[kNumItersCnt] + 1,
               img.FrameTypeStr().c_str());
@@ -711,10 +713,12 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
 
       ++stats_->counters[kNumItersCnt];
       ++stats_->counters[direction > 0 ? kNumItersUpCnt : kNumItersDownCnt];
-      JPEGData jpg_out = jpg;
-      img->SaveToJpegData(&jpg_out);
       std::string encoded_jpg;
-      OutputJpeg(jpg_out, &encoded_jpg);
+      {
+        JPEGData jpg_out = jpg;
+        img->SaveToJpegData(&jpg_out);
+        OutputJpeg(jpg_out, &encoded_jpg);
+      }
       GUETZLI_LOG(stats_,
                   "Iter %2d: %s(%d) %s Coeffs[%d/%zd] "
                   "Blocks[%zd/%d/%d] ValThres[%.4f] Out[%7zd] EstErr[%.2f%%]",
