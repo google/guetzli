@@ -60,7 +60,7 @@ class ButteraugliComparator : public Comparator {
   const int width_;
   const int height_;
   const float target_distance_;
-  std::vector<::butteraugli::ImageF> rgb_linear_pregamma_;
+  std::vector<std::vector<float>> rgb_linear_pregamma_;
   std::vector<std::vector<float>> mask_xyz_;
   std::vector<std::vector<std::vector<float>>> per_block_pregamma_;
   ::butteraugli::ButteraugliComparator comparator_;

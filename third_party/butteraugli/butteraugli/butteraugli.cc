@@ -47,81 +47,6 @@
 
 namespace butteraugli {
 
-void *CacheAligned::Allocate(const size_t bytes) {
-  char *const allocated = static_cast<char *>(malloc(bytes + kCacheLineSize));
-  if (allocated == nullptr) {
-    return nullptr;
-  }
-  const uintptr_t misalignment =
-      reinterpret_cast<uintptr_t>(allocated) & (kCacheLineSize - 1);
-  // malloc is at least kPointerSize aligned, so we can store the "allocated"
-  // pointer immediately before the aligned memory.
-  assert(misalignment % kPointerSize == 0);
-  char *const aligned = allocated + kCacheLineSize - misalignment;
-  memcpy(aligned - kPointerSize, &allocated, kPointerSize);
-  return aligned;
-}
-
-void CacheAligned::Free(void *aligned_pointer) {
-  if (aligned_pointer == nullptr) {
-    return;
-  }
-  char *const aligned = static_cast<char *>(aligned_pointer);
-  assert(reinterpret_cast<uintptr_t>(aligned) % kCacheLineSize == 0);
-  char *allocated;
-  memcpy(&allocated, aligned - kPointerSize, kPointerSize);
-  assert(allocated <= aligned - kPointerSize);
-  assert(allocated >= aligned - kCacheLineSize);
-  free(allocated);
-}
-
-static inline bool IsNan(const float x) {
-  uint32_t bits;
-  memcpy(&bits, &x, sizeof(bits));
-  const uint32_t bitmask_exp = 0x7F800000;
-  return (bits & bitmask_exp) == bitmask_exp && (bits & 0x7FFFFF);
-}
-
-static inline bool IsNan(const double x) {
-  uint64_t bits;
-  memcpy(&bits, &x, sizeof(bits));
-  return (0x7ff0000000000001ULL <= bits && bits <= 0x7fffffffffffffffULL) ||
-         (0xfff0000000000001ULL <= bits && bits <= 0xffffffffffffffffULL);
-}
-
-static inline void CheckImage(const ImageF &image, const char *name) {
-  for (size_t y = 0; y < image.ysize(); ++y) {
-    ConstRestrict<const float *> row = image.Row(y);
-    for (size_t x = 0; x < image.xsize(); ++x) {
-      if (IsNan(row[x])) {
-        printf("Image %s @ %lu,%lu (of %lu,%lu)\n", name, x, y, image.xsize(),
-               image.ysize());
-        exit(1);
-      }
-    }
-  }
-}
-
-#if BUTTERAUGLI_ENABLE_CHECKS
-
-#define CHECK_NAN(x, str)                \
-  do {                                   \
-    if (IsNan(x)) {                      \
-      printf("%d: %s\n", __LINE__, str); \
-      abort();                           \
-    }                                    \
-  } while (0)
-
-#define CHECK_IMAGE(image, name) CheckImage(image, name)
-
-#else
-
-#define CHECK_NAN(x, str)
-#define CHECK_IMAGE(image, name)
-
-#endif
-
-
 static const double kInternalGoodQualityThreshold = 14.921561160295326;
 static const double kGlobalScale = 1.0 / kInternalGoodQualityThreshold;
 
@@ -183,18 +108,24 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
   int dxsize = (xsize + xstep - 1) / xstep;
   int dysize = (ysize + ystep - 1) / ystep;
   std::vector<float> tmp(dxsize * ysize);
-  std::vector<float> downsampled_output(dxsize * dysize);
   Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
               border_ratio,
               tmp.data());
+  float* output = channel;
+  std::vector<float> downsampled_output;
+  if (xstep > 1) {
+    downsampled_output.resize(dxsize * dysize);
+    output = downsampled_output.data();
+  }
   Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
-              border_ratio,
-              downsampled_output.data());
-  for (size_t y = 0; y < ysize; y++) {
-    for (size_t x = 0; x < xsize; x++) {
-      // TODO: Use correct rounding.
-      channel[y * xsize + x] =
-          downsampled_output[(y / ystep) * dxsize + (x / xstep)];
+              border_ratio, output);
+  if (xstep > 1) {
+    for (size_t y = 0; y < ysize; y++) {
+      for (size_t x = 0; x < xsize; x++) {
+        // TODO: Use correct rounding.
+        channel[y * xsize + x] =
+            downsampled_output[(y / ystep) * dxsize + (x / xstep)];
+      }
     }
   }
 }
@@ -914,6 +845,79 @@ double SimpleGamma(double v) {
   return retval;
 }
 
+// Polynomial evaluation via Clenshaw's scheme (similar to Horner's).
+// Template enables compile-time unrolling of the recursion, but must reside
+// outside of a class due to the specialization.
+template <int INDEX>
+static inline void ClenshawRecursion(const double x, const double *coefficients,
+                                     double *b1, double *b2) {
+  const double x_b1 = x * (*b1);
+  const double t = (x_b1 + x_b1) - (*b2) + coefficients[INDEX];
+  *b2 = *b1;
+  *b1 = t;
+
+  ClenshawRecursion<INDEX - 1>(x, coefficients, b1, b2);
+}
+
+// Base case
+template <>
+inline void ClenshawRecursion<0>(const double x, const double *coefficients,
+                                 double *b1, double *b2) {
+  const double x_b1 = x * (*b1);
+  // The final iteration differs - no 2 * x_b1 here.
+  *b1 = x_b1 - (*b2) + coefficients[0];
+}
+
+// Rational polynomial := dividing two polynomial evaluations. These are easier
+// to find than minimax polynomials.
+struct RationalPolynomial {
+  template <int N>
+  static double EvaluatePolynomial(const double x,
+                                   const double (&coefficients)[N]) {
+    double b1 = 0.0;
+    double b2 = 0.0;
+    ClenshawRecursion<N - 1>(x, coefficients, &b1, &b2);
+    return b1;
+  }
+
+  // Evaluates the polynomial at x (in [min_value, max_value]).
+  inline double operator()(const float x) const {
+    // First normalize to [0, 1].
+    const double x01 = (x - min_value) / (max_value - min_value);
+    // And then to [-1, 1] domain of Chebyshev polynomials.
+    const double xc = 2.0 * x01 - 1.0;
+
+    const double yp = EvaluatePolynomial(xc, p);
+    const double yq = EvaluatePolynomial(xc, q);
+    if (yq == 0.0) return 0.0;
+    return static_cast<float>(yp / yq);
+  }
+
+  // Domain of the polynomials; they are undefined elsewhere.
+  double min_value;
+  double max_value;
+
+  // Coefficients of T_n (Chebyshev polynomials of the first kind).
+  // Degree 5/5 is a compromise between accuracy (0.1%) and numerical stability.
+  double p[5 + 1];
+  double q[5 + 1];
+};
+
+static inline float GammaPolynomial(float value) {
+  // Generated by gamma_polynomial.m from equispaced x/gamma(x) samples.
+  static const RationalPolynomial r = {
+  0.770000000000000, 274.579999999999984,
+  {
+    881.979476556478289, 1496.058452015812463, 908.662212739659481,
+    373.566100223287378, 85.840860336314364, 6.683258861509244,
+  },
+  {
+    12.262350348616792, 20.557285797683576, 12.161463238367844,
+    4.711532733641639, 0.899112889751053, 0.035662329617191,
+  }};
+  return r(value);
+}
+
 static inline double Gamma(double v) {
   // return SimpleGamma(v);
   return GammaPolynomial(v);
@@ -971,27 +975,30 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
   // values have no meaning, they only exist to keep the result map the same
   // size as the input images.
   int s2 = (8 - step) / 2;
-  // Upsample and take square root.
-  std::vector<float> diffmap_out(xsize * ysize);
-  const size_t res_xsize = (xsize + step - 1) / step;
-  for (size_t res_y = 0; res_y + 8 - step < ysize; res_y += step) {
-    for (size_t res_x = 0; res_x + 8 - step < xsize; res_x += step) {
-      size_t res_ix = (res_y * res_xsize + res_x) / step;
-      float orig_val = (*diffmap)[res_ix];
-      constexpr float kInitialSlope = 100;
-      // TODO(b/29974893): Until that is fixed do not call sqrt on very small
-      // numbers.
-      double val = orig_val < (1.0 / (kInitialSlope * kInitialSlope))
-                       ? kInitialSlope * orig_val
-                       : std::sqrt(orig_val);
-      for (size_t off_y = 0; off_y < step; ++off_y) {
-        for (size_t off_x = 0; off_x < step; ++off_x) {
-          diffmap_out[(res_y + off_y + s2) * xsize + res_x + off_x + s2] = val;
+  {
+    // Upsample and take square root.
+    std::vector<float> diffmap_out(xsize * ysize);
+    const size_t res_xsize = (xsize + step - 1) / step;
+    for (size_t res_y = 0; res_y + 8 - step < ysize; res_y += step) {
+      for (size_t res_x = 0; res_x + 8 - step < xsize; res_x += step) {
+        size_t res_ix = (res_y * res_xsize + res_x) / step;
+        float orig_val = (*diffmap)[res_ix];
+        constexpr float kInitialSlope = 100;
+        // TODO(b/29974893): Until that is fixed do not call sqrt on very small
+        // numbers.
+        double val = orig_val < (1.0 / (kInitialSlope * kInitialSlope))
+                                ? kInitialSlope * orig_val
+                                : std::sqrt(orig_val);
+        for (size_t off_y = 0; off_y < step; ++off_y) {
+          for (size_t off_x = 0; off_x < step; ++off_x) {
+            diffmap_out[(res_y + off_y + s2) * xsize +
+                        res_x + off_x + s2] = val;
+          }
         }
       }
     }
+    *diffmap = diffmap_out;
   }
-  *diffmap = diffmap_out;
   {
     static const double kSigma = 8.8510880283;
     static const double mul1 = 24.8235314874;
@@ -1015,50 +1022,35 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
   }
 }
 
-void ButteraugliComparator::Diffmap(const std::vector<ImageF> &rgb0_arg,
-                                    const std::vector<ImageF> &rgb1_arg,
-                                    ImageF &result) {
-  result = ImageF(xsize_, ysize_);
-  if (xsize_ < 8 || ysize_ < 8) return;
-  std::vector<std::vector<float>> rgb0_c = PackedFromPlanes(rgb0_arg);
-  std::vector<std::vector<float>> rgb1_c = PackedFromPlanes(rgb1_arg);
-  OpsinDynamicsImage(xsize_, ysize_, rgb0_c);
-  OpsinDynamicsImage(xsize_, ysize_, rgb1_c);
-  std::vector<ImageF> pg0 = PlanesFromPacked(xsize_, ysize_, rgb0_c);
-  std::vector<ImageF> pg1 = PlanesFromPacked(xsize_, ysize_, rgb1_c);
-  DiffmapOpsinDynamicsImage(pg0, pg1, result);
-}
-
 void ButteraugliComparator::DiffmapOpsinDynamicsImage(
-    const std::vector<ImageF> &xyb0_arg, const std::vector<ImageF> &xyb1_arg,
-    ImageF &result) {
-  result = ImageF(xsize_, ysize_);
+    const std::vector<std::vector<float>> &xyb0_arg,
+    std::vector<std::vector<float>> &xyb1,
+    std::vector<float> &result) {
   if (xsize_ < 8 || ysize_ < 8) return;
-  std::vector<std::vector<float>> xyb0 = PackedFromPlanes(xyb0_arg);
-  std::vector<std::vector<float>> xyb1 = PackedFromPlanes(xyb1_arg);
-  auto xyb0_c = xyb0;
-  auto xyb1_c = xyb1;
-
-  MaskHighIntensityChange(xsize_, ysize_, xyb0_c, xyb1_c, xyb0, xyb1);
+  auto xyb0 = xyb0_arg;
+  {
+    auto xyb1_c = xyb1;
+    MaskHighIntensityChange(xsize_, ysize_, xyb0_arg, xyb1_c, xyb0, xyb1);
+  }
   assert(8 <= xsize_);
   for (int i = 0; i < 3; i++) {
     assert(xyb0[i].size() == num_pixels_);
     assert(xyb1[i].size() == num_pixels_);
   }
-  std::vector<std::vector<float> > mask_xyb(3);
-  std::vector<std::vector<float> > mask_xyb_dc(3);
   std::vector<float> block_diff_dc(3 * res_xsize_ * res_ysize_);
   std::vector<float> block_diff_ac(3 * res_xsize_ * res_ysize_);
   std::vector<float> edge_detector_map(3 * res_xsize_ * res_ysize_);
-  std::vector<float> packed_result;
   BlockDiffMap(xyb0, xyb1, &block_diff_dc, &block_diff_ac);
   EdgeDetectorMap(xyb0, xyb1, &edge_detector_map);
   EdgeDetectorLowFreq(xyb0, xyb1, &block_diff_ac);
-  Mask(xyb0, xyb1, xsize_, ysize_, &mask_xyb, &mask_xyb_dc);
-  CombineChannels(mask_xyb, mask_xyb_dc, block_diff_dc, block_diff_ac,
-                  edge_detector_map, &packed_result);
-  CalculateDiffmap(xsize_, ysize_, step_, &packed_result);
-  CopyFromPacked(packed_result, &result);
+  {
+    std::vector<std::vector<float> > mask_xyb(3);
+    std::vector<std::vector<float> > mask_xyb_dc(3);
+    Mask(xyb0, xyb1, xsize_, ysize_, &mask_xyb, &mask_xyb_dc);
+    CombineChannels(mask_xyb, mask_xyb_dc, block_diff_dc, block_diff_ac,
+                    edge_detector_map, &result);
+  }
+  CalculateDiffmap(xsize_, ysize_, step_, &result);
 }
 
 void ButteraugliComparator::BlockDiffMap(
@@ -1213,14 +1205,11 @@ void ButteraugliComparator::CombineChannels(
   }
 }
 
-double ButteraugliScoreFromDiffmap(const ImageF& diffmap) {
+double ButteraugliScoreFromDiffmap(const std::vector<float>& diffmap) {
   PROFILER_FUNC;
   float retval = 0.0f;
-  for (size_t y = 0; y < diffmap.ysize(); ++y) {
-    ConstRestrict<const float *> row = diffmap.Row(y);
-    for (size_t x = 0; x < diffmap.xsize(); ++x) {
-      retval = std::max(retval, row[x]);
-    }
+  for (size_t ix = 0; ix < diffmap.size(); ++ix) {
+    retval = std::max(retval, diffmap[ix]);
   }
   return retval;
 }
@@ -1504,88 +1493,6 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask)[i]);
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask_dc)[i]);
   }
-}
-
-void ButteraugliDiffmap(const std::vector<ImageF> &rgb0_image,
-                        const std::vector<ImageF> &rgb1_image,
-                        ImageF &result_image) {
-  const size_t xsize = rgb0_image[0].xsize();
-  const size_t ysize = rgb0_image[0].ysize();
-  ButteraugliComparator butteraugli(xsize, ysize, 3);
-  butteraugli.Diffmap(rgb0_image, rgb1_image, result_image);
-}
-
-bool ButteraugliInterface(const std::vector<ImageF> &rgb0,
-                          const std::vector<ImageF> &rgb1,
-                          ImageF &diffmap,
-                          double &diffvalue) {
-  const size_t xsize = rgb0[0].xsize();
-  const size_t ysize = rgb0[0].ysize();
-  if (xsize < 1 || ysize < 1) {
-    // Butteraugli values for small (where xsize or ysize is smaller
-    // than 8 pixels) images are non-sensical, but most likely it is
-    // less disruptive to try to compute something than just give up.
-    return false;  // No image.
-  }
-  for (int i = 1; i < 3; i++) {
-    if (rgb0[i].xsize() != xsize || rgb0[i].ysize() != ysize ||
-        rgb1[i].xsize() != xsize || rgb1[i].ysize() != ysize) {
-      return false;  // Image planes must have same dimensions.
-    }
-  }
-  if (xsize < 8 || ysize < 8) {
-    for (size_t y = 0; y < ysize; ++y) {
-      for (size_t x = 0; x < xsize; ++x) {
-        diffmap.Row(y)[x] = 0;
-      }
-    }
-    diffvalue = 0;
-    return true;
-  }
-  ButteraugliDiffmap(rgb0, rgb1, diffmap);
-  diffvalue = ButteraugliScoreFromDiffmap(diffmap);
-  return true;
-}
-
-bool ButteraugliAdaptiveQuantization(size_t xsize, size_t ysize,
-    const std::vector<std::vector<float> > &rgb, std::vector<float> &quant) {
-  if (xsize < 16 || ysize < 16) {
-    return false;  // Butteraugli is undefined for small images.
-  }
-  size_t size = xsize * ysize;
-
-  std::vector<std::vector<float> > scale_xyb(3);
-  std::vector<std::vector<float> > scale_xyb_dc(3);
-  Mask(rgb, rgb, xsize, ysize, &scale_xyb, &scale_xyb_dc);
-  quant.resize(size);
-
-  // Mask gives us values in 3 color channels, but for now we take only
-  // the intensity channel.
-  for (size_t i = 0; i < size; i++) {
-    quant[i] = scale_xyb[1][i];
-  }
-  return true;
-}
-
-double ButteraugliFuzzyClass(double score) {
-  static const double fuzzy_width_up = 10.287189655;
-  static const double fuzzy_width_down = 6.97490803335;
-  static const double m0 = 2.0;
-  double fuzzy_width = score < 1.0 ? fuzzy_width_down : fuzzy_width_up;
-  return m0 / (1.0 + exp((score - 1.0) * fuzzy_width));
-}
-
-double ButteraugliFuzzyInverse(double seek) {
-  double pos = 0;
-  for (double range = 1.0; range >= 1e-10; range *= 0.5) {
-    double cur = ButteraugliFuzzyClass(pos);
-    if (cur < seek) {
-      pos -= range;
-    } else {
-      pos += range;
-    }
-  }
-  return pos;
 }
 
 }  // namespace butteraugli
