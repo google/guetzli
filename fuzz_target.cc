@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "guetzli/jpeg_data.h"
 #include "guetzli/jpeg_data_reader.h"
 #include "guetzli/processor.h"
@@ -11,7 +12,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     return 0;
   }
   static constexpr int kMaxPixels = 10000;
-  if (jpg_header.width * jpg_header.height > kMaxPixels) {
+  if (static_cast<int64_t>(jpg_header.width) * jpg_header.height > kMaxPixels) {
     return 0;
   }
 

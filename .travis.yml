@@ -12,9 +12,27 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - wget
+            - libjpeg-progs
 
     - os: osx
       env: BUILD_SYSTEM=bazel
+
+    - os: linux
+      dist: trusty
+      env: BUILD_SYSTEM=make
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - wget
+            - libpng-dev
+            - pkg-config
+            - libjpeg-progs
+
+    - os: osx
+      env: BUILD_SYSTEM=make
+
 
 install:
 - ./.travis.sh install

@@ -519,7 +519,7 @@ int ReadSymbol(const HuffmanTableEntry* table, BitReaderState* br) {
 // Returns the DC diff or AC value for extra bits value x and prefix code s.
 // See Tables F.1 and F.2 of the spec.
 int HuffExtend(int x, int s) {
-  return (x < (1 << (s - 1)) ? x + ((-1) << s ) + 1 : x);
+  return (x < (1 << (s - 1)) ? x - ((1) << s ) + 1 : x);
 }
 
 // Decodes one 8x8 block of DCT coefficients from the bit stream.
@@ -627,7 +627,7 @@ bool RefineDCTBlock(const HuffmanTableEntry* ac_huff,
     return true;
   }
   int p1 = 1 << Al;
-  int m1 = (-1) << Al;
+  int m1 = -(1 << Al);
   int k = Ss;
   int r;
   int s;
