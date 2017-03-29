@@ -83,7 +83,7 @@ void RemoveOriginalQuantization(JPEGData* jpg, int q_in[3][kDCTBlockSize]) {
     JPEGComponent& c = jpg->components[i];
     const int* q = &jpg->quant[c.quant_idx].values[0];
     memcpy(&q_in[i][0], q, kDCTBlockSize * sizeof(q[0]));
-    for (int j = 0; j < c.coeffs.size(); ++j) {
+    for (size_t j = 0; j < c.coeffs.size(); ++j) {
       c.coeffs[j] *= q[j % kDCTBlockSize];
     }
   }
@@ -228,7 +228,7 @@ class QuantMatrixGenerator {
       }
       GetQuantMatrixWithHeuristicScore(hscore, q);
       bool retry = false;
-      for (int i = 0; i < quants_.size(); ++i) {
+      for (size_t i = 0; i < quants_.size(); ++i) {
         if (CompareQuantMatrices(&q[0][0], &quants_[i].q[0][0]) == 0) {
           if (quants_[i].dist_ok) {
             hscore_a_ = hscore;
@@ -392,7 +392,7 @@ void Processor::ComputeBlockZeroingOrder(
   while (!input_order.empty()) {
     float best_err = 1e17;
     int best_i = 0;
-    for (int i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
+    for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
                                          input_order.size());
          ++i) {
       coeff_t candidate_block[kBlockSize];
@@ -439,7 +439,7 @@ void Processor::ComputeBlockZeroingOrder(
     (*output_order)[i].block_err = min_err;
   }
   // Cut off at the block error limit.
-  int num = 0;
+  size_t num = 0;
   while (num < output_order->size() &&
          (*output_order)[num].block_err <= comparator_->BlockErrorLimit()) {
     ++num;
@@ -491,13 +491,13 @@ size_t ComputeEntropyCodes(const std::vector<JpegHistogram>& histograms,
       histograms.size() * JpegHistogram::kSize);
   ClusterHistograms(&clustered[0], &num, &indexes[0], &clustered_depths[0]);
   depths->resize(clustered_depths.size());
-  for (int i = 0; i < histograms.size(); ++i) {
+  for (size_t i = 0; i < histograms.size(); ++i) {
     memcpy(&(*depths)[i * JpegHistogram::kSize],
            &clustered_depths[indexes[i] * JpegHistogram::kSize],
            JpegHistogram::kSize);
   }
   size_t histogram_size = 0;
-  for (int i = 0; i < num; ++i) {
+  for (size_t i = 0; i < num; ++i) {
     histogram_size += HistogramHeaderCost(clustered[i]) / 8;
   }
   return histogram_size;
@@ -506,7 +506,7 @@ size_t ComputeEntropyCodes(const std::vector<JpegHistogram>& histograms,
 size_t EntropyCodedDataSize(const std::vector<JpegHistogram>& histograms,
                             const std::vector<uint8_t>& depths) {
   size_t numbits = 0;
-  for (int i = 0; i < histograms.size(); ++i) {
+  for (size_t i = 0; i < histograms.size(); ++i) {
     numbits += HistogramEntropyCost(
         histograms[i], &depths[i * JpegHistogram::kSize]);
   }
@@ -531,7 +531,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
   const int width = img->width();
   const int height = img->height();
   const int last_c = Log2FloorNonZero(comp_mask);
-  if (last_c >= jpg.components.size()) return;
+  if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
   const int factor_x = img->component(last_c).factor_x();
   const int factor_y = img->component(last_c).factor_y();
   const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
@@ -609,12 +609,12 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
               continue;
             }
             if (direction > 0) {
-              for (int i = last_index; i < order.size(); ++i) {
+              for (size_t i = last_index; i < order.size(); ++i) {
                 float val = ((order[i].block_err - max_err) /
                              block_weight[block_ix]);
                 global_order.push_back(std::make_pair(block_ix, val));
               }
-              blocks_to_change += (last_index < order.size() ? 1 : 0);
+              blocks_to_change += (static_cast<size_t>(last_index) < order.size() ? 1 : 0);
             } else {
               for (int i = last_index - 1; i >= 0; --i) {
                 float val = ((max_err - order[i].block_err) /
@@ -645,7 +645,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
       if (direction > 0 && comparator_->DistanceOK(1.0)) {
         rel_size_delta = 0.05;
       }
-      size_t min_size_delta = base_size * rel_size_delta;
+      double min_size_delta = base_size * rel_size_delta;
 
       float coeffs_to_change_per_block =
           direction > 0 ? 2.0 : factor_x * factor_y * 0.2;
@@ -665,7 +665,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
       float val_threshold = 0.0;
       int changed_coeffs = 0;
       int est_jpg_size = prev_size;
-      for (int i = 0; i < global_order.size(); ++i) {
+      for (size_t i = 0; i < global_order.size(); ++i) {
         const int block_ix = global_order[i].first;
         const int block_x = block_ix % block_width;
         const int block_y = block_ix / block_width;
@@ -764,7 +764,7 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     input_is_420 = true;
   } else {
     fprintf(stderr, "Unsupported sampling factors:");
-    for (int i = 0; i < jpg_in.components.size(); ++i) {
+    for (size_t i = 0; i < jpg_in.components.size(); ++i) {
       fprintf(stderr, " %dx%d", jpg_in.components[i].h_samp_factor,
               jpg_in.components[i].v_samp_factor);
     }

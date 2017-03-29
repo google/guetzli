@@ -30,7 +30,7 @@ std::vector<float> Convolve2D(const std::vector<float>& image, int w, int h,
                               const double* kernel, int size) {
   auto result = image;
   int size2 = size / 2;
-  for (int i = 0; i < image.size(); i++) {
+  for (size_t i = 0; i < image.size(); i++) {
     int x = i % w;
     int y = i / w;
     // Avoid non-normalized results at boundary by skipping edges.
@@ -54,7 +54,7 @@ std::vector<float> Convolve2X(const std::vector<float>& image, int w, int h,
                               const double* kernel, int size, double mul) {
   auto temp = image;
   int size2 = size / 2;
-  for (int i = 0; i < image.size(); i++) {
+  for (size_t i = 0; i < image.size(); i++) {
     int x = i % w;
     int y = i / w;
     // Avoid non-normalized results at boundary by skipping edges.
@@ -67,7 +67,7 @@ std::vector<float> Convolve2X(const std::vector<float>& image, int w, int h,
     temp[i] = v * mul;
   }
   auto result = temp;
-  for (int i = 0; i < temp.size(); i++) {
+  for (size_t i = 0; i < temp.size(); i++) {
     int x = i % w;
     int y = i / w;
     // Avoid non-normalized results at boundary by skipping edges.
@@ -91,12 +91,12 @@ std::vector<float> Sharpen(const std::vector<float>& image, int w, int h,
                            float sigma, float amount) {
   // This is only made for small sigma, e.g. 1.3.
   std::vector<double> kernel(5);
-  for (int i = 0; i < kernel.size(); i++) {
+  for (size_t i = 0; i < kernel.size(); i++) {
     kernel[i] = Normal(1.0 * i - kernel.size() / 2, sigma);
   }
 
   double sum = 0;
-  for (int i = 0; i < kernel.size(); i++) sum += kernel[i];
+  for (size_t i = 0; i < kernel.size(); i++) sum += kernel[i];
   const double mul = 1.0 / sum;
 
   std::vector<float> result =
@@ -137,12 +137,12 @@ std::vector<float> Blur(const std::vector<float>& image, int w, int h) {
     // This is only made for small sigma, e.g. 1.3.
     static const double kSigma = 1.3;
     std::vector<double> kernel(5);
-    for (int i = 0; i < kernel.size(); i++) {
+    for (size_t i = 0; i < kernel.size(); i++) {
       kernel[i] = Normal(1.0 * i - kernel.size() / 2, kSigma);
     }
 
     double sum = 0;
-    for (int i = 0; i < kernel.size(); i++) sum += kernel[i];
+    for (size_t i = 0; i < kernel.size(); i++) sum += kernel[i];
     const double mul = 1.0 / sum;
 
     return Convolve2X(image, w, h, kernel.data(), kernel.size(), mul);
@@ -161,7 +161,7 @@ std::vector<std::vector<float>> PreProcessChannel(
 
   // Bring in range 0.0-1.0 for Y, -0.5 - 0.5 for U and V
   auto yuv = image;
-  for (int i = 0; i < yuv[0].size(); i++) {
+  for (size_t i = 0; i < yuv[0].size(); i++) {
     yuv[0][i] /= 255.0;
     yuv[1][i] = yuv[1][i] / 255.0 - 0.5;
     yuv[2][i] = yuv[2][i] / 255.0 - 0.5;
@@ -270,7 +270,7 @@ std::vector<std::vector<float>> PreProcessChannel(
   }
 
   // Bring back to range 0-255
-  for (int i = 0; i < yuv[0].size(); i++) {
+  for (size_t i = 0; i < yuv[0].size(); i++) {
     yuv[0][i] *= 255.0;
     yuv[1][i] = (yuv[1][i] + 0.5) * 255.0;
     yuv[2][i] = (yuv[2][i] + 0.5) * 255.0;
@@ -321,7 +321,7 @@ inline float LinearToGamma(float x) {
 std::vector<float> LinearlyAveragedLuma(const std::vector<float>& rgb) {
   assert(rgb.size() % 3 == 0);
   std::vector<float> y(rgb.size() / 3);
-  for (int i = 0, p = 0; p < rgb.size(); ++i, p += 3) {
+  for (size_t i = 0, p = 0; p < rgb.size(); ++i, p += 3) {
     y[i] = LinearToGamma(RGBToY(GammaToLinear(rgb[p + 0]),
                                 GammaToLinear(rgb[p + 1]),
                                 GammaToLinear(rgb[p + 2])));
@@ -355,7 +355,7 @@ std::vector<float> LinearlyDownsample2x2(const std::vector<float>& rgb_in,
 
 std::vector<std::vector<float> > RGBToYUV(const std::vector<float>& rgb) {
   std::vector<std::vector<float> > yuv(3, std::vector<float>(rgb.size() / 3));
-  for (int i = 0, p = 0; p < rgb.size(); ++i, p += 3) {
+  for (size_t i = 0, p = 0; p < rgb.size(); ++i, p += 3) {
     const float r = rgb[p + 0];
     const float g = rgb[p + 1];
     const float b = rgb[p + 2];
@@ -368,7 +368,7 @@ std::vector<std::vector<float> > RGBToYUV(const std::vector<float>& rgb) {
 
 std::vector<float> YUVToRGB(const std::vector<std::vector<float> >& yuv) {
   std::vector<float> rgb(3 * yuv[0].size());
-  for (int i = 0, p = 0; p < rgb.size(); ++i, p += 3) {
+  for (size_t i = 0, p = 0; p < rgb.size(); ++i, p += 3) {
     const float y = yuv[0][i];
     const float u = yuv[1][i];
     const float v = yuv[2][i];
@@ -441,7 +441,7 @@ void UpdateGuess(const std::vector<float>& target,
                  std::vector<float>* guess) {
   assert(reconstructed.size() == guess->size());
   assert(target.size() == guess->size());
-  for (int i = 0; i < guess->size(); ++i) {
+  for (size_t i = 0; i < guess->size(); ++i) {
     // TODO(user): Evaluate using a decaying constant here.
     (*guess)[i] = Clip((*guess)[i] - (reconstructed[i] - target[i]));
   }
@@ -452,7 +452,7 @@ void UpdateGuess(const std::vector<float>& target,
 std::vector<std::vector<float> > RGBToYUV420(
     const std::vector<uint8_t>& rgb_in, const int width, const int height) {
   std::vector<float> rgbf(rgb_in.size());
-  for (int i = 0; i < rgb_in.size(); ++i) {
+  for (size_t i = 0; i < rgb_in.size(); ++i) {
     rgbf[i] = static_cast<float>(rgb_in[i]);
   }
   std::vector<float> y_target = LinearlyAveragedLuma(rgbf);

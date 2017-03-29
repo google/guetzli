@@ -102,7 +102,7 @@ struct BitWriter {
 
   size_t len;
   std::unique_ptr<uint8_t[]> data;
-  int pos;
+  size_t pos;
   uint64_t put_buffer;
   int put_bits;
   bool overflow;

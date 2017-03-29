@@ -71,7 +71,7 @@ void SaveQuantTables(const int q[3][kDCTBlockSize], JPEGData* jpg) {
   const size_t kTableSize = kDCTBlockSize * sizeof(q[0][0]);
   jpg->quant.clear();
   int num_tables = 0;
-  for (int i = 0; i < jpg->components.size(); ++i) {
+  for (size_t i = 0; i < jpg->components.size(); ++i) {
     JPEGComponent* comp = &jpg->components[i];
     // Check if we have this quant table already.
     bool found = false;
