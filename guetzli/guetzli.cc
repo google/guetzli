@@ -243,9 +243,13 @@ int main(int argc, char** argv) {
       verbose = 1;
     } else if (!strcmp(argv[opt_idx], "--quality")) {
       opt_idx++;
+      if (opt_idx >= argc)
+        Usage();
       quality = atoi(argv[opt_idx]);
     } else if (!strcmp(argv[opt_idx], "--memlimit")) {
       opt_idx++;
+      if (opt_idx >= argc)
+        Usage();
       memlimit_mb = atoi(argv[opt_idx]);
     } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
       memlimit_mb = -1;
