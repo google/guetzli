@@ -895,7 +895,7 @@ bool FixupIndexes(JPEGData* jpg) {
       }
     }
     if (!found_index) {
-      fprintf(stderr, "Quantization table with index %d not found\n",
+      fprintf(stderr, "Quantization table with index %zd not found\n",
               c->quant_idx);
       jpg->error = JPEG_QUANT_TABLE_NOT_FOUND;
       return false;
