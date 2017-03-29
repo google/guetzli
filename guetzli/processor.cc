@@ -64,10 +64,12 @@ class Processor {
       std::vector<CoeffData>* output_order);
   bool SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
                          int best_q[3][kDCTBlockSize],
+                         OutputImage* img,
                          GuetzliOutput* quantized_out);
   QuantData TryQuantMatrix(const JPEGData& jpg_in,
                            const float target_mul,
                            int q[3][kDCTBlockSize],
+                           OutputImage* img,
                            GuetzliOutput* out);
   void MaybeOutput(const std::string& encoded_jpg);
   void DownsampleImage(OutputImage* img);
@@ -285,28 +287,28 @@ class QuantMatrixGenerator {
 QuantData Processor::TryQuantMatrix(const JPEGData& jpg_in,
                                     const float target_mul,
                                     int q[3][kDCTBlockSize],
+                                    OutputImage* img,
                                     GuetzliOutput* out) {
   QuantData data;
   memcpy(data.q, q, sizeof(data.q));
-  OutputImage img(jpg_in.width, jpg_in.height);
-  img.CopyFromJpegData(jpg_in);
-  img.ApplyGlobalQuantization(data.q);
+  img->CopyFromJpegData(jpg_in);
+  img->ApplyGlobalQuantization(data.q);
   std::string encoded_jpg;
   {
     JPEGData jpg_out = jpg_in;
-    img.SaveToJpegData(&jpg_out);
+    img->SaveToJpegData(&jpg_out);
     OutputJpeg(jpg_out, &encoded_jpg);
   }
   GUETZLI_LOG(stats_, "Iter %2d: %s quantization matrix:\n",
               stats_->counters[kNumItersCnt] + 1,
-              img.FrameTypeStr().c_str());
+              img->FrameTypeStr().c_str());
   GUETZLI_LOG_QUANT(stats_, q);
   GUETZLI_LOG(stats_, "Iter %2d: %s GQ[%5.2f] Out[%7zd]",
               stats_->counters[kNumItersCnt] + 1,
-              img.FrameTypeStr().c_str(),
+              img->FrameTypeStr().c_str(),
               QuantMatrixHeuristicScore(q), encoded_jpg.size());
   ++stats_->counters[kNumItersCnt];
-  comparator_->Compare(img);
+  comparator_->Compare(*img);
   data.dist_ok = comparator_->DistanceOK(target_mul);
   data.jpg_size = encoded_jpg.size();
   out->jpeg_data = encoded_jpg;
@@ -319,6 +321,7 @@ QuantData Processor::TryQuantMatrix(const JPEGData& jpg_in,
 
 bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
                                   int best_q[3][kDCTBlockSize],
+                                  OutputImage* img,
                                   GuetzliOutput* quantized_out) {
   QuantMatrixGenerator qgen(downsample, stats_);
   // Don't try to go up to exactly the target distance when selecting a
@@ -327,7 +330,7 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
   const float target_mul_high = 0.97;
   const float target_mul_low = 0.95;
 
-  QuantData best = TryQuantMatrix(jpg_in, target_mul_high, best_q,
+  QuantData best = TryQuantMatrix(jpg_in, target_mul_high, best_q, img,
                                   quantized_out);
   for (;;) {
     int q_next[3][kDCTBlockSize];
@@ -336,7 +339,7 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
     }
 
     GuetzliOutput out;
-    QuantData data = TryQuantMatrix(jpg_in, target_mul_high, q_next, &out);
+    QuantData data = TryQuantMatrix(jpg_in, target_mul_high, q_next, img, &out);
     qgen.Add(data);
     if (CompareQuantData(data, best)) {
       best = data;
@@ -819,13 +822,15 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     int best_q[3][kDCTBlockSize];
     memcpy(best_q, q_in, sizeof(best_q));
     GuetzliOutput quantized_out;
-    if (!SelectQuantMatrix(jpg, downsample != 0, best_q, &quantized_out)) {
+    if (!SelectQuantMatrix(jpg, downsample != 0, best_q,
+                           &img, &quantized_out)) {
       for (int c = 0; c < 3; ++c) {
         for (int i = 0; i < kDCTBlockSize; ++i) {
           best_q[c][i] = 1;
         }
       }
     }
+    img.CopyFromJpegData(jpg);
     img.ApplyGlobalQuantization(best_q);
 
     if (!downsample) {
