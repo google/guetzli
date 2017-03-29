@@ -779,43 +779,47 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     fprintf(stderr, "\n");
     return false;
   }
-  JPEGData jpg = jpg_in;
   int q_in[3][kDCTBlockSize];
   // Output the original image, in case we do not manage to create anything
   // with a good enough quality.
   std::string encoded_jpg;
-  OutputJpeg(jpg, &encoded_jpg);
+  OutputJpeg(jpg_in, &encoded_jpg);
   final_output_->score = -1;
   GUETZLI_LOG(stats, "Original Out[%7zd]", encoded_jpg.size());
   if (comparator_ == nullptr) {
     GUETZLI_LOG(stats, " <image too small for Butteraugli>\n");
     final_output_->jpeg_data = encoded_jpg;
-    final_output_->distmap = std::vector<float>(jpg.width * jpg.height, 0.0);
+    final_output_->distmap =
+        std::vector<float>(jpg_in.width * jpg_in.height, 0.0);
     final_output_->distmap_aggregate = 0;
     final_output_->score = encoded_jpg.size();
     // Butteraugli doesn't work with images this small.
     return true;
   }
-  RemoveOriginalQuantization(&jpg, q_in);
-  OutputImage img(jpg.width, jpg.height);
-  img.CopyFromJpegData(jpg);
-  comparator_->Compare(img);
-  MaybeOutput(encoded_jpg);
-  int try_420 = (input_is_420 || params_.force_420 ||
-                 (params_.try_420 && !IsGrayscale(jpg))) ? 1 : 0;
-  int force_420 = (input_is_420 || params_.force_420) ? 1 : 0;
-  for (int downsample = force_420; downsample <= try_420; ++downsample) {
+  {
+    JPEGData jpg = jpg_in;
+    RemoveOriginalQuantization(&jpg, q_in);
     OutputImage img(jpg.width, jpg.height);
     img.CopyFromJpegData(jpg);
-    JPEGData tmp_jpg = jpg;
+    comparator_->Compare(img);
+  }
+  MaybeOutput(encoded_jpg);
+  int try_420 = (input_is_420 || params_.force_420 ||
+                 (params_.try_420 && !IsGrayscale(jpg_in))) ? 1 : 0;
+  int force_420 = (input_is_420 || params_.force_420) ? 1 : 0;
+  for (int downsample = force_420; downsample <= try_420; ++downsample) {
+    JPEGData jpg = jpg_in;
+    RemoveOriginalQuantization(&jpg, q_in);
+    OutputImage img(jpg.width, jpg.height);
+    img.CopyFromJpegData(jpg);
     if (downsample) {
       DownsampleImage(&img);
-      img.SaveToJpegData(&tmp_jpg);
+      img.SaveToJpegData(&jpg);
     }
     int best_q[3][kDCTBlockSize];
     memcpy(best_q, q_in, sizeof(best_q));
     GuetzliOutput quantized_out;
-    if (!SelectQuantMatrix(tmp_jpg, downsample != 0, best_q, &quantized_out)) {
+    if (!SelectQuantMatrix(jpg, downsample != 0, best_q, &quantized_out)) {
       for (int c = 0; c < 3; ++c) {
         for (int i = 0; i < kDCTBlockSize; ++i) {
           best_q[c][i] = 1;
@@ -825,11 +829,11 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     img.ApplyGlobalQuantization(best_q);
 
     if (!downsample) {
-      SelectFrequencyMasking(tmp_jpg, &img, 7, 1.0, false);
+      SelectFrequencyMasking(jpg, &img, 7, 1.0, false);
     } else {
-      const float ymul = tmp_jpg.components.size() == 1 ? 1.0 : 0.97;
-      SelectFrequencyMasking(tmp_jpg, &img, 1, ymul, false);
-      SelectFrequencyMasking(tmp_jpg, &img, 6, 1.0, true);
+      const float ymul = jpg.components.size() == 1 ? 1.0 : 0.97;
+      SelectFrequencyMasking(jpg, &img, 1, ymul, false);
+      SelectFrequencyMasking(jpg, &img, 6, 1.0, true);
     }
   }
 
