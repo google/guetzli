@@ -539,6 +539,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                                        bool stop_early) {
   const int width = img->width();
   const int height = img->height();
+  const int ncomp = jpg.components.size();
   const int last_c = Log2FloorNonZero(comp_mask);
   if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
   const int factor_x = img->component(last_c).factor_x();
@@ -571,12 +572,15 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
     }
   }
 
-  JPEGData jpg_out = jpg;
-  img->SaveToJpegData(&jpg_out);
-  const int jpg_header_size = JpegHeaderSize(jpg_out, params_.clear_metadata);
-  const int dc_size = EstimateDCSize(jpg_out);
-  std::vector<JpegHistogram> ac_histograms(jpg_out.components.size());
-  BuildACHistograms(jpg_out, &ac_histograms[0]);
+  std::vector<JpegHistogram> ac_histograms(ncomp);
+  int jpg_header_size, dc_size;
+  {
+    JPEGData jpg_out = jpg;
+    img->SaveToJpegData(&jpg_out);
+    jpg_header_size = JpegHeaderSize(jpg_out, params_.clear_metadata);
+    dc_size = EstimateDCSize(jpg_out);
+    BuildACHistograms(jpg_out, &ac_histograms[0]);
+  }
   std::vector<uint8_t> ac_depths;
   int ac_histogram_size = ComputeEntropyCodes(ac_histograms, &ac_depths);
   int base_size = jpg_header_size + dc_size + ac_histogram_size +
