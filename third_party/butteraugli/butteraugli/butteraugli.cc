@@ -143,7 +143,7 @@ static void Convolution(size_t xsize, size_t ysize,
                         float* __restrict__ result) {
   PROFILER_FUNC;
   double weight_no_border = 0;
-  for (int j = 0; j <= 2 * offset; ++j) {
+  for (size_t j = 0; j <= 2 * offset; ++j) {
     weight_no_border += multipliers[j];
   }
   for (size_t x = 0, ox = 0; x < xsize; x += xstep, ox++) {
@@ -190,8 +190,8 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
   Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
               border_ratio,
               downsampled_output.data());
-  for (int y = 0; y < ysize; y++) {
-    for (int x = 0; x < xsize; x++) {
+  for (size_t y = 0; y < ysize; y++) {
+    for (size_t x = 0; x < xsize; x++) {
       // TODO: Use correct rounding.
       channel[y * xsize + x] =
           downsampled_output[(y / ystep) * dxsize + (x / xstep)];
@@ -847,9 +847,9 @@ void MaskHighIntensityChange(
     std::vector<std::vector<float> > &xyb0,
     std::vector<std::vector<float> > &xyb1) {
   PROFILER_FUNC;
-  for (int y = 0; y < ysize; ++y) {
-    for (int x = 0; x < xsize; ++x) {
-      int ix = y * xsize + x;
+  for (size_t y = 0; y < ysize; ++y) {
+    for (size_t x = 0; x < xsize; ++x) {
+      size_t ix = y * xsize + x;
       const double ave[3] = {
         (c0[0][ix] + c1[0][ix]) * 0.5,
         (c0[1][ix] + c1[1][ix]) * 0.5,
@@ -927,7 +927,7 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
   for (int i = 0; i < 3; ++i) {
     Blur(xsize, ysize, blurred[i].data(), kSigma, 0.0);
   }
-  for (int i = 0; i < rgb[0].size(); ++i) {
+  for (size_t i = 0; i < rgb[0].size(); ++i) {
     double sensitivity[3];
     {
       // Calculate sensitivity[3] based on the smoothed image gamma derivative.
@@ -962,7 +962,7 @@ static void ScaleImage(double scale, std::vector<float> *result) {
 // Making a cluster of local errors to be more impactful than
 // just a single error.
 void CalculateDiffmap(const size_t xsize, const size_t ysize,
-                      const int step,
+                      const size_t step,
                       std::vector<float>* diffmap) {
   PROFILER_FUNC;
   // Shift the diffmap more correctly above the pixels, from 2.5 pixels to 0.5
@@ -998,15 +998,15 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
     static const double scale = 1.0 / (1.0 + mul1);
     const int s = 8 - step;
     std::vector<float> blurred((xsize - s) * (ysize - s));
-    for (int y = 0; y < ysize - s; ++y) {
-      for (int x = 0; x < xsize - s; ++x) {
+    for (size_t y = 0; y < ysize - s; ++y) {
+      for (size_t x = 0; x < xsize - s; ++x) {
         blurred[y * (xsize - s) + x] = (*diffmap)[(y + s2) * xsize + x + s2];
       }
     }
     static const double border_ratio = 0.03027655136;
     Blur(xsize - s, ysize - s, blurred.data(), kSigma, border_ratio);
-    for (int y = 0; y < ysize - s; ++y) {
-      for (int x = 0; x < xsize - s; ++x) {
+    for (size_t y = 0; y < ysize - s; ++y) {
+      for (size_t x = 0; x < xsize - s; ++x) {
         (*diffmap)[(y + s2) * xsize + x + s2]
             += mul1 * blurred[y * (xsize - s) + x];
       }
@@ -1145,10 +1145,10 @@ void ButteraugliComparator::EdgeDetectorLowFreq(
     Blur(xsize_, ysize_, blurred1[i].data(), kSigma, 0.0);
   }
   const int step = 8;
-  for (int y = 0; y + step < ysize_; y += step_) {
+  for (size_t y = 0; y + step < ysize_; y += step_) {
     int resy = y / step_;
     int resx = step / step_;
-    for (int x = 0; x + step < xsize_; x += step_, resx++) {
+    for (size_t x = 0; x + step < xsize_; x += step_, resx++) {
       const int ix = y * xsize_ + x;
       const int res_ix = resy * res_xsize_ + resx;
       double diff[4][3];
@@ -1230,7 +1230,7 @@ static std::array<double, 512> MakeMask(
     double mul, double offset,
     double scaler) {
   std::array<double, 512> lut;
-  for (int i = 0; i < lut.size(); ++i) {
+  for (size_t i = 0; i < lut.size(); ++i) {
     const double c = mul / ((0.01 * scaler * i) + offset);
     lut[i] = 1.0 + extmul * (c + extoff);
     assert(lut[i] >= 0.0);
@@ -1534,8 +1534,8 @@ bool ButteraugliInterface(const std::vector<ImageF> &rgb0,
     }
   }
   if (xsize < 8 || ysize < 8) {
-    for (int y = 0; y < ysize; ++y) {
-      for (int x = 0; x < xsize; ++x) {
+    for (size_t y = 0; y < ysize; ++y) {
+      for (size_t x = 0; x < xsize; ++x) {
         diffmap.Row(y)[x] = 0;
       }
     }
