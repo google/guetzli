@@ -719,6 +719,8 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
           break;
         }
       }
+      size_t global_order_size = global_order.size();
+      std::vector<std::pair<int, float>>().swap(global_order);
 
       for (int i = 0; i < num_blocks; ++i) {
         max_block_error[i] += block_weight[i] * val_threshold * direction;
@@ -737,7 +739,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                   "Blocks[%zd/%d/%d] ValThres[%.4f] Out[%7zd] EstErr[%.2f%%]",
                   stats_->counters[kNumItersCnt], img->FrameTypeStr().c_str(),
                   comp_mask, direction > 0 ? "up" : "down", changed_coeffs,
-                  global_order.size(), changed_blocks.size(),
+                  global_order_size, changed_blocks.size(),
                   blocks_to_change, num_blocks, val_threshold,
                   encoded_jpg.size(),
                   100.0 - (100.0 * est_jpg_size) / encoded_jpg.size());
