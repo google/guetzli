@@ -398,6 +398,7 @@ void Processor::ComputeBlockZeroingOrder(
               return a.second < b.second; });
   coeff_t processed_block[kBlockSize];
   memcpy(processed_block, block, sizeof(processed_block));
+  comparator_->SwitchBlock(block_x, block_y, factor_x, factor_y);
   while (!input_order.empty()) {
     float best_err = 1e17f;
     int best_i = 0;
@@ -420,7 +421,7 @@ void Processor::ComputeBlockZeroingOrder(
           int block_xx = block_x * factor_x + ix;
           int block_yy = block_y * factor_y + iy;
           if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
-            float err = comparator_->CompareBlock(*img, block_xx, block_yy);
+            float err = comparator_->CompareBlock(*img, ix, iy);
             max_err = std::max(max_err, err);
           }
         }
@@ -881,7 +882,7 @@ bool Process(const Params& params, ProcessStats* stats,
   std::unique_ptr<ButteraugliComparator> comparator;
   if (jpg.width >= 32 && jpg.height >= 32) {
     comparator.reset(
-        new ButteraugliComparator(jpg.width, jpg.height, rgb,
+        new ButteraugliComparator(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
@@ -905,7 +906,7 @@ bool Process(const Params& params, ProcessStats* stats,
   std::unique_ptr<ButteraugliComparator> comparator;
   if (jpg.width >= 32 && jpg.height >= 32) {
     comparator.reset(
-        new ButteraugliComparator(jpg.width, jpg.height, rgb,
+        new ButteraugliComparator(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
