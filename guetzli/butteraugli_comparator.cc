@@ -46,10 +46,6 @@ ButteraugliComparator::ButteraugliComparator(const int width, const int height,
     }
   }
   ::butteraugli::OpsinDynamicsImage(width_, height_, rgb_linear_pregamma_);
-  std::vector<std::vector<float> > dummy(3);
-  ::butteraugli::Mask(rgb_linear_pregamma_, rgb_linear_pregamma_,
-                      width_, height_,
-                      &mask_xyz_, &dummy);
 }
 
 void ButteraugliComparator::Compare(const OutputImage& img) {
@@ -59,6 +55,17 @@ void ButteraugliComparator::Compare(const OutputImage& img) {
   comparator_.DiffmapOpsinDynamicsImage(rgb_linear_pregamma_, rgb, distmap_);
   distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
   GUETZLI_LOG(stats_, " BA[100.00%%] D[%6.4f]", distance_);
+}
+
+void ButteraugliComparator::StartBlockComparisons() {
+  std::vector<std::vector<float> > dummy(3);
+  ::butteraugli::Mask(rgb_linear_pregamma_, rgb_linear_pregamma_,
+                      width_, height_,
+                      &mask_xyz_, &dummy);
+}
+
+void ButteraugliComparator::FinishBlockComparisons() {
+  mask_xyz_.clear();
 }
 
 void ButteraugliComparator::SwitchBlock(int block_x, int block_y,

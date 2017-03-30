@@ -550,6 +550,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
   const int num_blocks = block_width * block_height;
 
   std::vector<std::vector<CoeffData> > orders(num_blocks);
+  comparator_->StartBlockComparisons();
   for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
     for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
       coeff_t block[kBlockSize] = { 0 };
@@ -572,6 +573,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                                &orders[block_ix]);
     }
   }
+  comparator_->FinishBlockComparisons();
 
   std::vector<JpegHistogram> ac_histograms(ncomp);
   int jpg_header_size, dc_size;

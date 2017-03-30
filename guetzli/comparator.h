@@ -36,6 +36,11 @@ class Comparator {
   // baseline image.
   virtual void Compare(const OutputImage& img) = 0;
 
+  // Must be called before any CompareBlock() calls can be called.
+  virtual void StartBlockComparisons() = 0;
+  // No more CompareBlock() calls can be called after this.
+  virtual void FinishBlockComparisons() = 0;
+
   // Sets the coordinates of the current macro-block for the purpose of
   // CompareBlock() calls.
   virtual void SwitchBlock(int block_x, int block_y,

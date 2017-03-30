@@ -37,6 +37,9 @@ class ButteraugliComparator : public Comparator {
 
   void Compare(const OutputImage& img) override;
 
+  void StartBlockComparisons() override;
+  void FinishBlockComparisons() override;
+
   void SwitchBlock(int block_x, int block_y,
                    int factor_x, int factor_y) override;
 
