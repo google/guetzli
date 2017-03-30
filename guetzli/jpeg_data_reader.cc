@@ -551,7 +551,7 @@ bool DecodeDCTBlock(const HuffmanTableEntry* dc_huff,
       s = HuffExtend(r, s);
     }
     s += *last_dc_coeff;
-    const int dc_coeff = s << Al;
+    const int dc_coeff = SignedLeftshift(s, Al);
     coeffs[0] = dc_coeff;
     if (dc_coeff != coeffs[0]) {
       fprintf(stderr, "Invalid DC coefficient %d\n", dc_coeff);
