@@ -1037,11 +1037,11 @@ void ButteraugliComparator::DiffmapOpsinDynamicsImage(
     assert(xyb0[i].size() == num_pixels_);
     assert(xyb1[i].size() == num_pixels_);
   }
+  std::vector<float> edge_detector_map(3 * res_xsize_ * res_ysize_);
+  EdgeDetectorMap(xyb0, xyb1, &edge_detector_map);
   std::vector<float> block_diff_dc(3 * res_xsize_ * res_ysize_);
   std::vector<float> block_diff_ac(3 * res_xsize_ * res_ysize_);
-  std::vector<float> edge_detector_map(3 * res_xsize_ * res_ysize_);
   BlockDiffMap(xyb0, xyb1, &block_diff_dc, &block_diff_ac);
-  EdgeDetectorMap(xyb0, xyb1, &edge_detector_map);
   EdgeDetectorLowFreq(xyb0, xyb1, &block_diff_ac);
   {
     std::vector<std::vector<float> > mask_xyb(3);
