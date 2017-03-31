@@ -538,7 +538,13 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
   const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
   const int num_blocks = block_width * block_height;
 
-  std::vector<std::vector<CoeffData> > orders(num_blocks);
+  std::vector<int> candidate_coeff_offsets(num_blocks + 1);
+  std::vector<uint8_t> candidate_coeffs;
+  std::vector<float> candidate_coeff_errors;
+  candidate_coeffs.reserve(60 * num_blocks);
+  candidate_coeff_errors.reserve(60 * num_blocks);
+  std::vector<CoeffData> block_order;
+  block_order.reserve(3 * kDCTBlockSize);
   comparator_->StartBlockComparisons();
   for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
     for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
@@ -557,12 +563,18 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                  kDCTBlockSize * sizeof(orig_block[0]));
         }
       }
+      block_order.clear();
       ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x,
-                               factor_y, comp_mask, img,
-                               &orders[block_ix]);
+                               factor_y, comp_mask, img, &block_order);
+      candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
+      for (size_t i = 0; i < block_order.size(); ++i) {
+        candidate_coeffs.push_back(block_order[i].idx);
+        candidate_coeff_errors.push_back(block_order[i].block_err);
+      }
     }
   }
   comparator_->FinishBlockComparisons();
+  candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
 
   std::vector<JpegHistogram> ac_histograms(ncomp);
   int jpg_header_size, dc_size;
@@ -611,21 +623,24 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
         for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
           for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
             const int last_index = last_indexes[block_ix];
-            const std::vector<CoeffData>& order = orders[block_ix];
+            const int offset = candidate_coeff_offsets[block_ix];
+            const int num_candidates =
+                candidate_coeff_offsets[block_ix + 1] - offset;
+            const float* candidate_errors = &candidate_coeff_errors[offset];
             const float max_err = max_block_error[block_ix];
             if (block_weight[block_ix] == 0) {
               continue;
             }
             if (direction > 0) {
-              for (size_t i = last_index; i < order.size(); ++i) {
-                float val = ((order[i].block_err - max_err) /
+              for (size_t i = last_index; i < num_candidates; ++i) {
+                float val = ((candidate_errors[i] - max_err) /
                              block_weight[block_ix]);
                 global_order.push_back(std::make_pair(block_ix, val));
               }
-              blocks_to_change += (static_cast<size_t>(last_index) < order.size() ? 1 : 0);
+              blocks_to_change += (last_index < num_candidates ? 1 : 0);
             } else {
               for (int i = last_index - 1; i >= 0; --i) {
-                float val = ((max_err - order[i].block_err) /
+                float val = ((max_err - candidate_errors[i]) /
                              block_weight[block_ix]);
                 global_order.push_back(std::make_pair(block_ix, val));
               }
@@ -678,8 +693,9 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
         const int block_x = block_ix % block_width;
         const int block_y = block_ix / block_width;
         const int last_idx = last_indexes[block_ix];
-        const std::vector<CoeffData>& order = orders[block_ix];
-        const int idx = order[last_idx + std::min(direction, 0)].idx;
+        const int offset = candidate_coeff_offsets[block_ix];
+        const uint8_t* candidates = &candidate_coeffs[offset];
+        const int idx = candidates[last_idx + std::min(direction, 0)];
         const int c = idx / kDCTBlockSize;
         const int k = idx % kDCTBlockSize;
         const int* quant = img->component(c).quant();
