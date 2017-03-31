@@ -33,6 +33,18 @@ bool JPEGData::Is420() const {
           components[2].v_samp_factor == 1);
 }
 
+bool JPEGData::Is422() const {
+  return (components.size() == 3 &&
+          max_h_samp_factor == 2 &&
+          max_v_samp_factor == 1 &&
+          components[0].h_samp_factor == 2 &&
+          components[0].v_samp_factor == 1 &&
+          components[1].h_samp_factor == 1 &&
+          components[1].v_samp_factor == 1 &&
+          components[2].h_samp_factor == 1 &&
+          components[2].v_samp_factor == 1);
+}
+
 bool JPEGData::Is444() const {
   return (components.size() == 3 &&
           max_h_samp_factor == 1 &&
