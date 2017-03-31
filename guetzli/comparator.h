@@ -36,11 +36,22 @@ class Comparator {
   // baseline image.
   virtual void Compare(const OutputImage& img) = 0;
 
-  // Compares an 8x8 block of the baseline image with the same block of img and
-  // returns the resulting per-block distance. The interpretation of the
-  // returned distance depends on the comparator used.
+  // Must be called before any CompareBlock() calls can be called.
+  virtual void StartBlockComparisons() = 0;
+  // No more CompareBlock() calls can be called after this.
+  virtual void FinishBlockComparisons() = 0;
+
+  // Sets the coordinates of the current macro-block for the purpose of
+  // CompareBlock() calls.
+  virtual void SwitchBlock(int block_x, int block_y,
+                           int factor_x, int factor_y) = 0;
+
+  // Compares the 8x8 block with offsets (off_x, off_y) within the current
+  // macro-block of the baseline image with the same block of img and returns
+  // the resulting per-block distance. The interpretation of the returned
+  // distance depends on the comparator used.
   virtual double CompareBlock(const OutputImage& img,
-                              int block_x, int block_y) const = 0;
+                              int off_x, int off_y) const = 0;
 
   // Returns the combined score of the output image in the last Compare() call
   // (or the baseline image, if Compare() was not called yet), based on output
