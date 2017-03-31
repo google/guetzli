@@ -1451,10 +1451,8 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
           std::vector<std::vector<float> > *mask_dc) {
    PROFILER_FUNC;
   mask->resize(3);
-  mask_dc->resize(3);
   for (int i = 0; i < 3; ++i) {
     (*mask)[i].resize(xsize * ysize);
-    (*mask_dc)[i].resize(xsize * ysize);
   }
   DiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
   for (int i = 0; i < 3; ++i) {
@@ -1471,6 +1469,10 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
   static const double w11 = 22.9455222245;
   static const double w22 = 503.962310606;
 
+  mask_dc->resize(3);
+  for (int i = 0; i < 3; ++i) {
+    (*mask_dc)[i].resize(xsize * ysize);
+  }
   for (size_t y = 0; y < ysize; ++y) {
     for (size_t x = 0; x < xsize; ++x) {
       const size_t idx = y * xsize + x;
