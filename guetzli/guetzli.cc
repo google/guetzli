@@ -270,8 +270,8 @@ int main(int argc, char** argv) {
   std::string out_data;
 
   guetzli::Params params;
-  params.butteraugli_target =
-      guetzli::ButteraugliScoreForQuality(quality);
+  params.butteraugli_target = static_cast<float>(
+      guetzli::ButteraugliScoreForQuality(quality));
 
   guetzli::ProcessStats stats;
 

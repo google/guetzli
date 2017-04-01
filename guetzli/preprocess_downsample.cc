@@ -42,7 +42,7 @@ std::vector<float> Convolve2D(const std::vector<float>& image, int w, int h,
     for (int j = 0; j < size * size; j++) {
       int x2 = x + j % size - size2;
       int y2 = y + j / size - size2;
-      v += kernel[j] * image[y2 * w + x2];
+      v += static_cast<float>(kernel[j]) * image[y2 * w + x2];
     }
     result[i] = v;
   }
@@ -62,9 +62,9 @@ std::vector<float> Convolve2X(const std::vector<float>& image, int w, int h,
     float v = 0;
     for (int j = 0; j < size; j++) {
       int x2 = x + j - size2;
-      v += kernel[j] * image[y * w + x2];
+      v += static_cast<float>(kernel[j]) * image[y * w + x2];
     }
-    temp[i] = v * mul;
+    temp[i] = v * static_cast<float>(mul);
   }
   auto result = temp;
   for (size_t i = 0; i < temp.size(); i++) {
@@ -75,9 +75,9 @@ std::vector<float> Convolve2X(const std::vector<float>& image, int w, int h,
     float v = 0;
     for (int j = 0; j < size; j++) {
       int y2 = y + j - size2;
-      v += kernel[j] * temp[y2 * w + x];
+      v += static_cast<float>(kernel[j]) * temp[y2 * w + x];
     }
-    result[i] = v * mul;
+    result[i] = v * static_cast<float>(mul);
   }
   return result;
 }

@@ -390,8 +390,8 @@ void Processor::ComputeBlockZeroingOrder(
         if (params_.new_zeroing_model) {
           score = std::abs(orig_block[idx]) * csf[idx] + bias[idx];
         } else {
-          score = (std::abs(orig_block[idx]) - kJPEGZigZagOrder[k] / 64.0) *
-                  kWeight[c] / oldCsf[k];
+          score = static_cast<float>((std::abs(orig_block[idx]) - kJPEGZigZagOrder[k] / 64.0) *
+                  kWeight[c] / oldCsf[k]);
         }
         input_order.push_back(std::make_pair(idx, score));
       }
@@ -425,7 +425,7 @@ void Processor::ComputeBlockZeroingOrder(
           int block_xx = block_x * factor_x + ix;
           int block_yy = block_y * factor_y + iy;
           if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
-            float err = comparator_->CompareBlock(*img, ix, iy);
+            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy));
             max_err = std::max(max_err, err);
           }
         }

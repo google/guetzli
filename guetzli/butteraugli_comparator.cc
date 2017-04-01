@@ -35,7 +35,7 @@ ButteraugliComparator::ButteraugliComparator(const int width, const int height,
       rgb_linear_pregamma_(3, std::vector<float>(width_ * height_)),
       comparator_(width_, height_, kButteraugliStep),
       distance_(0.0),
-      distmap_(width_, height_),
+      distmap_(width_, static_cast<float>(height_)),
       stats_(stats) {
   const double* lut = Srgb8ToLinearTable();
   for (int c = 0; c < 3; ++c) {
@@ -180,7 +180,7 @@ void ButteraugliComparator::ComputeBlockErrorAdjustmentWeights(
   for (int block_y = 0; block_y < block_height; ++block_y) {
     for (int block_x = 0; block_x < block_width; ++block_x) {
       int block_ix = block_y * block_width + block_x;
-      float max_local_dist = target_distance;
+      float max_local_dist = static_cast<float>(target_distance);
       int x_min = std::max(0, block_x - max_block_dist);
       int y_min = std::max(0, block_y - max_block_dist);
       int x_max = std::min(block_width, block_x + 1 + max_block_dist);
