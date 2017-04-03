@@ -1,3 +1,5 @@
+<p align="center"><img src="https://cloud.githubusercontent.com/assets/203457/24553916/1f3f88b6-162c-11e7-990a-731b2560f15c.png" alt="Guetzli" width="64"></p>
+
 # Introduction
 
 Guetzli is a JPEG encoder that aims for excellent compression density at high
