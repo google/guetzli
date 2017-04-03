@@ -176,6 +176,8 @@ std::string ReadFileOrDie(const char* filename) {
   std::unique_ptr<char[]> buf(new char[buffer_size]);
   while (!feof(f)) {
     size_t read_bytes = fread(buf.get(), sizeof(char), buffer_size, f);
+    if (read_bytes == 0)
+       break;
     if (ferror(f)) {
       perror("fread");
       exit(1);
