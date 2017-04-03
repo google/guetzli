@@ -49,3 +49,10 @@ run_test png file stdout --nomemlimit
 run_test png file stdout --memlimit 100
 run_test png file stdout --quality 85
 
+echo $GUETZLI /dev/null /dev/null
+$GUETZLI /dev/null /dev/null
+if [[ $? -ne 1 ]]; then
+  echo "Expected a clean failure"
+  exit 1
+fi
+
