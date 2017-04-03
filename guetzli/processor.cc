@@ -103,6 +103,21 @@ void Processor::DownsampleImage(OutputImage* img) {
   img->Downsample(cfg);
 }
 
+bool CheckJpegSanity(const JPEGData& jpg) {
+  const int kMaxComponent = 1 << 12;
+  for (const JPEGComponent& comp : jpg.components) {
+    const JPEGQuantTable& quant_table = jpg.quant[comp.quant_idx];
+    for (int i = 0; i < comp.coeffs.size(); i++) {
+      coeff_t coeff = comp.coeffs[i];
+      int quant = quant_table.values[i % kDCTBlockSize];
+      if (std::abs(static_cast<int64_t>(coeff) * quant) > kMaxComponent) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 }  // namespace
 
 int GuetzliStringOut(void* data, const uint8_t* buf, size_t count) {
@@ -872,6 +887,11 @@ bool Process(const Params& params, ProcessStats* stats,
   JPEGData jpg;
   if (!ReadJpeg(data, JPEG_READ_ALL, &jpg)) {
     fprintf(stderr, "Can't read jpg data from input file\n");
+    return false;
+  }
+  if (!CheckJpegSanity(jpg)) {
+    fprintf(stderr, "Unsupported input JPEG (unexpectedly large coefficient "
+            "values).\n");
     return false;
   }
   std::vector<uint8_t> rgb = DecodeJpegToRGB(jpg);
