@@ -42,7 +42,7 @@ std::vector<float> Convolve2D(const std::vector<float>& image, int w, int h,
     for (int j = 0; j < size * size; j++) {
       int x2 = x + j % size - size2;
       int y2 = y + j / size - size2;
-      v += kernel[j] * image[y2 * w + x2];
+      v += static_cast<float>(kernel[j]) * image[y2 * w + x2];
     }
     result[i] = v;
   }
@@ -62,9 +62,9 @@ std::vector<float> Convolve2X(const std::vector<float>& image, int w, int h,
     float v = 0;
     for (int j = 0; j < size; j++) {
       int x2 = x + j - size2;
-      v += kernel[j] * image[y * w + x2];
+      v += static_cast<float>(kernel[j]) * image[y * w + x2];
     }
-    temp[i] = v * mul;
+    temp[i] = v * static_cast<float>(mul);
   }
   auto result = temp;
   for (size_t i = 0; i < temp.size(); i++) {
@@ -75,9 +75,9 @@ std::vector<float> Convolve2X(const std::vector<float>& image, int w, int h,
     float v = 0;
     for (int j = 0; j < size; j++) {
       int y2 = y + j - size2;
-      v += kernel[j] * temp[y2 * w + x];
+      v += static_cast<float>(kernel[j]) * temp[y2 * w + x];
     }
-    result[i] = v * mul;
+    result[i] = v * static_cast<float>(mul);
   }
   return result;
 }
@@ -163,8 +163,8 @@ std::vector<std::vector<float>> PreProcessChannel(
   auto yuv = image;
   for (size_t i = 0; i < yuv[0].size(); i++) {
     yuv[0][i] /= 255.0;
-    yuv[1][i] = yuv[1][i] / 255.0 - 0.5;
-    yuv[2][i] = yuv[2][i] / 255.0 - 0.5;
+    yuv[1][i] = yuv[1][i] / 255.0f - 0.5f;
+    yuv[2][i] = yuv[2][i] / 255.0f - 0.5f;
   }
 
   // Map of areas where the image is not too bright to apply the effect.
@@ -176,9 +176,9 @@ std::vector<std::vector<float>> PreProcessChannel(
       float u = yuv[1][index];
       float v = yuv[2][index];
 
-      float r = y + 1.402 * v;
-      float g = y - 0.34414 * u - 0.71414 * v;
-      float b = y + 1.772 * u;
+      float r = y + 1.402f * v;
+      float g = y - 0.34414f * u - 0.71414f * v;
+      float b = y + 1.772f * u;
 
       // Parameters tuned to avoid sharpening in too bright areas, where the
       // effect makes it worse instead of better.
@@ -272,8 +272,8 @@ std::vector<std::vector<float>> PreProcessChannel(
   // Bring back to range 0-255
   for (size_t i = 0; i < yuv[0].size(); i++) {
     yuv[0][i] *= 255.0;
-    yuv[1][i] = (yuv[1][i] + 0.5) * 255.0;
-    yuv[2][i] = (yuv[2][i] + 0.5) * 255.0;
+    yuv[1][i] = (yuv[1][i] + 0.5f) * 255.0f;
+    yuv[2][i] = (yuv[2][i] + 0.5f) * 255.0f;
   }
   return yuv;
 }
@@ -289,28 +289,28 @@ inline float RGBToY(float r, float g, float b) {
 }
 
 inline float RGBToU(float r, float g, float b) {
-  return -0.16874f * r - 0.33126f * g + 0.5f * b + 128.0;
+  return -0.16874f * r - 0.33126f * g + 0.5f * b + 128.0f;
 }
 
 inline float RGBToV(float r, float g, float b) {
-  return 0.5f * r - 0.41869f * g - 0.08131f * b + 128.0;
+  return 0.5f * r - 0.41869f * g - 0.08131f * b + 128.0f;
 }
 
 inline float YUVToR(float y, float u, float v) {
-  return y + 1.402 * (v - 128.0);
+  return y + 1.402f * (v - 128.0f);
 }
 
 inline float YUVToG(float y, float u, float v) {
-  return y - 0.344136 * (u - 128.0) - 0.714136 * (v - 128.0);
+  return y - 0.344136f * (u - 128.0f) - 0.714136f * (v - 128.0f);
 }
 
 inline float YUVToB(float y, float u, float v) {
-  return y + 1.772 * (u - 128.0);
+  return y + 1.772f * (u - 128.0f);
 }
 
 // TODO(user) Use SRGB->linear conversion and a lookup-table.
 inline float GammaToLinear(float x) {
-  return std::pow(x / 255.0, 2.2);
+  return static_cast<float>(std::pow(x / 255.0f, 2.2));
 }
 
 // TODO(user) Use linear->SRGB conversion and a lookup-table.
@@ -346,7 +346,7 @@ std::vector<float> LinearlyDownsample2x2(const std::vector<float>& rgb_in,
             rgb_out[p] += GammaToLinear(rgb_in[3 * (yy * width + xx) + i]);
           }
         }
-        rgb_out[p] = LinearToGamma(0.25 * rgb_out[p]);
+        rgb_out[p] = LinearToGamma(0.25f * rgb_out[p]);
       }
     }
   }
@@ -414,10 +414,10 @@ std::vector<float> Blur(const std::vector<float>& img,
           int x1 = std::min(width - 1, std::max(0, x0 + dx));
           int y1 = std::min(height - 1, std::max(0, y0 + dy));
           img_out[(y0 + iy) * width + x0 + ix] =
-              (9.0 * img[y0 * width + x0] +
-               3.0 * img[y0 * width + x1] +
-               3.0 * img[y1 * width + x0] +
-               1.0 * img[y1 * width + x1]) / 16.0;
+              (9.0f * img[y0 * width + x0] +
+               3.0f * img[y0 * width + x1] +
+               3.0f * img[y1 * width + x0] +
+               1.0f * img[y1 * width + x1]) / 16.0f;
         }
       }
     }

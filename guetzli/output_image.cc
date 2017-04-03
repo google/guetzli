@@ -113,7 +113,7 @@ void OutputImageComponent::ToFloatPixels(float* out, int stride) const {
           int y = block_y * 8 + iy;
           int x = block_x * 8 + ix;
           if (y >= height_ || x >= width_) continue;
-          out[(y * width_ + x) * stride] = blockd[8 * iy + ix] + 128.0;
+          out[(y * width_ + x) * stride] = static_cast<float>(blockd[8 * iy + ix] + 128.0);
         }
       }
     }
@@ -323,9 +323,9 @@ void OutputImage::Downsample(const DownsampleConfig& cfg) {
     components_[c].ToFloatPixels(&yuv[c][0], 1);
   }
 
-  yuv = PreProcessChannel(width_, height_, 2, 1.3, 0.5,
+  yuv = PreProcessChannel(width_, height_, 2, 1.3f, 0.5f,
                           cfg.u_sharpen, cfg.u_blur, yuv);
-  yuv = PreProcessChannel(width_, height_, 1, 1.3, 0.5,
+  yuv = PreProcessChannel(width_, height_, 1, 1.3f, 0.5f,
                           cfg.v_sharpen, cfg.v_blur, yuv);
 
   // Do the actual downsampling (averaging) and forward-DCT.
@@ -430,7 +430,7 @@ void OutputImage::ToLinearRGB(int xmin, int ymin, int xsize, int ysize,
   std::vector<uint8_t> rgb_pixels = ToSRGB(xmin, ymin, xsize, ysize);
   for (int p = 0; p < xsize * ysize; ++p) {
     for (int i = 0; i < 3; ++i) {
-      (*rgb)[i][p] = lut[rgb_pixels[3 * p + i]];
+      (*rgb)[i][p] = static_cast<float>(lut[rgb_pixels[3 * p + i]]);
     }
   }
 }

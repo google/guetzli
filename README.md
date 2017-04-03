@@ -24,6 +24,7 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     *   On Ubuntu, do `apt-get install libpng-dev`.
     *   On Fedora, do `dnf install libpng-devel`. 
     *   On Arch Linux, do `pacman -S libpng`.
+    *   On Alpine Linux, do `apk add libpng-dev`.
 3.  Run `make` and expect the binary to be created in `bin/Release/guetzli`.
 
 ## On Windows

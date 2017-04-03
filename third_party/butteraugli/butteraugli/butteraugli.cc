@@ -86,7 +86,7 @@ static void Convolution(size_t xsize, size_t ysize,
       for (int j = minx; j <= maxx; ++j) {
         sum += inp[y * xsize + j] * multipliers[j - x + offset];
       }
-      result[ox * ysize + y] = sum * scale;
+      result[ox * ysize + y] = static_cast<float>(sum * scale);
     }
   }
 }
@@ -101,7 +101,7 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
   const int expn_size = 2 * diff + 1;
   std::vector<float> expn(expn_size);
   for (int i = -diff; i <= diff; ++i) {
-    expn[i + diff] = exp(scaler * i * i);
+    expn[i + diff] = static_cast<float>(exp(scaler * i * i));
   }
   const int xstep = std::max(1, int(sigma / 3));
   const int ystep = xstep;
@@ -818,8 +818,8 @@ void MaskHighIntensityChange(
       // Interpolate lineraly between the average color and the actual
       // color -- to reduce the importance of this pixel.
       for (int i = 0; i < 3; ++i) {
-        xyb0[i][ix] = mix[i] * c0[i][ix] + (1 - mix[i]) * ave[i];
-        xyb1[i][ix] = mix[i] * c1[i][ix] + (1 - mix[i]) * ave[i];
+        xyb0[i][ix] = static_cast<float>(mix[i] * c0[i][ix] + (1 - mix[i]) * ave[i]);
+        xyb1[i][ix] = static_cast<float>(mix[i] * c1[i][ix] + (1 - mix[i]) * ave[i]);
       }
     }
   }
@@ -915,12 +915,12 @@ static inline float GammaPolynomial(float value) {
     12.262350348616792, 20.557285797683576, 12.161463238367844,
     4.711532733641639, 0.899112889751053, 0.035662329617191,
   }};
-  return r(value);
+  return static_cast<float>(r(value));
 }
 
 static inline double Gamma(double v) {
   // return SimpleGamma(v);
-  return GammaPolynomial(v);
+  return GammaPolynomial(static_cast<float>(v));
 }
 
 void OpsinDynamicsImage(size_t xsize, size_t ysize,
@@ -950,16 +950,16 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
     cur_mixed[2] *= sensitivity[2];
     double x, y, z;
     RgbToXyb(cur_mixed[0], cur_mixed[1], cur_mixed[2], &x, &y, &z);
-    rgb[0][i] = x;
-    rgb[1][i] = y;
-    rgb[2][i] = z;
+    rgb[0][i] = static_cast<float>(x);
+    rgb[1][i] = static_cast<float>(y);
+    rgb[2][i] = static_cast<float>(z);
   }
 }
 
 static void ScaleImage(double scale, std::vector<float> *result) {
   PROFILER_FUNC;
   for (size_t i = 0; i < result->size(); ++i) {
-    (*result)[i] *= scale;
+    (*result)[i] *= static_cast<float>(scale);
   }
 }
 
@@ -1015,7 +1015,7 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
     for (size_t y = 0; y < ysize - s; ++y) {
       for (size_t x = 0; x < xsize - s; ++x) {
         (*diffmap)[(y + s2) * xsize + x + s2]
-            += mul1 * blurred[y * (xsize - s) + x];
+            += static_cast<float>(mul1) * blurred[y * (xsize - s) + x];
       }
     }
     ScaleImage(scale, diffmap);
@@ -1037,11 +1037,11 @@ void ButteraugliComparator::DiffmapOpsinDynamicsImage(
     assert(xyb0[i].size() == num_pixels_);
     assert(xyb1[i].size() == num_pixels_);
   }
+  std::vector<float> edge_detector_map(3 * res_xsize_ * res_ysize_);
+  EdgeDetectorMap(xyb0, xyb1, &edge_detector_map);
   std::vector<float> block_diff_dc(3 * res_xsize_ * res_ysize_);
   std::vector<float> block_diff_ac(3 * res_xsize_ * res_ysize_);
-  std::vector<float> edge_detector_map(3 * res_xsize_ * res_ysize_);
   BlockDiffMap(xyb0, xyb1, &block_diff_dc, &block_diff_ac);
-  EdgeDetectorMap(xyb0, xyb1, &edge_detector_map);
   EdgeDetectorLowFreq(xyb0, xyb1, &block_diff_ac);
   {
     std::vector<std::vector<float> > mask_xyb(3);
@@ -1084,8 +1084,8 @@ void ButteraugliComparator::BlockDiffMap(
       ButteraugliBlockDiff(block0, block1,
                            diff_xyb_dc, diff_xyb_ac, diff_xyb_edge_dc);
       for (int i = 0; i < 3; ++i) {
-        (*block_diff_dc)[3 * res_ix + i] = diff_xyb_dc[i];
-        (*block_diff_ac)[3 * res_ix + i] = diff_xyb_ac[i];
+        (*block_diff_dc)[3 * res_ix + i] = static_cast<float>(diff_xyb_dc[i]);
+        (*block_diff_ac)[3 * res_ix + i] = static_cast<float>(diff_xyb_ac[i]);
       }
     }
   }
@@ -1117,7 +1117,7 @@ void ButteraugliComparator::EdgeDetectorMap(
                                            blurred0, blurred1,
                                            diff_xyb);
       for (int i = 0; i < 3; ++i) {
-        (*edge_detector_map)[3 * res_ix + i] = diff_xyb[i];
+        (*edge_detector_map)[3 * res_ix + i] = static_cast<float>(diff_xyb[i]);
       }
     }
   }
@@ -1173,7 +1173,7 @@ void ButteraugliComparator::EdgeDetectorLowFreq(
         }
       }
       for (int i = 0; i < 3; ++i) {
-        (*block_diff_ac)[3 * res_ix + i] += kMul * max_diff_xyb[i];
+        (*block_diff_ac)[3 * res_ix + i] += static_cast<float>(kMul * max_diff_xyb[i]);
       }
     }
   }
@@ -1197,8 +1197,8 @@ void ButteraugliComparator::CombineChannels(
         mask[i] = mask_xyb[i][(res_y + 3) * xsize_ + (res_x + 3)];
         dc_mask[i] = mask_xyb_dc[i][(res_y + 3) * xsize_ + (res_x + 3)];
       }
-      (*result)[res_ix] =
-          (DotProduct(&block_diff_dc[3 * res_ix], dc_mask) +
+      (*result)[res_ix] = static_cast<float>(
+           DotProduct(&block_diff_dc[3 * res_ix], dc_mask) +
            DotProduct(&block_diff_ac[3 * res_ix], mask) +
            DotProduct(&edge_detector_map[3 * res_ix], mask));
     }
@@ -1319,7 +1319,7 @@ void MinSquareVal(size_t square_size, size_t offset,
       for (size_t j = minh + 1; j < maxh; ++j) {
         min = fmin(min, values[x + j * xsize]);
       }
-      tmp[x + y * xsize] = min;
+      tmp[x + y * xsize] = static_cast<float>(min);
     }
   }
   for (size_t x = 0; x < xsize; ++x) {
@@ -1330,7 +1330,7 @@ void MinSquareVal(size_t square_size, size_t offset,
       for (size_t j = minw + 1; j < maxw; ++j) {
         min = fmin(min, tmp[j + y * xsize]);
       }
-      values[x + y * xsize] = min;
+      values[x + y * xsize] = static_cast<float>(min);
     }
   }
 }
@@ -1342,8 +1342,8 @@ void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
     // TODO: Make this work for small dimensions as well.
     return;
   }
-  static const float w = 0.679144890667;
-  static const float scale = 1.0 / (5.0 + 4 * w);
+  static const float w = 0.679144890667f;
+  static const float scale = 1.0f / (5.0f + 4 * w);
   std::vector<float> result = *diffs;
   std::vector<float> tmp0 = *diffs;
   std::vector<float> tmp1 = *diffs;
@@ -1438,7 +1438,7 @@ void DiffPrecompute(
         double sup0 = fabs(valsh0[i]) + fabs(valsv0[i]);
         double sup1 = fabs(valsh1[i]) + fabs(valsv1[i]);
         double m = std::min(sup0, sup1);
-        (*mask)[i][ix] = m;
+        (*mask)[i][ix] = static_cast<float>(m);
       }
     }
   }
@@ -1451,10 +1451,8 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
           std::vector<std::vector<float> > *mask_dc) {
    PROFILER_FUNC;
   mask->resize(3);
-  mask_dc->resize(3);
   for (int i = 0; i < 3; ++i) {
     (*mask)[i].resize(xsize * ysize);
-    (*mask_dc)[i].resize(xsize * ysize);
   }
   DiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
   for (int i = 0; i < 3; ++i) {
@@ -1471,6 +1469,10 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
   static const double w11 = 22.9455222245;
   static const double w22 = 503.962310606;
 
+  mask_dc->resize(3);
+  for (int i = 0; i < 3; ++i) {
+    (*mask_dc)[i].resize(xsize * ysize);
+  }
   for (size_t y = 0; y < ysize; ++y) {
     for (size_t x = 0; x < xsize; ++x) {
       const size_t idx = y * xsize + x;
@@ -1481,12 +1483,12 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
       const double p1 = w11 * s1;
       const double p2 = w22 * s2;
 
-      (*mask)[0][idx] = MaskX(p0);
-      (*mask)[1][idx] = MaskY(p1);
-      (*mask)[2][idx] = MaskB(p2);
-      (*mask_dc)[0][idx] = MaskDcX(p0);
-      (*mask_dc)[1][idx] = MaskDcY(p1);
-      (*mask_dc)[2][idx] = MaskDcB(p2);
+      (*mask)[0][idx] = static_cast<float>(MaskX(p0));
+      (*mask)[1][idx] = static_cast<float>(MaskY(p1));
+      (*mask)[2][idx] = static_cast<float>(MaskB(p2));
+      (*mask_dc)[0][idx] = static_cast<float>(MaskDcX(p0));
+      (*mask_dc)[1][idx] = static_cast<float>(MaskDcY(p1));
+      (*mask_dc)[2][idx] = static_cast<float>(MaskDcB(p2));
     }
   }
   for (int i = 0; i < 3; ++i) {

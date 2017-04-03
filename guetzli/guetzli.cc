@@ -34,7 +34,7 @@ constexpr int kDefaultJPEGQuality = 95;
 
 // An upper estimate of memory usage of Guetzli. The bound is
 // max(kLowerMemusaeMB * 1<<20, pixel_count * kBytesPerPixel)
-constexpr int kBytesPerPixel = 200;
+constexpr int kBytesPerPixel = 125;
 constexpr int kLowestMemusageMB = 100; // in MB
 
 constexpr int kDefaultMemlimitMB = 6000; // in MB
@@ -163,7 +163,7 @@ std::string ReadFileOrDie(const char* filename) {
   off_t buffer_size = 8192;
 
   if (fseek(f, 0, SEEK_END) == 0) {
-    buffer_size = ftell(f);
+    buffer_size = std::max<off_t>(ftell(f), 1);
     if (fseek(f, 0, SEEK_SET) != 0) {
       perror("fseek");
       exit(1);
@@ -270,8 +270,8 @@ int main(int argc, char** argv) {
   std::string out_data;
 
   guetzli::Params params;
-  params.butteraugli_target =
-      guetzli::ButteraugliScoreForQuality(quality);
+  params.butteraugli_target = static_cast<float>(
+      guetzli::ButteraugliScoreForQuality(quality));
 
   guetzli::ProcessStats stats;
 
