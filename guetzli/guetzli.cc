@@ -217,12 +217,13 @@ void Usage() {
       "guetzli [flags] input_filename output_filename\n"
       "\n"
       "Flags:\n"
-      "  --verbose    - Print a verbose trace of all attempts to standard output.\n"
-      "  --quality Q  - Visual quality to aim for, expressed as a JPEG quality value.\n"
-      "                 Default value is %d.\n"
-      "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
-      "                 the limit. Default limit is %d MB.\n"
-      "  --nomemlimit - Do not limit memory usage.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
+      "  --verbose       - Print a verbose trace of all attempts to standard output.\n"
+      "  --quality Q     - Visual quality to aim for, expressed as a JPEG quality value.\n"
+      "                    Default value is %d.\n"
+      "  --memlimit M    - Memory limit in MB. Guetzli will fail if unable to stay under\n"
+      "                    the limit. Default limit is %d MB.\n"
+      "  --nomemlimit    - Do not limit memory usage.\n"
+      "  --preserve-exif - Preserve exif data.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
   exit(1);
 }
 
@@ -230,6 +231,8 @@ void Usage() {
 
 int main(int argc, char** argv) {
   std::set_terminate(TerminateHandler);
+
+  guetzli::Params params;
 
   int verbose = 0;
   int quality = kDefaultJPEGQuality;
@@ -253,6 +256,8 @@ int main(int argc, char** argv) {
       memlimit_mb = atoi(argv[opt_idx]);
     } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
       memlimit_mb = -1;
+    } else if (!strcmp(argv[opt_idx], "--preserve-exif")) {
+      params.clear_metadata = false;
     } else if (!strcmp(argv[opt_idx], "--")) {
       opt_idx++;
       break;
@@ -269,7 +274,6 @@ int main(int argc, char** argv) {
   std::string in_data = ReadFileOrDie(argv[opt_idx]);
   std::string out_data;
 
-  guetzli::Params params;
   params.butteraugli_target = static_cast<float>(
       guetzli::ButteraugliScoreForQuality(quality));
 
