@@ -13,6 +13,7 @@ install:
   - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha11/premake-5.0.0-alpha11-windows.zip' 'premake.zip'
   - 7z x premake.zip
   - premake5.exe %TOOLSET%
+  - vcpkg install libpng
 
 configuration:
   - Debug
