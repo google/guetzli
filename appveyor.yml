@@ -19,4 +19,4 @@ configuration:
   - Release
 
 build:
-  project: Build/$(TOOLSET)/guetzli.sln
+  project: guetzli.sln
