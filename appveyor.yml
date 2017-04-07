@@ -14,8 +14,8 @@ install:
   - git clone https://github.com/Microsoft/vcpkg
   - cd vcpkg
   - powershell -exec bypass scripts\bootstrap.ps1
-  - vcpkg install libpng
   - vcpkg integrate install
+  - vcpkg install libpng
   - cd ..
 
 configuration:
