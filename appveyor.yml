@@ -17,7 +17,7 @@ install:
   - cd vcpkg
   - powershell -exec bypass scripts\bootstrap.ps1
   - .\vcpkg integrate install
-  - .\vcpkg install png
+  - .\vcpkg install libpng
 
 configuration:
   - Release
