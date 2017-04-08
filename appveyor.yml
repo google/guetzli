@@ -11,13 +11,6 @@ install:
   - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha11/premake-5.0.0-alpha11-windows.zip' 'premake.zip'
   - 7z x premake.zip
   - premake5.exe %TOOLSET%
-  - set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
-  - cd c:\    
-  - IF NOT EXIST c:\vcpkg\ ( git clone https://github.com/Microsoft/vcpkg ) ELSE ( echo VCPKG is cached )
-  - cd vcpkg
-  - powershell -exec bypass scripts\bootstrap.ps1
-  - .\vcpkg integrate install
-  - .\vcpkg install libpng
 
 configuration:
   - Release
