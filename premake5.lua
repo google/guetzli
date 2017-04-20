@@ -3,7 +3,6 @@ workspace "guetzli"
   language "C++"
   flags { "C++11" }
   includedirs { ".", "third_party/butteraugli" }
-  nuget { "libpng:1.6.28.1" }
 
   filter "action:vs*"
     platforms { "x86_64", "x86" }
