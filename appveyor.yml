@@ -23,6 +23,7 @@ install:
   - 7z x %appveyor_build_folder%\vcpkg\downloads\cmake-3.8.0-rc1-win32-x86.zip
   - cd vcpkg
   - powershell -exec bypass -File scripts\bootstrap.ps1
+  - vcpkg integrate install
   - vcpkg install libpng
   - cd ..
 
