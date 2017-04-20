@@ -25,6 +25,7 @@ install:
   - cd ..
 
 configuration:
+  - Debug
   - Release
 
 build:
