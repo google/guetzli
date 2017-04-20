@@ -17,7 +17,7 @@ install:
   - md vcpkg\downloads\nuget-3.5.0
   - appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -FileName %appveyor_build_folder%\vcpkg\downloads\nuget-3.5.0\nuget.exe
   - powershell -exec bypass -File vcpkg\scripts\bootstrap.ps1
-  - vcpkg install libpng
+  - .\vcpkg install libpng
   - cd ..
 
 configuration:
