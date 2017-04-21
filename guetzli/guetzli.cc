@@ -164,7 +164,9 @@ std::string ReadFileOrDie(const char* filename) {
   off_t buffer_size = 8192;
 
   if (fseek(f, 0, SEEK_END) == 0) {
-    buffer_size = std::max<off_t>(ftell(f), 1);
+//    buffer_size = std::max<off_t>(ftell(f), 1);
+	  long size = ftell(f);
+	  buffer_size = size > 0 ? size : 1;
     if (fseek(f, 0, SEEK_SET) != 0) {
       perror("fseek");
       exit(1);
