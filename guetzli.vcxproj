@@ -116,7 +116,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;third_party\butteraugli;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;third_party\butteraugli;third_party\libpng;third_party\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -150,7 +150,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;third_party\butteraugli;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;third_party\butteraugli;third_party\libpng;third_party\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
     </ClCompile>
@@ -188,6 +188,20 @@
     <ClInclude Include="guetzli\score.h" />
     <ClInclude Include="guetzli\stats.h" />
     <ClInclude Include="third_party\butteraugli\butteraugli\butteraugli.h" />
+    <ClInclude Include="third_party\libpng\png.h" />
+    <ClInclude Include="third_party\libpng\pngconf.h" />
+    <ClInclude Include="third_party\libpng\pngpriv.h" />
+    <ClInclude Include="third_party\zlib\crc32.h" />
+    <ClInclude Include="third_party\zlib\deflate.h" />
+    <ClInclude Include="third_party\zlib\gzguts.h" />
+    <ClInclude Include="third_party\zlib\inffast.h" />
+    <ClInclude Include="third_party\zlib\inffixed.h" />
+    <ClInclude Include="third_party\zlib\inflate.h" />
+    <ClInclude Include="third_party\zlib\inftrees.h" />
+    <ClInclude Include="third_party\zlib\trees.h" />
+    <ClInclude Include="third_party\zlib\zconf.h" />
+    <ClInclude Include="third_party\zlib\zlib.h" />
+    <ClInclude Include="third_party\zlib\zutil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="guetzli\butteraugli_comparator.cc" />
@@ -211,6 +225,43 @@
     <ClCompile Include="guetzli\quantize.cc" />
     <ClCompile Include="guetzli\score.cc" />
     <ClCompile Include="third_party\butteraugli\butteraugli\butteraugli.cc" />
+    <ClCompile Include="third_party\libpng\png.c" />
+    <ClCompile Include="third_party\libpng\pngerror.c" />
+    <ClCompile Include="third_party\libpng\pngget.c" />
+    <ClCompile Include="third_party\libpng\pngmem.c" />
+    <ClCompile Include="third_party\libpng\pngpread.c" />
+    <ClCompile Include="third_party\libpng\pngread.c" />
+    <ClCompile Include="third_party\libpng\pngrio.c" />
+    <ClCompile Include="third_party\libpng\pngrtran.c" />
+    <ClCompile Include="third_party\libpng\pngrutil.c" />
+    <ClCompile Include="third_party\libpng\pngset.c" />
+    <ClCompile Include="third_party\libpng\pngtrans.c" />
+    <ClCompile Include="third_party\libpng\pngwio.c" />
+    <ClCompile Include="third_party\libpng\pngwrite.c" />
+    <ClCompile Include="third_party\libpng\pngwtran.c" />
+    <ClCompile Include="third_party\libpng\pngwutil.c" />
+    <ClCompile Include="third_party\zlib\adler32.c" />
+    <ClCompile Include="third_party\zlib\compress.c" />
+    <ClCompile Include="third_party\zlib\crc32.c" />
+    <ClCompile Include="third_party\zlib\deflate.c" />
+    <ClCompile Include="third_party\zlib\gzclose.c" />
+    <ClCompile Include="third_party\zlib\gzlib.c" />
+    <ClCompile Include="third_party\zlib\gzread.c" />
+    <ClCompile Include="third_party\zlib\gzwrite.c" />
+    <ClCompile Include="third_party\zlib\infback.c" />
+    <ClCompile Include="third_party\zlib\inffast.c" />
+    <ClCompile Include="third_party\zlib\inflate.c" />
+    <ClCompile Include="third_party\zlib\inftrees.c" />
+    <ClCompile Include="third_party\zlib\trees.c" />
+    <ClCompile Include="third_party\zlib\uncompr.c" />
+    <ClCompile Include="third_party\zlib\zutil.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="third_party\libpng\pngwin.def" />
+    <None Include="third_party\zlib\inffas32.asm" />
+    <None Include="third_party\zlib\match32.asm" />
+    <None Include="third_party\zlib\match686.asm" />
+    <None Include="third_party\zlib\zlib.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
