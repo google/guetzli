@@ -19,6 +19,9 @@
     <Filter Include="third_party\zlib">
       <UniqueIdentifier>{cb89c1ac-8399-4814-88f2-4b69576bc9f9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="third_party\tcmalloc_minimal">
+      <UniqueIdentifier>{f2b475de-6219-478e-9e5e-08f07ef25dbc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="guetzli\butteraugli_comparator.h">
@@ -140,6 +143,153 @@
     </ClInclude>
     <ClInclude Include="third_party\zlib\zutil.h">
       <Filter>third_party\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\addressmap-inl.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\central_freelist.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\common.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\config_for_unittests.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\heap-profile-table.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\internal_logging.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\malloc_hook-inl.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\memory_region_map.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\packed-cache-inl.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\page_heap.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\page_heap_allocator.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\pagemap.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\raw_printer.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\sampler.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\span.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\stack_trace_table.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\stacktrace_win32-inl.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\static_vars.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\symbolize.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\system-alloc.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\tcmalloc.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\thread_cache.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\atomicops-internals-linuxppc.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\atomicops-internals-macosx.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\atomicops-internals-x86.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\basictypes.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\commandlineflags.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\googleinit.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\logging.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\low_level_alloc.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\spinlock.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\spinlock_internal.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\spinlock_linux-inl.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\spinlock_posix-inl.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\spinlock_win32-inl.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\stl_allocator.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\sysinfo.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\thread_annotations.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\windows\config.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\windows\mini_disassembler.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\windows\mini_disassembler_types.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\windows\port.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\gperftools\heap-checker.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\gperftools\malloc_extension.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\gperftools\profiler.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\gperftools\stacktrace.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\base\atomicops.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\gperftools\heap-profiler.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\gperftools-gperftools-2.5\src\gperftools\malloc_hook.h">
+      <Filter>third_party\tcmalloc_minimal</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -295,6 +445,102 @@
     </ClCompile>
     <ClCompile Include="third_party\zlib\zutil.c">
       <Filter>third_party\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\central_freelist.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\common.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\fake_stacktrace_scope.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\heap-profile-table.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\internal_logging.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\malloc_extension.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\malloc_hook.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\memory_region_map.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\page_heap.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\raw_printer.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\sampler.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\span.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\stack_trace_table.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\stacktrace.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\static_vars.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\symbolize.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\thread_cache.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\windows\ia32_modrm_map.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\windows\ia32_opcode_map.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\windows\mini_disassembler.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\windows\patch_functions.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\windows\port.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\windows\preamble_patcher.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\windows\preamble_patcher_with_stub.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\windows\system-alloc.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\base\dynamic_annotations.c">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\base\atomicops-internals-x86.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\base\logging.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\base\low_level_alloc.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\base\spinlock.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\base\spinlock_internal.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\gperftools-gperftools-2.5\src\base\sysinfo.cc">
+      <Filter>third_party\tcmalloc_minimal</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
