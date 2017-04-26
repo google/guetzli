@@ -64,25 +64,25 @@ static void Convolution(size_t xsize, size_t ysize,
                         size_t len, size_t offset,
                         const float* __restrict__ multipliers,
                         const float* __restrict__ inp,
-                        double border_ratio,
+                        float border_ratio,
                         float* __restrict__ result) {
   PROFILER_FUNC;
-  double weight_no_border = 0;
+  float weight_no_border = 0;
   for (size_t j = 0; j <= 2 * offset; ++j) {
     weight_no_border += multipliers[j];
   }
   for (size_t x = 0, ox = 0; x < xsize; x += xstep, ox++) {
     int minx = x < offset ? 0 : x - offset;
     int maxx = std::min(xsize, x + len - offset) - 1;
-    double weight = 0.0;
+    float weight = 0.0;
     for (int j = minx; j <= maxx; ++j) {
       weight += multipliers[j - x + offset];
     }
     // Interpolate linearly between the no-border scaling and border scaling.
     weight = (1.0 - border_ratio) * weight + border_ratio * weight_no_border;
-    double scale = 1.0 / weight;
+    float scale = 1.0 / weight;
     for (size_t y = 0; y < ysize; ++y) {
-      double sum = 0.0;
+      float sum = 0.0;
       for (int j = minx; j <= maxx; ++j) {
         sum += inp[y * xsize + j] * multipliers[j - x + offset];
       }
@@ -739,6 +739,7 @@ const double *GetOpsinAbsorbance() {
   return &kMix[0];
 }
 
+// mix是一个[4x4]矩阵，与in[,,,1]进行叉乘
 void OpsinAbsorbance(const double in[3], double out[3]) {
   const double *mix = GetOpsinAbsorbance();
   out[0] = mix[0] * in[0] + mix[1] * in[1] + mix[2] * in[2] + mix[3];
