@@ -1304,6 +1304,9 @@ double MaskDcB(double delta) {
 // square_size square with coordinates
 //   x - offset .. x + square_size - offset - 1,
 //   y - offset .. y + square_size - offset - 1.
+
+// 实际过程中squre_size一直为4，offset为0，可以SIMD特化
+
 void MinSquareVal(size_t square_size, size_t offset,
                   size_t xsize, size_t ysize,
                   float *values) {
@@ -1311,26 +1314,41 @@ void MinSquareVal(size_t square_size, size_t offset,
   // offset is not negative and smaller than square_size.
   assert(offset < square_size);
   std::vector<float> tmp(xsize * ysize);
+
   for (size_t y = 0; y < ysize; ++y) {
     const size_t minh = offset > y ? 0 : y - offset;
     const size_t maxh = std::min<size_t>(ysize, y + square_size - offset);
+
+    float *pTmpPoint = &tmp[y * xsize];
+    float *pValuePoint = &values[minh * xsize];
+
     for (size_t x = 0; x < xsize; ++x) {
-      double min = values[x + minh * xsize];
-      for (size_t j = minh + 1; j < maxh; ++j) {
-        min = fmin(min, values[x + j * xsize]);
-      }
-      tmp[x + y * xsize] = static_cast<float>(min);
+        float *pValues = pValuePoint++;
+        float min = *pValues;
+
+        for (size_t j = minh + 1; j < maxh; ++j) {
+            pValues += xsize;
+            if (*pValues < min) min = *pValues;
+        }
+        *pTmpPoint++ = min;
     }
   }
   for (size_t x = 0; x < xsize; ++x) {
     const size_t minw = offset > x ? 0 : x - offset;
     const size_t maxw = std::min<size_t>(xsize, x + square_size - offset);
+
+    float *pValuePoint = &values[x];
+    float *pTmpPoint = &tmp[minw];
+
     for (size_t y = 0; y < ysize; ++y) {
-      double min = tmp[minw + y * xsize];
-      for (size_t j = minw + 1; j < maxw; ++j) {
-        min = fmin(min, tmp[j + y * xsize]);
-      }
-      values[x + y * xsize] = static_cast<float>(min);
+        float * pTmp = pTmpPoint; pTmpPoint += xsize;
+        float min = *pTmp;
+
+        for (size_t j = minw + 1; j < maxw; ++j) {
+            pTmp++;
+            if (*pTmp < min) min = *pTmp;
+        }
+        *pValuePoint = min; pValuePoint += xsize;
     }
   }
 }
