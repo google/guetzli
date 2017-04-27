@@ -26,15 +26,15 @@ __kernel void MinSquareVal(__global float* pA, __global float* pC, int square_si
 }
 
 __kernel void Convolution(__global float* multipliers, __global float* inp, __global float* result,
-							int xstep, int len, int offset, float border_ratio)
+							int xsize, int xstep, int len, int offset, float border_ratio)
 {
 	const int ox = get_global_id(0);
 	const int y = get_global_id(1);
+
 	const int oxsize = get_global_size(0);
 	const int ysize = get_global_size(1);
 
 	const int x = ox * xstep;
-	const int xsize = oxsize * xstep;
 
 	float weight_no_border = 0;
 	for (int j = 0; j <= 2 * offset; j++)
@@ -43,7 +43,7 @@ __kernel void Convolution(__global float* multipliers, __global float* inp, __gl
 	}
 
 	int minx = x < offset ? 0 : x - offset;
-	int maxx = min(xsize, x + len - offset) - 1;
+	int maxx = min(xsize, x + len - offset);
 
 	float weight = 0.0;
 	for (int j = minx; j < maxx; j++)
@@ -60,5 +60,5 @@ __kernel void Convolution(__global float* multipliers, __global float* inp, __gl
 		sum += inp[y * xsize + j] * multipliers[j - x + offset];
 	}
 
-	result[y * oxsize + ox] = sum * scale;
+	result[ox * ysize + y] = sum * scale;
 }

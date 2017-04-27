@@ -62,12 +62,19 @@ inline double DotProduct(const float u[3], const double v[3]) {
 
 // Computes a horizontal convolution and transposes the result.
 static void Convolution(size_t xsize, size_t ysize,
-                        size_t xstep,
-                        size_t len, size_t offset,
-                        const float* __restrict__ multipliers,
-                        const float* __restrict__ inp,
-                        float border_ratio,
-                        float* __restrict__ result) {
+	size_t xstep,
+	size_t len, size_t offset,
+	const float* __restrict__ multipliers,
+	const float* __restrict__ inp,
+	float border_ratio,
+	float* __restrict__ result) {
+
+	if (xsize > 100 && ysize > 100)
+	{
+		clConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
+		return;
+	}
+	
   PROFILER_FUNC;
   float weight_no_border = 0;
 
@@ -91,6 +98,20 @@ static void Convolution(size_t xsize, size_t ysize,
       }
       result[ox * ysize + y] = static_cast<float>(sum * scale);
     }
+  }
+
+  return;
+
+  // for verify
+  std::vector<float> tmp(xsize / xstep * ysize);
+  clConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, &tmp[0]);
+
+  for (int i = 0; i < xsize / xstep * ysize; i++)
+  {
+	  if (fabs(result[i] - tmp[i]) > 0.0001)
+	  {
+		  tmp[i] = result[i];
+	  }
   }
 }
 
