@@ -22,6 +22,9 @@
     <Filter Include="third_party\tcmalloc_minimal">
       <UniqueIdentifier>{f2b475de-6219-478e-9e5e-08f07ef25dbc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="clguetzli">
+      <UniqueIdentifier>{64847a89-ca39-4556-ba0e-d6875c4d39ca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="guetzli\butteraugli_comparator.h">
@@ -291,6 +294,15 @@
     <ClInclude Include="third_party\gperftools-gperftools-2.5\src\gperftools\malloc_hook.h">
       <Filter>third_party\tcmalloc_minimal</Filter>
     </ClInclude>
+    <ClInclude Include="clguetzli\utils.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\ocl.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\clguetzli.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="guetzli\butteraugli_comparator.cc">
@@ -542,6 +554,15 @@
     <ClCompile Include="third_party\gperftools-gperftools-2.5\src\base\sysinfo.cc">
       <Filter>third_party\tcmalloc_minimal</Filter>
     </ClCompile>
+    <ClCompile Include="clguetzli\utils.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\ocl.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\clguetzli.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="third_party\libpng\pngwin.def">
@@ -558,6 +579,9 @@
     </None>
     <None Include="third_party\zlib\zlib.def">
       <Filter>third_party\zlib</Filter>
+    </None>
+    <None Include="clguetzli\clguetzli.cl">
+      <Filter>clguetzli</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -40,6 +40,8 @@
 #include <algorithm>
 #include <array>
 
+#include "clguetzli\clguetzli.h"
+
 // Restricted pointers speed up Convolution(); MSVC uses a different keyword.
 #ifdef _MSC_VER
 #define __restrict__ __restrict
@@ -68,6 +70,7 @@ static void Convolution(size_t xsize, size_t ysize,
                         float* __restrict__ result) {
   PROFILER_FUNC;
   float weight_no_border = 0;
+
   for (size_t j = 0; j <= 2 * offset; ++j) {
     weight_no_border += multipliers[j];
   }
@@ -1311,6 +1314,9 @@ double MaskDcB(double delta) {
 void MinSquareVal(size_t square_size, size_t offset,
                   size_t xsize, size_t ysize,
                   float *values) {
+
+//	clMinSquareVal(square_size, offset, xsize, ysize, values);
+
   PROFILER_FUNC;
   // offset is not negative and smaller than square_size.
   assert(offset < square_size);
