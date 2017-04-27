@@ -47,6 +47,10 @@ struct ocl_args_d_t
 	ocl_args_d_t();
 	~ocl_args_d_t();
 
+	void* allocA(size_t s);
+	void* allocB(size_t s);
+	void* allocC(size_t s);
+
 	// Regular OpenCL objects:
 	cl_context       context;           // hold the context handler
 	cl_device_id     device;            // hold the selected device handler
@@ -61,4 +65,13 @@ struct ocl_args_d_t
 	cl_mem           srcA;              // hold first source buffer
 	cl_mem           srcB;              // hold second source buffer
 	cl_mem           dstMem;            // hold destination buffer
+
+	void*			 inputA;
+	size_t		     lenA;
+
+	void*			 inputB;
+	size_t			 lenB;
+
+	void*			 outputC;
+	size_t			 lenC;
 };

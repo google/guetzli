@@ -1315,7 +1315,8 @@ void MinSquareVal(size_t square_size, size_t offset,
                   size_t xsize, size_t ysize,
                   float *values) {
 
-//	clMinSquareVal(square_size, offset, xsize, ysize, values);
+	clMinSquareVal(square_size, offset, xsize, ysize, values);
+	return;
 
   PROFILER_FUNC;
   // offset is not negative and smaller than square_size.
