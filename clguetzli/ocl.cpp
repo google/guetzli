@@ -102,6 +102,73 @@ ocl_args_d_t::~ocl_args_d_t()
 	* because it was not created at the startup,
 	* but just queried from OpenCL runtime.
 	*/
+
+	if (inputA) _aligned_free(inputA);
+	if (inputB) _aligned_free(inputB);
+	if (outputC) _aligned_free(outputC);
+}
+
+void* ocl_args_d_t::allocA(size_t s)
+{
+	if (s < lenA) return inputA;
+	lenA = 0;
+	_aligned_free(inputA);
+	clReleaseMemObject(srcA);
+
+	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
+	inputA = _aligned_malloc(optimizedSize, 4096);
+	lenA = s;
+
+	cl_int err = 0;
+	srcA = clCreateBuffer(this->context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, s, inputA, &err);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: allocA() for buffer returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	return inputA;
+}
+
+void* ocl_args_d_t::allocB(size_t s)
+{
+	if (s < lenB) return inputB;
+	lenB = 0;
+	_aligned_free(inputB);
+	clReleaseMemObject(srcB);
+
+	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
+	inputB = _aligned_malloc(optimizedSize, 4096);
+	lenB = s;
+
+	cl_int err = 0;
+	srcB = clCreateBuffer(this->context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, s, inputB, &err);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: allocB() for buffer returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	return inputB;
+}
+
+void* ocl_args_d_t::allocC(size_t s)
+{
+	if (s < lenC) return outputC;
+	lenC = 0;
+	_aligned_free(outputC);
+	clReleaseMemObject(dstMem);
+
+	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
+	outputC = _aligned_malloc(optimizedSize, 4096);
+	lenC = s;
+	
+	cl_int err = 0;
+	dstMem = clCreateBuffer(this->context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, s, outputC, &err);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: allocB() for buffer returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	return outputC;
 }
 
 const char* TranslateOpenCLError(cl_int errorCode)
@@ -404,7 +471,7 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType)
 	// Query for all available OpenCL platforms on the system
 	// Here you enumerate all platforms and pick one which name has preferredPlatform as a sub-string
 	deviceType = CL_DEVICE_TYPE_GPU;
-	cl_platform_id platformId = FindOpenCLPlatform("Intel", deviceType);
+	cl_platform_id platformId = FindOpenCLPlatform("", deviceType);
 	if (NULL == platformId)
 	{
 		deviceType = CL_DEVICE_TYPE_CPU;

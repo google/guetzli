@@ -1,23 +1,21 @@
 #include "clguetzli.h"
 #include "ocl.h"
 
-void clMinSquareVal(size_t square_size, size_t offset,
-	size_t xsize, size_t ysize,
-	float *values)
+ocl_args_d_t& getOcl(void)
 {
-	cl_int err = CL_SUCCESS;
+	static bool bInit = false;
+	static ocl_args_d_t ocl;
 
-	ocl_args_d_t ocl;
+	if (bInit == true) return ocl;
+
+	bInit = true;
 	SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
 
-	cl_uint optimizedSize = ((sizeof(cl_float) * xsize * ysize - 1) / 64 + 1) * 64;
-	cl_float* inputA = (cl_float*)_aligned_malloc(optimizedSize, 4096);
-	cl_float* outputC = (cl_float*)_aligned_malloc(optimizedSize, 4096);
-
-	memcpy(inputA, values, sizeof(cl_float) * xsize * ysize);
-
-	ocl.srcA = clCreateBuffer(ocl.context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, sizeof(cl_float) * xsize * ysize, inputA, &err);
-	ocl.dstMem = clCreateBuffer(ocl.context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, sizeof(cl_float) * xsize * ysize, outputC, &err);
+	cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+	}
 
 	char* source = nullptr;
 	size_t src_size = 0;
@@ -38,13 +36,28 @@ void clMinSquareVal(size_t square_size, size_t offset,
 		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
 	}
 
+	return ocl;
+}
+
+void clMinSquareVal(size_t square_size, size_t offset,
+	size_t xsize, size_t ysize,
+	float *values)
+{
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	ocl.allocA(sizeof(cl_float) * xsize * ysize);
+	ocl.allocC(sizeof(cl_float) * xsize * ysize);
+
+	memcpy(ocl.inputA, values, sizeof(cl_float) * xsize * ysize);
+
 	cl_int cloffset = offset;
 	cl_int clsquare_size = square_size;
 
 	clSetKernelArg(ocl.kernel, 0, sizeof(cl_mem), (void*)&ocl.srcA);
 	clSetKernelArg(ocl.kernel, 1, sizeof(cl_mem), (void*)&ocl.dstMem);
-	clSetKernelArg(ocl.kernel, 2, sizeof(cl_int), (void*)&cloffset);
-	clSetKernelArg(ocl.kernel, 3, sizeof(cl_int), (void*)&clsquare_size);
+	clSetKernelArg(ocl.kernel, 2, sizeof(cl_int), (void*)&clsquare_size);
+	clSetKernelArg(ocl.kernel, 3, sizeof(cl_int), (void*)&cloffset);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, ocl.kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -70,7 +83,61 @@ void clMinSquareVal(size_t square_size, size_t offset,
 	}
 
 	memcpy(values, resultPtr, sizeof(cl_float) * xsize * ysize);
+}
 
-	_aligned_free(inputA);
-	_aligned_free(outputC);
+void clConvolution(size_t xsize, size_t ysize,
+	size_t xstep,
+	size_t len, size_t offset,
+	const float* multipliers,
+	const float* inp,
+	float border_ratio,
+	float* result)
+{
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	ocl.allocA(sizeof(cl_float) * len);
+	ocl.allocB(sizeof(cl_float) * xsize * ysize);
+	ocl.allocC(sizeof(cl_float) * xsize * ysize / xstep);
+	
+	memcpy(ocl.inputA, multipliers, sizeof(cl_float) * len);
+	memcpy(ocl.inputB, inp, sizeof(cl_float) * xsize * ysize);
+
+	cl_int clxstep = xstep;
+	cl_int cllen = len;
+	cl_int cloffset = offset;
+	cl_float clborder_ratio = border_ratio;
+
+	clSetKernelArg(ocl.kernel, 0, sizeof(cl_mem), (void*)&ocl.srcA);
+	clSetKernelArg(ocl.kernel, 1, sizeof(cl_mem), (void*)&ocl.srcB);
+	clSetKernelArg(ocl.kernel, 2, sizeof(cl_mem), (void*)&ocl.dstMem);
+	clSetKernelArg(ocl.kernel, 3, sizeof(cl_int), (void*)&clxstep);
+	clSetKernelArg(ocl.kernel, 4, sizeof(cl_int), (void*)&cllen);
+	clSetKernelArg(ocl.kernel, 5, sizeof(cl_int), (void*)&cloffset);
+	clSetKernelArg(ocl.kernel, 6, sizeof(cl_float), (void*)&clborder_ratio);
+
+	size_t globalWorkSize[2] = { xsize / xstep, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, ocl.kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	cl_float *resultPtr = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, ocl.dstMem, true, CL_MAP_READ, 0, sizeof(cl_float) * xsize * ysize, 0, NULL, NULL, &err);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clEnqueueMapBuffer returned %s\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clFinish returned %s\n", TranslateOpenCLError(err));
+	}
+
+	memcpy(result, resultPtr, sizeof(cl_float) * xsize * ysize / xstep);
 }
