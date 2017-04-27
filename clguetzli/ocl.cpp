@@ -7,14 +7,23 @@ ocl_args_d_t::ocl_args_d_t() :
 	device(NULL),
 	commandQueue(NULL),
 	program(NULL),
-	kernel(NULL),
 	platformVersion(OPENCL_VERSION_1_2),
 	deviceVersion(OPENCL_VERSION_1_2),
 	compilerVersion(OPENCL_VERSION_1_2),
 	srcA(NULL),
 	srcB(NULL),
-	dstMem(NULL)
+	dstMem(NULL),
+	inputA(NULL),
+	lenA(0),
+	inputB(NULL),
+	lenB(0),
+	outputC(NULL),
+	lenC(0)
 {
+	for (int i = 0; i < KERNEL_COUNT; i++)
+	{
+		kernel[i] = NULL;
+	}
 }
 
 /*
@@ -31,7 +40,15 @@ ocl_args_d_t::ocl_args_d_t() :
 ocl_args_d_t::~ocl_args_d_t()
 {
 	cl_int err = CL_SUCCESS;
-
+	for (int i = 0; i < KERNEL_COUNT; i++)
+	{
+		err = clReleaseKernel(kernel[i]);
+		if (CL_SUCCESS != err)
+		{
+			LogError("Error: clReleaseKernel returned '%s'.\n", TranslateOpenCLError(err));
+		}
+	}
+/*
 	if (kernel)
 	{
 		err = clReleaseKernel(kernel);
@@ -40,6 +57,7 @@ ocl_args_d_t::~ocl_args_d_t()
 			LogError("Error: clReleaseKernel returned '%s'.\n", TranslateOpenCLError(err));
 		}
 	}
+*/
 	if (program)
 	{
 		err = clReleaseProgram(program);
@@ -110,7 +128,7 @@ ocl_args_d_t::~ocl_args_d_t()
 
 void* ocl_args_d_t::allocA(size_t s)
 {
-	if (s < lenA) return inputA;
+	if (s <= lenA) return inputA;
 	lenA = 0;
 	_aligned_free(inputA);
 	clReleaseMemObject(srcA);
@@ -131,7 +149,7 @@ void* ocl_args_d_t::allocA(size_t s)
 
 void* ocl_args_d_t::allocB(size_t s)
 {
-	if (s < lenB) return inputB;
+	if (s <= lenB) return inputB;
 	lenB = 0;
 	_aligned_free(inputB);
 	clReleaseMemObject(srcB);
@@ -152,7 +170,7 @@ void* ocl_args_d_t::allocB(size_t s)
 
 void* ocl_args_d_t::allocC(size_t s)
 {
-	if (s < lenC) return outputC;
+	if (s <= lenC) return outputC;
 	lenC = 0;
 	_aligned_free(outputC);
 	clReleaseMemObject(dstMem);

@@ -42,6 +42,12 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType);
 * only, there is no OpenCL specific here: just to avoid global variables
 * and make passing all these arguments in functions easier.
 */
+
+#define KERNEL_MINSQUAREVAL 0
+#define KERNEL_CONVOLUTION 1
+
+#define KERNEL_COUNT 2
+
 struct ocl_args_d_t
 {
 	ocl_args_d_t();
@@ -56,7 +62,7 @@ struct ocl_args_d_t
 	cl_device_id     device;            // hold the selected device handler
 	cl_command_queue commandQueue;      // hold the commands-queue handler
 	cl_program       program;           // hold the program handler
-	cl_kernel        kernel;            // hold the kernel handler
+	cl_kernel        kernel[KERNEL_COUNT];            // hold the kernel handler
 	float            platformVersion;   // hold the OpenCL platform version (default 1.2)
 	float            deviceVersion;     // hold the OpenCL device version (default. 1.2)
 	float            compilerVersion;   // hold the device OpenCL C version (default. 1.2)
