@@ -69,11 +69,14 @@ static void Convolution(size_t xsize, size_t ysize,
 	float border_ratio,
 	float* __restrict__ result) {
 
+#ifdef ENABLE_OPENCL
 	if (xsize > 100 && ysize > 100)
 	{
 		clConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
 		return;
 	}
+#endif // ENABLE_OPENCL
+
 	
   PROFILER_FUNC;
   float weight_no_border = 0;
@@ -100,6 +103,8 @@ static void Convolution(size_t xsize, size_t ysize,
     }
   }
 
+
+#ifdef ENABLE_OPENCL
   return;
 
   // for verify
@@ -113,6 +118,7 @@ static void Convolution(size_t xsize, size_t ysize,
 		  tmp[i] = result[i];
 	  }
   }
+#endif // ENABLE_OPENCL
 }
 
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
@@ -1335,9 +1341,10 @@ double MaskDcB(double delta) {
 void MinSquareVal(size_t square_size, size_t offset,
                   size_t xsize, size_t ysize,
                   float *values) {
-
+// #ifdef ENABLE_OPENCL
 	clMinSquareVal(square_size, offset, xsize, ysize, values);
 	return;
+// #endif // ENABLE_OPENCL
 
   PROFILER_FUNC;
   // offset is not negative and smaller than square_size.
