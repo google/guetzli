@@ -81,7 +81,7 @@ To try out Guetzli you need to [build](#building) or
 binary reads a PNG or JPEG image and creates an optimized JPEG image:
 
 ```bash
-guetzli [--quality Q] [--verbose] original.png output.jpg
+guetzli [--quality Q] [--verbose] original.png output.png
 guetzli [--quality Q] [--verbose] original.jpg output.jpg
 ```
 
