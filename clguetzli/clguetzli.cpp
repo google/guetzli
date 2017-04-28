@@ -9,8 +9,6 @@ ocl_args_d_t& getOcl(void)
 	if (bInit == true) return ocl;
 
 	bInit = true;
-	SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
-
 	cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
 	if (CL_SUCCESS != err)
 	{
