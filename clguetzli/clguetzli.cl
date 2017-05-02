@@ -6,10 +6,10 @@ __kernel void MinSquareVal(__global float* pA, __global float* pC, int square_si
 	const int height = get_global_size(1);
 
 	int minH = offset > y ? 0 : y - offset;
-	int maxH = min(y + square_size - offset, height);// < height ? y + square_size - offset : height;
+	int maxH = min(y + square_size - offset, height);
 
 	int minW = offset > x ? 0 : x - offset;
-	int maxW = min(x + square_size - offset, width);// < width ? x + square_size - offset : width;
+	int maxW = min(x + square_size - offset, width);
 
 	float minValue = pA[minH * width + minW];
 

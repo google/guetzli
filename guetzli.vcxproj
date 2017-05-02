@@ -51,6 +51,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\IntelOpenCL.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -112,6 +113,19 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x64</AdditionalLibraryDirectories>
     </Link>
+    <CustomBuild>
+      <Command>"$(INTELOCLSDKROOT)bin\x64\ioc64.exe" -cmd=build -input="%(FullPath)" -output="x64\Release\%(Filename).out" -VS -device=GPU -simd=default -targetos=current            -bo="           "</Command>
+    </CustomBuild>
+    <CustomBuild>
+      <Message>OpenCL Code Builder</Message>
+    </CustomBuild>
+    <CustomBuild>
+      <LinkObjects>false</LinkObjects>
+    </CustomBuild>
+    <Intel_OpenCL_Build_Rules />
+    <PostBuildEvent>
+      <Command>copy $(ProjectDir)\clguetzli\clguetzli.cl $(ProjectDir)\clguetzli.cl</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -149,6 +163,9 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x64</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy $(ProjectDir)\clguetzli\clguetzli.cl $(ProjectDir)\clguetzli.cl</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -350,7 +367,11 @@
     <ClCompile Include="third_party\zlib\zutil.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="clguetzli\clguetzli.cl" />
+    <Intel_OpenCL_Build_Rules Include="clguetzli\clguetzli.cl">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </Command>
+    </Intel_OpenCL_Build_Rules>
     <None Include="third_party\libpng\pngwin.def" />
     <None Include="third_party\zlib\inffas32.asm" />
     <None Include="third_party\zlib\match32.asm" />
@@ -359,5 +380,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\IntelOpenCL.targets" />
   </ImportGroup>
 </Project>

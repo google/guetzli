@@ -69,7 +69,7 @@ static void Convolution(size_t xsize, size_t ysize,
 	float border_ratio,
 	float* __restrict__ result) {
 
-	if (xsize > 100 && ysize > 100)
+	if (g_useOpenCL && xsize > 100 && ysize > 100)
 	{
 		clConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
 		return;
@@ -1336,8 +1336,11 @@ void MinSquareVal(size_t square_size, size_t offset,
                   size_t xsize, size_t ysize,
                   float *values) {
 
-	clMinSquareVal(square_size, offset, xsize, ysize, values);
-	return;
+	if (g_useOpenCL)
+	{
+		clMinSquareVal(square_size, offset, xsize, ysize, values);
+		return;
+	}
 
   PROFILER_FUNC;
   // offset is not negative and smaller than square_size.

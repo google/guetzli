@@ -1,6 +1,8 @@
 #include "clguetzli.h"
 #include "ocl.h"
 
+extern bool g_useOpenCL = false;
+
 ocl_args_d_t& getOcl(void)
 {
 	static bool bInit = false;
@@ -17,7 +19,7 @@ ocl_args_d_t& getOcl(void)
 
 	char* source = nullptr;
 	size_t src_size = 0;
-	ReadSourceFromFile("clguetzli\\clguetzli.cl", &source, &src_size);
+	ReadSourceFromFile("clguetzli.cl", &source, &src_size);
 
 	ocl.program = clCreateProgramWithSource(ocl.context, 1, (const char**)&source, &src_size, &err);
 
