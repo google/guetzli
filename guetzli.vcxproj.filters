@@ -580,8 +580,10 @@
     <None Include="third_party\zlib\zlib.def">
       <Filter>third_party\zlib</Filter>
     </None>
-    <None Include="clguetzli\clguetzli.cl">
+  </ItemGroup>
+  <ItemGroup>
+    <Intel_OpenCL_Build_Rules Include="clguetzli\clguetzli.cl">
       <Filter>clguetzli</Filter>
-    </None>
+    </Intel_OpenCL_Build_Rules>
   </ItemGroup>
 </Project>

@@ -28,6 +28,7 @@
 #include "guetzli/processor.h"
 #include "guetzli/quality.h"
 #include "guetzli/stats.h"
+#include "clguetzli\clguetzli.h"
 
 namespace {
 
@@ -225,7 +226,8 @@ void Usage() {
       "                 Default value is %d.\n"
       "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
       "                 the limit. Default limit is %d MB.\n"
-      "  --nomemlimit - Do not limit memory usage.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
+      "  --nomemlimit - Do not limit memory usage.\n"
+	  "  --opencl     - Use OpenCL\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
   exit(1);
 }
 
@@ -256,7 +258,11 @@ int main(int argc, char** argv) {
       memlimit_mb = atoi(argv[opt_idx]);
     } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
       memlimit_mb = -1;
-    } else if (!strcmp(argv[opt_idx], "--")) {
+	}
+	else if (!strcmp(argv[opt_idx], "--opencl")) {
+		g_useOpenCL = true;
+	}
+	else if (!strcmp(argv[opt_idx], "--")) {
       opt_idx++;
       break;
     } else {
