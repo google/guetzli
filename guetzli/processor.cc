@@ -381,10 +381,10 @@ void Processor::ComputeBlockZeroingOrder(
   static const double kWeight[3] = { 1.0, 0.22, 0.20 };
 #include "guetzli/order.inc"
   std::vector<std::pair<int, float> > input_order;
-  for (int c = 0; c < 3; ++c) {
+  for (int c = 0; c < 3; ++c) { // TOBEREMOVE:计算输入block的input_order,非0的打分
     if (!(comp_mask & (1 << c))) continue;
     for (int k = 1; k < kDCTBlockSize; ++k) {
-      int idx = c * kDCTBlockSize + k;
+      int idx = c * kDCTBlockSize + k; // TOBEREMOVE:每个分量依次
       if (block[idx] != 0) {
         float score;
         if (params_.new_zeroing_model) {
@@ -412,7 +412,7 @@ void Processor::ComputeBlockZeroingOrder(
       coeff_t candidate_block[kBlockSize];
       memcpy(candidate_block, processed_block, sizeof(candidate_block));
       const int idx = input_order[i].first;
-      candidate_block[idx] = 0;
+      candidate_block[idx] = 0; // TOBEREMOVE:对比block的排序得分前i低的置0(i根据input_order数据变化而变化)，并先设置回对比图像的三个分量对应block中去，后续再做对比采用。
       for (int c = 0; c < 3; ++c) {
         if (comp_mask & (1 << c)) {
           img->component(c).SetCoeffBlock(
@@ -425,12 +425,12 @@ void Processor::ComputeBlockZeroingOrder(
           int block_xx = block_x * factor_x + ix;
           int block_yy = block_y * factor_y + iy;
           if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
-            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy));
+            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy)); // TOBEREMOVE:和原图的对应block比较，返回错误值
             max_err = std::max(max_err, err);
           }
         }
       }
-      if (max_err < best_err) {
+      if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
         best_err = max_err;
         best_i = i;
       }
@@ -438,7 +438,7 @@ void Processor::ComputeBlockZeroingOrder(
     int idx = input_order[best_i].first;
     processed_block[idx] = 0;
     input_order.erase(input_order.begin() + best_i);
-    output_order->push_back({idx, best_err});
+    output_order->push_back({idx, best_err}); // TOBEREMOVE:将上面计算出来的最小错误的idx，对应到对比block中的对应位置真正的置为0,移除input_order项，即选取当前值，放入output_order,并正式的设置到对比图像中去。
     for (int c = 0; c < 3; ++c) {
       if (comp_mask & (1 << c)) {
         img->component(c).SetCoeffBlock(
@@ -446,6 +446,8 @@ void Processor::ComputeBlockZeroingOrder(
       }
     }
   }
+
+  // TOBEREMOVE:最终移除err数大于error限制的项返回，并还原对比图像到原始值。
   // Make the block error values monotonic.
   float min_err = 1e10;
   for (int i = output_order->size() - 1; i >= 0; --i) {
@@ -560,7 +562,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
   candidate_coeff_errors.reserve(60 * num_blocks);
   std::vector<CoeffData> block_order;
   block_order.reserve(3 * kDCTBlockSize);
-  comparator_->StartBlockComparisons();
+  comparator_->StartBlockComparisons(); // TOBEREMOVE:初始化一些参数
   for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
     for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
       coeff_t block[kBlockSize] = { 0 };
@@ -570,25 +572,25 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
           assert(img->component(c).factor_x() == factor_x);
           assert(img->component(c).factor_y() == factor_y);
           img->component(c).GetCoeffBlock(block_x, block_y,
-                                          &block[c * kDCTBlockSize]);
+                                          &block[c * kDCTBlockSize]); // TOBEREMOVE:取出对比图像block系数
           const JPEGComponent& comp = jpg.components[c];
           int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
           memcpy(&orig_block[c * kDCTBlockSize],
                  &comp.coeffs[jpg_block_ix * kDCTBlockSize],
-                 kDCTBlockSize * sizeof(orig_block[0]));
+                 kDCTBlockSize * sizeof(orig_block[0])); // TOBEREMOVE:取出原始图像block系数
         }
       }
       block_order.clear();
       ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x,
-                               factor_y, comp_mask, img, &block_order);
+                               factor_y, comp_mask, img, &block_order); // TOBEREMOVE:传入原始block和对比图像block计算zeroing order放入block_order
       candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
-      for (size_t i = 0; i < block_order.size(); ++i) {
+      for (size_t i = 0; i < block_order.size(); ++i) { // TOBEREMOVE:把结果赋值到候选系数
         candidate_coeffs.push_back(block_order[i].idx);
         candidate_coeff_errors.push_back(block_order[i].block_err);
       }
     }
   }
-  comparator_->FinishBlockComparisons();
+  comparator_->FinishBlockComparisons(); // TOBEREMOVE:清除参数
   candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
 
   std::vector<JpegHistogram> ac_histograms(ncomp);
