@@ -69,11 +69,14 @@ static void Convolution(size_t xsize, size_t ysize,
 	float border_ratio,
 	float* __restrict__ result) {
 
+#if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
 	if (g_useOpenCL && xsize > 100 && ysize > 100)
 	{
 		clConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
 		return;
 	}
+#endif // ENABLE_OPENCL
+
 	
   PROFILER_FUNC;
   float weight_no_border = 0;
@@ -100,8 +103,8 @@ static void Convolution(size_t xsize, size_t ysize,
     }
   }
 
-  return;
 
+#ifdef ENABLE_OPENCL_CHECK
   // for verify
   std::vector<float> tmp(xsize / xstep * ysize);
   clConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, &tmp[0]);
@@ -110,9 +113,10 @@ static void Convolution(size_t xsize, size_t ysize,
   {
 	  if (fabs(result[i] - tmp[i]) > 0.0001)
 	  {
-		  tmp[i] = result[i];
+		  assert(false);
 	  }
   }
+#endif // ENABLE_OPENCL_CHECK
 }
 
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
@@ -1335,14 +1339,21 @@ double MaskDcB(double delta) {
 void MinSquareVal(size_t square_size, size_t offset,
                   size_t xsize, size_t ysize,
                   float *values) {
-
+#if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
 	if (g_useOpenCL)
 	{
 		clMinSquareVal(square_size, offset, xsize, ysize, values);
 		return;
 	}
+#endif // ENABLE_OPENCL
 
   PROFILER_FUNC;
+
+#ifdef ENABLE_OPENCL_CHECK
+  std::vector<float> backup(xsize * ysize);
+  memcpy(&backup[0], values, xsize * ysize);
+#endif
+
   // offset is not negative and smaller than square_size.
   assert(offset < square_size);
   std::vector<float> tmp(xsize * ysize);
@@ -1383,6 +1394,17 @@ void MinSquareVal(size_t square_size, size_t offset,
         *pValuePoint = min; pValuePoint += xsize;
     }
   }
+
+#ifdef ENABLE_OPENCL_CHECK
+  clMinSquareVal(square_size, offset, xsize, ysize, backup.data());
+  for (int i = 0; i < xsize * ysize; i++)
+  {
+	  if (fabs(backup[i] - values[i]) > 0.0001)
+	  {
+		  assert(false);
+	  }
+  }
+#endif
 }
 
 // ===== Functions used by Mask only =====
