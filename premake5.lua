@@ -24,6 +24,7 @@ workspace "guetzli"
 
   project "guetzli_static"
     kind "StaticLib"
+    pic "On"
     files
       {
         "guetzli/*.cc",
