@@ -138,7 +138,7 @@ void* ocl_args_d_t::allocA(size_t s)
 	lenA = s;
 
 	cl_int err = 0;
-	srcA = clCreateBuffer(this->context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, s, inputA, &err);
+	srcA = clCreateBuffer(this->context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, s, inputA, &err);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: allocA() for buffer returned %s.\n", TranslateOpenCLError(err));
@@ -159,7 +159,7 @@ void* ocl_args_d_t::allocB(size_t s)
 	lenB = s;
 
 	cl_int err = 0;
-	srcB = clCreateBuffer(this->context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, s, inputB, &err);
+	srcB = clCreateBuffer(this->context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, s, inputB, &err);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: allocB() for buffer returned %s.\n", TranslateOpenCLError(err));
@@ -180,7 +180,7 @@ void* ocl_args_d_t::allocC(size_t s)
 	lenC = s;
 	
 	cl_int err = 0;
-	dstMem = clCreateBuffer(this->context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, s, outputC, &err);
+	dstMem = clCreateBuffer(this->context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, s, outputC, &err);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: allocB() for buffer returned %s.\n", TranslateOpenCLError(err));
