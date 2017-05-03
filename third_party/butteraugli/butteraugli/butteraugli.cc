@@ -68,7 +68,7 @@ static void Convolution(size_t xsize, size_t ysize,
 	const float* __restrict__ inp,
 	float border_ratio,
 	float* __restrict__ result) {
-
+/*
 #if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
 	if (g_useOpenCL && xsize > 100 && ysize > 100)
 	{
@@ -76,7 +76,7 @@ static void Convolution(size_t xsize, size_t ysize,
 		return;
 	}
 #endif // ENABLE_OPENCL
-
+*/
 	
   PROFILER_FUNC;
   float weight_no_border = 0;
@@ -103,7 +103,7 @@ static void Convolution(size_t xsize, size_t ysize,
     }
   }
 
-
+  /*
 #ifdef ENABLE_OPENCL_CHECK
   // for verify
   std::vector<float> tmp(xsize / xstep * ysize);
@@ -117,10 +117,24 @@ static void Convolution(size_t xsize, size_t ysize,
 	  }
   }
 #endif // ENABLE_OPENCL_CHECK
+*/
 }
 
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
           double border_ratio) {
+
+#if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
+	if (g_useOpenCL && xsize > 100 && ysize > 100)
+	{
+		clBlur(xsize, ysize, channel, sigma, border_ratio);
+		return;
+	}
+#endif // ENABLE_OPENCL
+#ifdef ENABLE_OPENCL_CHECK
+	std::vector<float> tmpChannel(xsize  * ysize);
+	memcpy(tmpChannel.data(), channel, xsize * ysize * sizeof(float));
+#endif
+
   PROFILER_FUNC;
   double m = 2.25;  // Accuracy increases when m is increased.
   const double scaler = -1.0 / (2 * sigma * sigma);
@@ -156,6 +170,23 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
       }
     }
   }
+
+#ifdef ENABLE_OPENCL_CHECK
+  // for verify
+  {
+	  if (xsize < 100 || ysize < 100) return;
+
+	  clBlur(xsize, ysize, tmpChannel.data(), sigma, border_ratio);
+
+	  for (int i = 0; i < xsize * ysize; i++)
+	  {
+		  if (fabs(channel[i] - tmpChannel[i]) > 0.0001)
+		  {
+			  float k = channel[i] - tmpChannel[i];
+		  }
+	  }
+  }
+#endif // ENABLE_OPENCL_CHECK
 }
 
 // To change this to n, add the relevant FFTn function and kFFTnMapIndexTable.
