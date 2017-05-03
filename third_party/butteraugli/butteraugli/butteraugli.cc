@@ -1350,8 +1350,7 @@ void MinSquareVal(size_t square_size, size_t offset,
   PROFILER_FUNC;
 
 #ifdef ENABLE_OPENCL_CHECK
-  std::vector<float> backup(xsize * ysize);
-  memcpy(&backup[0], values, xsize * ysize);
+  std::vector<float> backup(values, values + xsize * ysize);
 #endif
 
   // offset is not negative and smaller than square_size.
