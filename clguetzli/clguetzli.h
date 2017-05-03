@@ -13,3 +13,5 @@ void clConvolution(size_t xsize, size_t ysize,
 	const float* inp,
 	float border_ratio,
 	float* result);
+
+void clBlur(size_t xsize, size_t ysize, float* channel, double sigma, double border_ratio);
