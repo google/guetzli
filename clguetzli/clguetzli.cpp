@@ -232,6 +232,7 @@ void clBlur(size_t xsize, size_t ysize, float* channel, double sigma, double bor
 		clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&ocl.srcB);
 		clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&ocl.dstMem);
 		clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clstep);
+		clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clstep);
 
 		globalWorkSize[0] = ysize;
 		globalWorkSize[1] = xsize;
@@ -274,29 +275,41 @@ void clConvolutionEx(cl_mem inp, size_t xsize, size_t ysize,
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
-		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+		LogError("Error: clConvolutionEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
 	}
 	err = clFinish(ocl.commandQueue);
 	if (CL_SUCCESS != err)
 	{
-		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+		LogError("Error: clConvolutionEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
 }
 
-// ian todo
 void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize, 
                   size_t xstep, size_t ystep, 
                   cl_mem result/*out*/)
 {
-/*
-	for (size_t y = 0; y < ysize; y++) {
-		for (size_t x = 0; x < xsize; x++) {
-			// TODO: Use correct rounding.
-			channel[y * xsize + x] =
-				downsampled_output[(y / ystep) * dxsize + (x / xstep)];
-		}
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_int clxstep = xstep;
+	cl_int clystep = ystep;
+	cl_kernel kernel = ocl.kernel[KERNEL_DOWNSAMPLE];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&ocl.srcB);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&ocl.dstMem);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clxstep);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clystep);
+
+	size_t globalWorkSize[2] = { ysize, xsize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clUpsampleEx clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
 	}
-*/
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clUpsampleEx clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
 }
 
 void clBlurEx(cl_mem image/*out, opt*/, size_t xsize, size_t ysize, 
@@ -362,12 +375,12 @@ void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, ocl_channels rgb_blurred
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
-		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+		LogError("Error: clOpsinDynamicsImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
 	}
 	err = clFinish(ocl.commandQueue);
 	if (CL_SUCCESS != err)
 	{
-		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+		LogError("Error: clOpsinDynamicsImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
 }
 
