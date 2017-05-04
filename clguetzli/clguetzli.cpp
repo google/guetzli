@@ -48,6 +48,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_DOWNSAMPLE] = clCreateKernel(ocl.program, "DownSample", &err);
 	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "OpsinDynamicsImage", &err);
 	ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "DoMask", &err);
+	ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "ScaleImage", &err);
 
 	return ocl;
 }
@@ -473,10 +474,36 @@ void clDiffPrecomputeEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_
 
 }
 
-// ian todo
 void clScaleImageEx(cl_mem img, size_t size, float w, cl_mem result/*out*/)
 {
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
 
+	cl_int clsize = size;
+	cl_float clscale = w;
+
+
+	err = clEnqueueCopyBuffer(ocl.commandQueue, img, result, 0, 0, clsize, 0, NULL, NULL);	
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clScaleImageEx() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	cl_kernel kernel = ocl.kernel[KERNEL_SCALEIMAGE];
+	clSetKernelArg(kernel, 0, sizeof(cl_int), (void*)&clscale);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&result);
+
+	size_t globalWorkSize[1] = { clsize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clScaleImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clScaleImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
 }
 
 // ian todo
