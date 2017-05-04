@@ -317,3 +317,126 @@ __kernel void OpsinDynamicsImage(__global float *r, __global float *g, __global 
     g[i] = y;
     b[i] = z;
 }
+
+
+double InterpolateClampNegative(const double *array,
+	int size, double sx) {
+	if (sx < 0) {
+		sx = 0;
+	}
+	double ix = fabs(sx);
+	int baseix = (int)(ix);
+	double res;
+	if (baseix >= size - 1) {
+		res = array[size - 1];
+	}
+	else {
+		double mix = ix - baseix;
+		int nextix = baseix + 1;
+		res = array[baseix] + mix * (array[nextix] - array[baseix]);
+	}
+	return res;
+}
+
+void MakeMask(double extmul, double extoff,
+	double mul, double offset,
+	double scaler, double *result)
+{
+	for (size_t i = 0; i < 512; ++i) {
+		const double c = mul / ((0.01 * scaler * i) + offset);
+		result[i] = 1.0 + extmul * (c + extoff);
+		result[i] *= result[i];
+	}
+}
+
+double MaskX(double delta) {
+	const double extmul = 0.975741017749;
+	const double extoff = -4.25328244168;
+	const double offset = 0.454909521427;
+	const double scaler = 0.0738288224836;
+	const double mul = 20.8029176447;
+	double lut[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut);
+	return InterpolateClampNegative(lut, 512, delta);
+}
+
+double MaskY(double delta) {
+	const double extmul = 0.373995618954;
+	const double extoff = 1.5307267433;
+	const double offset = 0.911952641929;
+	const double scaler = 1.1731667845;
+	const double mul = 16.2447033988;
+	double lut[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut);
+	return InterpolateClampNegative(lut, 512, delta);
+}
+
+double MaskB(double delta) {
+	const double extmul = 0.61582234137;
+	const double extoff = -4.25376118646;
+	const double offset = 1.05105070921;
+	const double scaler = 0.47434643535;
+	const double mul = 31.1444967089;
+	double lut[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut);
+	return InterpolateClampNegative(lut, 512, delta);
+}
+
+double MaskDcX(double delta) {
+	const double extmul = 1.79116943438;
+	const double extoff = -3.86797479189;
+	const double offset = 0.670960225853;
+	const double scaler = 0.486575865525;
+	const double mul = 20.4563479139;
+	double lut[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut);
+	return InterpolateClampNegative(lut, 512, delta);
+}
+
+double MaskDcY(double delta) {
+	const double extmul = 0.212223514236;
+	const double extoff = -3.65647120524;
+	const double offset = 1.73396799447;
+	const double scaler = 0.170392660501;
+	const double mul = 21.6566724788;
+	double lut[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut);
+	return InterpolateClampNegative(lut, 512, delta);
+}
+
+double MaskDcB(double delta) {
+	const double extmul = 0.349376011816;
+	const double extoff = -0.894711072781;
+	const double offset = 0.901647926679;
+	const double scaler = 0.380086095024;
+	const double mul = 18.0373825149;
+	double lut[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut);
+	return InterpolateClampNegative(lut, 512, delta);
+}
+
+__kernel void DoMask(__global float *mask_x, __global float *mask_y, __global float *mask_b, __global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b, int xsize, int ysize)
+{
+	const double w00 = 232.206464018;
+	const double w11 = 22.9455222245;
+	const double w22 = 503.962310606;
+
+	const int x = get_global_id(0);
+	const int y = get_global_id(1);
+
+	const size_t idx = y * xsize + x;
+	const double s0 = mask_x[idx];
+	const double s1 = mask_y[idx];
+	const double s2 = mask_b[idx];
+	const double p0 = w00 * s0;
+	const double p1 = w11 * s1;
+	const double p2 = w22 * s2;
+
+	mask_x[idx] = (float)(MaskX(p0));
+	mask_y[idx] = (float)(MaskY(p1));
+	mask_b[idx] = (float)(MaskB(p2));
+	mask_dc_x[idx] = (float)(MaskDcX(p0));
+	mask_dc_y[idx] = (float)(MaskDcY(p1));
+	mask_dc_b[idx] = (float)(MaskDcB(p2));
+
+}
