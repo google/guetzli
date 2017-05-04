@@ -319,7 +319,7 @@ void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, ocl_channels rgb_blurred
 {
 	ocl_args_d_t &ocl = getOcl();
 	cl_int clSize = size;
-	cl_kernel kernel = ocl.kernel[KERNEL_MINSQUAREVAL];
+	cl_kernel kernel = ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&rgb.r);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&rgb.g);
 	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&rgb.b);
