@@ -201,6 +201,31 @@ cl_mem ocl_args_d_t::allocMem(size_t s)
 	return mem;
 }
 
+ocl_channels ocl_args_d_t::allocMemChannels(size_t s)
+{
+	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
+	cl_int err = 0;
+
+	ocl_channels img;
+	img.r = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: allocMemR() for buffer returned %s.\n", TranslateOpenCLError(err));
+	}
+	img.g = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: allocMemG() for buffer returned %s.\n", TranslateOpenCLError(err));
+	}
+	img.b = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: allocMemB() for buffer returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	return img;
+}
+
 const char* TranslateOpenCLError(cl_int errorCode)
 {
 	switch (errorCode)
