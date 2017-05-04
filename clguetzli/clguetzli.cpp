@@ -254,13 +254,6 @@ void clConvolutionEx(cl_mem inp, size_t xsize, size_t ysize,
 
 	size_t oxsize = xsize / xstep;
 
-	ocl.allocA(sizeof(cl_float) * len);
-	ocl.allocB(sizeof(cl_float) * xsize * ysize);
-	ocl.allocC(sizeof(cl_float) * oxsize * ysize);
-
-	memcpy(ocl.inputA, multipliers, sizeof(cl_float) * len);
-	memcpy(ocl.inputB, inp, sizeof(cl_float) * xsize * ysize);
-
 	cl_int clxsize = xsize;
 	cl_int clxstep = xstep;
 	cl_int cllen = len;
