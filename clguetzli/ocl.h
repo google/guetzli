@@ -51,12 +51,17 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType);
 
 #define KERNEL_COUNT 5
 
-struct ocl_channels
+typedef union ocl_channels_t
 {
-	cl_mem r;
-	cl_mem g;
-	cl_mem b;
-};
+    struct
+    {
+        cl_mem r;
+        cl_mem g;
+        cl_mem b;
+    };
+
+    cl_mem ch[3];
+}ocl_channels;
 
 struct ocl_args_d_t
 {
@@ -69,6 +74,7 @@ struct ocl_args_d_t
 
 	cl_mem allocMem(size_t s);
 	ocl_channels allocMemChannels(size_t s);
+    void releaseMemChannels(ocl_channels rgb);
 
 	// Regular OpenCL objects:
 	cl_context       context;           // hold the context handler

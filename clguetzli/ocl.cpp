@@ -207,23 +207,24 @@ ocl_channels ocl_args_d_t::allocMemChannels(size_t s)
 	cl_int err = 0;
 
 	ocl_channels img;
-	img.r = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: allocMemR() for buffer returned %s.\n", TranslateOpenCLError(err));
-	}
-	img.g = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: allocMemG() for buffer returned %s.\n", TranslateOpenCLError(err));
-	}
-	img.b = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: allocMemB() for buffer returned %s.\n", TranslateOpenCLError(err));
-	}
+    for (int i = 0; i < 3; i++)
+    {
+        img.ch[i] = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
+        if (CL_SUCCESS != err)
+        {
+            LogError("Error: allocMemChannel(%d) for buffer returned %s.\n", i, TranslateOpenCLError(err));
+        }
+    }
 
 	return img;
+}
+
+void ocl_args_d_t::releaseMemChannels(ocl_channels rgb)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        clReleaseMemObject(rgb.ch[i]);
+    }
 }
 
 const char* TranslateOpenCLError(cl_int errorCode)

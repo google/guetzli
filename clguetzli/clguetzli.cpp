@@ -242,14 +242,20 @@ void clBlur(size_t xsize, size_t ysize, float* channel, double sigma, double bor
 		memcpy(channel, resultPtr, sizeof(cl_float) * xsize * ysize);
 	}
 }
-
-void clConvolutionEx(cl_mem image, size_t xsize, size_t ysize, cl_mem expn, size_t expn_size,
-	int step, int offset, double border_ratio, cl_mem result)
+//=========================================================
+// ian todo
+void clConvolutionEx(cl_mem image, size_t xsize, size_t ysize,
+				     cl_mem expn, size_t expn_size,
+                     int step, int offset, double border_ratio,
+                     cl_mem result/*out*/)
 {
 	// Convolution
 }
 
-void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize, size_t xstep, size_t ystep, cl_mem result)
+// ian todo
+void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize,
+                  size_t xstep, size_t ystep,
+                  cl_mem result/*out*/)
 {
 /*
 	for (size_t y = 0; y < ysize; y++) {
@@ -262,7 +268,9 @@ void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize, size_t xstep, size_t
 */
 }
 
-void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double border_ratio)
+void clBlurEx(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
+              double sigma, double border_ratio,
+              cl_mem result/*out, opt*/)
 {
 	double m = 2.25;  // Accuracy increases when m is increased.
 	const double scaler = -1.0 / (2 * sigma * sigma);
@@ -293,19 +301,20 @@ void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double bor
 
 		clConvolutionEx(image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, ocl.srcA);
 		clConvolutionEx(ocl.srcA, ysize, dxsize, mem_expn, expn_size, ystep, diff, border_ratio, ocl.srcB);
-		clUpsampleEx(ocl.srcB, dxsize, dysize, xstep, ystep, image);
+		clUpsampleEx(ocl.srcB, dxsize, dysize, xstep, ystep, result ? result : image);
 	}
 	else
 	{
 		ocl.allocA(sizeof(cl_float) * xsize * ysize);
 		clConvolutionEx(image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, ocl.srcA);
-		clConvolutionEx(ocl.srcA, ysize, dxsize, mem_expn, expn_size, ystep, diff, border_ratio, image);
+		clConvolutionEx(ocl.srcA, ysize, dxsize, mem_expn, expn_size, ystep, diff, border_ratio, result ? result : image);
 	}
 
 	clReleaseMemObject(mem_expn);
 }
 
-void clOpsinDynamicsImageEx(cl_mem r, cl_mem g, cl_mem b, size_t size)
+// ian todo
+void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, size_t size)
 {
 /*
 	for (size_t i = 0; i < rgb[0].size(); ++i) {
@@ -333,6 +342,7 @@ void clOpsinDynamicsImageEx(cl_mem r, cl_mem g, cl_mem b, size_t size)
 */
 }
 
+// strong todo
 void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b)
 {
 	static const double kSigma = 1.1;
@@ -341,41 +351,41 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	cl_mem mem_r = ocl.allocMem(channel_size);
-	cl_mem mem_g = ocl.allocMem(channel_size);
-	cl_mem mem_b = ocl.allocMem(channel_size);
+    ocl_channels rgb = ocl.allocMemChannels(channel_size);
 
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, rgb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, rgb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, rgb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
-	clBlurEx(mem_r, xsize, ysize, kSigma, 0.0);
-	clBlurEx(mem_g, xsize, ysize, kSigma, 0.0);
-	clBlurEx(mem_b, xsize, ysize, kSigma, 0.0);
+	clBlurEx(rgb.r, xsize, ysize, kSigma, 0.0);
+	clBlurEx(rgb.g, xsize, ysize, kSigma, 0.0);
+	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0);
 
-	clOpsinDynamicsImageEx(mem_r, mem_g, mem_b, xsize * ysize);
+	clOpsinDynamicsImageEx(rgb, xsize * ysize);
 
-	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
-	cl_float *result_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
-	cl_float *result_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, rgb.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	cl_float *result_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, rgb.g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	cl_float *result_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, rgb.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
 	memcpy(r, result_r, channel_size);
 	memcpy(g, result_g, channel_size);
 	memcpy(b, result_b, channel_size);
 
-	clReleaseMemObject(mem_r);
-	clReleaseMemObject(mem_g);
-	clReleaseMemObject(mem_b);
+    ocl.releaseMemChannels(rgb);
 }
 
-void clMaskHighIntensityChangeEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize)
+// ian todo
+void clMaskHighIntensityChangeEx(ocl_channels rgb/*in,out*/,
+                                 ocl_channels rgb2/*in,out*/,
+                                 size_t xsize, size_t ysize)
 {
 	// MaskHighIntensityChange
 }
 
-void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize, cl_mem result)
+// strong todo
+void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize, cl_mem result/*out*/)
 {
 	static const double kSigma[3] = { 1.5, 0.586, 0.4 };
 	clBlurEx(rgb.r,  xsize, ysize, kSigma[0], 0.0);
@@ -388,37 +398,184 @@ void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size
 	// EdgeDetectorLowFreq
 }
 
+// strong todo
 void clBlockDiffMapEx(ocl_channels rgb, ocl_channels rgb2,
 	size_t xsize, size_t ysize,
-	cl_mem block_diff_dc, cl_mem block_diff_ac)
+	cl_mem block_diff_dc/*out*/, cl_mem block_diff_ac/*out*/)
 {
 
 }
 
+// strong todo
 void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
 	size_t xsize, size_t ysize,
-	cl_mem block_diff_ac)
+	cl_mem block_diff_ac/*out*/)
+{
+	static const double kSigma = 14;
+	static const double kMul = 10;
+
+	clBlurEx(rgb.r, xsize, ysize,  kSigma, 0.0);
+	clBlurEx(rgb2.r, xsize, ysize, kSigma, 0.0);
+	clBlurEx(rgb.g, xsize, ysize,  kSigma, 0.0);
+	clBlurEx(rgb2.g, xsize, ysize, kSigma, 0.0);
+	clBlurEx(rgb.b, xsize, ysize,  kSigma, 0.0);
+	clBlurEx(rgb2.b, xsize, ysize, kSigma, 0.0);
+}
+
+// ian todo
+void clDiffPrecomputeEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize, ocl_channels mask/*out*/)
 {
 
 }
 
+// ian todo
+void clScaleImageEx(cl_mem img, size_t size, float w, cl_mem result/*out*/)
+{
+
+}
+
+// ian todo
+void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
+{
+    static const float w = 0.679144890667f;
+    static const float scale = 1.0f / (5.0f + 4 * w);
+
+    cl_mem tmp0;
+    cl_mem tmp1;
+    clScaleImageEx(img, xsize * ysize, w, tmp0);
+    clScaleImageEx(img, xsize * ysize, 1, tmp1);
+    // average5x5 calc
+
+    clScaleImageEx(img, xsize * ysize, scale, img);
+}
+
+//
+void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t square_size, size_t offset)
+{
+
+}
+
+static const double kInternalGoodQualityThreshold = 14.921561160295326;
+static const double kGlobalScale = 1.0 / kInternalGoodQualityThreshold;
+
+// ian todo
 void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
 	size_t xsize, size_t ysize,
-	ocl_channels mask, ocl_channels mask_dc)
+	ocl_channels mask/*out*/, ocl_channels mask_dc/*out*/)
+{
+    clDiffPrecomputeEx(rgb, rgb2, xsize, ysize, mask);
+    for (int i = 0; i < 3; i++)
+    {
+        clAverage5x5Ex(mask.ch[i], xsize, ysize);
+        clMinSquareValEx(mask.ch[i], xsize, ysize, 4, 0);
+
+        static const double sigma[3] = {
+            9.65781083553,
+            14.2644604355,
+            4.53358927369,
+        };
+
+        clBlurEx(mask.ch[i], xsize, ysize, sigma[i], 0.0);
+    }
+/*
+    static const double w00 = 232.206464018;
+    static const double w11 = 22.9455222245;
+    static const double w22 = 503.962310606;
+
+    mask_dc->resize(3);
+    for (int i = 0; i < 3; ++i) {
+        (*mask_dc)[i].resize(xsize * ysize);
+    }
+    for (size_t y = 0; y < ysize; ++y) {
+        for (size_t x = 0; x < xsize; ++x) {
+            const size_t idx = y * xsize + x;
+            const double s0 = (*mask)[0][idx];
+            const double s1 = (*mask)[1][idx];
+            const double s2 = (*mask)[2][idx];
+            const double p0 = w00 * s0;
+            const double p1 = w11 * s1;
+            const double p2 = w22 * s2;
+
+            (*mask)[0][idx] = static_cast<float>(MaskX(p0));
+            (*mask)[1][idx] = static_cast<float>(MaskY(p1));
+            (*mask)[2][idx] = static_cast<float>(MaskB(p2));
+            (*mask_dc)[0][idx] = static_cast<float>(MaskDcX(p0));
+            (*mask_dc)[1][idx] = static_cast<float>(MaskDcY(p1));
+            (*mask_dc)[2][idx] = static_cast<float>(MaskDcB(p2));
+        }
+    }
+*/
+    for (int i = 0; i < 3; i++)
+    {
+        clScaleImageEx(mask.ch[i], xsize * ysize, kGlobalScale * kGlobalScale, mask.ch[i]);
+        clScaleImageEx(mask_dc.ch[i], xsize * ysize, kGlobalScale * kGlobalScale, mask_dc.ch[i]);
+    }
+}
+
+// ian todo
+void clCombineChannelsEx(ocl_channels mask, ocl_channels mask_dc, cl_mem block_diff_dc, cl_mem block_diff_ac, cl_mem edge_detector_map, size_t step, cl_mem result/*out*/)
 {
 
 }
 
-void clCombineChannelsEx(ocl_channels mask, ocl_channels mask_dc, cl_mem block_diff_dc, cl_mem block_diff_ac, cl_mem edge_detector_map, cl_mem result)
+// strong todo
+void clCalculateDiffmapEx(cl_mem result/*in,out*/, size_t xsize, size_t ysize, int step)
 {
+/*
+    int s2 = (8 - step) / 2;
+    {
+        // Upsample and take square root.
+        std::vector<float> diffmap_out(xsize * ysize);
+        const size_t res_xsize = (xsize + step - 1) / step;
+        for (size_t res_y = 0; res_y + 8 - step < ysize; res_y += step) {
+            for (size_t res_x = 0; res_x + 8 - step < xsize; res_x += step) {
+                size_t res_ix = (res_y * res_xsize + res_x) / step;
+                float orig_val = (*diffmap)[res_ix];
+                constexpr float kInitialSlope = 100;
+                // TODO(b/29974893): Until that is fixed do not call sqrt on very small
+                // numbers.
+                double val = orig_val < (1.0 / (kInitialSlope * kInitialSlope))
+                    ? kInitialSlope * orig_val
+                    : std::sqrt(orig_val);
+                for (size_t off_y = 0; off_y < step; ++off_y) {
+                    for (size_t off_x = 0; off_x < step; ++off_x) {
+                        diffmap_out[(res_y + off_y + s2) * xsize +
+                            res_x + off_x + s2] = val;
+                    }
+                }
+            }
+        }
+        *diffmap = diffmap_out;
+    }
+*/
+    static const double kSigma = 8.8510880283;
+    static const double mul1 = 24.8235314874;
+    static const double scale = 1.0 / (1.0 + mul1);
+    const int s = 8 - step;
+    const int s2 = (8 - step) / 2;
 
+    cl_mem blurred;
+/*
+    for (size_t y = 0; y < ysize - s; ++y) {
+    for (size_t x = 0; x < xsize - s; ++x) {
+    blurred[y * (xsize - s) + x] = (*diffmap)[(y + s2) * xsize + x + s2];
+    }
+    }
+*/
+    static const double border_ratio = 0.03027655136;
+    clBlurEx(blurred, xsize - s, ysize - s, kSigma, border_ratio);
+/*
+    for (size_t y = 0; y < ysize - s; ++y) {
+    for (size_t x = 0; x < xsize - s; ++x) {
+    (*diffmap)[(y + s2) * xsize + x + s2]
+    += static_cast<float>(mul1) * blurred[y * (xsize - s) + x];
+    }
+    }
+*/
+    clScaleImageEx(result, xsize * ysize, scale, result);
 }
 
-void clCalculateDiffmap(cl_mem result, size_t xsize, size_t ysize, int step)
-{
-
-}
-
+// strong todo
 void clDiffmapOpsinDynamicsImage(float* r, float* g, float* b,
 								 float* r2, float* g2, float* b2,
 								 size_t xsize, size_t ysize,
@@ -440,8 +597,6 @@ void clDiffmapOpsinDynamicsImage(float* r, float* g, float* b,
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb2.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
-	clMaskHighIntensityChangeEx(xyb, xyb2, xsize, ysize);
-
 	cl_mem edge_detector_map = ocl.allocMem(3 * xsize * ysize);
 	cl_mem block_diff_dc = ocl.allocMem(3 * xsize * ysize);
 	cl_mem block_diff_ac = ocl.allocMem(3 * xsize * ysize);
@@ -451,10 +606,15 @@ void clDiffmapOpsinDynamicsImage(float* r, float* g, float* b,
 
 	cl_mem mem_result;
 
+	clMaskHighIntensityChangeEx(xyb, xyb2, xsize, ysize);
+
 	clEdgeDetectorMapEx(xyb, xyb2, xsize, ysize, edge_detector_map);
 	clBlockDiffMapEx(xyb, xyb2, xsize, ysize, block_diff_dc, block_diff_ac);
 	clEdgeDetectorLowFreqEx(xyb, xyb2, xsize, ysize, block_diff_ac);
 
+    int step = 4;
 	clMaskEx(xyb, xyb2, xsize, ysize, mask, mask_dc);
-	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, mem_result);
+	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, step, mem_result);
+
+    clCalculateDiffmapEx(mem_result, xsize, ysize, step);
 }
