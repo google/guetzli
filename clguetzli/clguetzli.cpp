@@ -47,6 +47,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "ConvolutionY", &err);
 	ocl.kernel[KERNEL_DOWNSAMPLE] = clCreateKernel(ocl.program, "DownSample", &err);
 	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "OpsinDynamicsImage", &err);
+	ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "DoMask", &err);
 
 	return ocl;
 }
@@ -530,7 +531,37 @@ void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t s
 static const double kInternalGoodQualityThreshold = 14.921561160295326;
 static const double kGlobalScale = 1.0 / kInternalGoodQualityThreshold;
 
-// ian todo
+void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, size_t xsize, size_t ysize)
+{
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_int clxsize = xsize;
+	cl_int clysize = ysize;
+
+	cl_kernel kernel = ocl.kernel[KERNEL_DOMASK];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mask.r);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mask.g);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&mask.b);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&mask_dc.r);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&mask_dc.g);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&mask_dc.b);
+	clSetKernelArg(kernel, 6, sizeof(cl_int), (void*)&clxsize);
+	clSetKernelArg(kernel, 7, sizeof(cl_int), (void*)&clysize);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clDoMask() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clDoMask() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
 void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
 	size_t xsize, size_t ysize,
 	ocl_channels mask/*out*/, ocl_channels mask_dc/*out*/)
@@ -549,34 +580,9 @@ void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
 
         clBlurEx(mask.ch[i], xsize, ysize, sigma[i], 0.0);
     }
-/*
-    static const double w00 = 232.206464018;
-    static const double w11 = 22.9455222245;
-    static const double w22 = 503.962310606;
 
-    mask_dc->resize(3);
-    for (int i = 0; i < 3; ++i) {
-        (*mask_dc)[i].resize(xsize * ysize);
-    }
-    for (size_t y = 0; y < ysize; ++y) {
-        for (size_t x = 0; x < xsize; ++x) {
-            const size_t idx = y * xsize + x;
-            const double s0 = (*mask)[0][idx];
-            const double s1 = (*mask)[1][idx];
-            const double s2 = (*mask)[2][idx];
-            const double p0 = w00 * s0;
-            const double p1 = w11 * s1;
-            const double p2 = w22 * s2;
+	clDoMask(mask, mask_dc, xsize, ysize);
 
-            (*mask)[0][idx] = static_cast<float>(MaskX(p0));
-            (*mask)[1][idx] = static_cast<float>(MaskY(p1));
-            (*mask)[2][idx] = static_cast<float>(MaskB(p2));
-            (*mask_dc)[0][idx] = static_cast<float>(MaskDcX(p0));
-            (*mask_dc)[1][idx] = static_cast<float>(MaskDcY(p1));
-            (*mask_dc)[2][idx] = static_cast<float>(MaskDcB(p2));
-        }
-    }
-*/
     for (int i = 0; i < 3; i++)
     {
         clScaleImageEx(mask.ch[i], xsize * ysize, kGlobalScale * kGlobalScale, mask.ch[i]);
@@ -673,8 +679,8 @@ void clDiffmapOpsinDynamicsImage(float* r, float* g, float* b,
 	cl_mem block_diff_dc = ocl.allocMem(3 * xsize * ysize);
 	cl_mem block_diff_ac = ocl.allocMem(3 * xsize * ysize);
 
-	ocl_channels mask;
-	ocl_channels mask_dc;
+	ocl_channels mask = ocl.allocMemChannels(channel_size);
+	ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
 	
 	cl_mem mem_result;
 
