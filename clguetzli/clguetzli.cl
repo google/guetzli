@@ -1,3 +1,11 @@
+float minfun(float a, float b)
+{
+	if (a < b)
+		return a;
+	else
+		return b;
+}
+
 __kernel void MinSquareVal(__global float* pA, __global float* pC, int square_size, int offset)
 {
 	const int x = get_global_id(0);
@@ -17,12 +25,23 @@ __kernel void MinSquareVal(__global float* pA, __global float* pC, int square_si
 	{
 		for (int i = minW; i < maxW; i++)
 		{
-			float tmp = pA[j * width + i];
-			if (tmp < minValue) minValue = tmp;
+			minValue = minfun(minValue, pA[j * width + i]);
+//			float tmp = pA[j * width + i];
+//			if (tmp < minValue) minValue = tmp;
 		}
 	}
 
 	pC[y * width + x] = minValue;
+}
+
+float calcWeight(__global float* multipliers, int len)
+{
+	float weight_no_border = 0;
+	for (int j = 0; j < len; j++)
+	{
+		weight_no_border += multipliers[j];
+	}
+	return weight_no_border;
 }
 
 __kernel void Convolution(__global float* multipliers, __global float* inp, __global float* result,
@@ -35,12 +54,14 @@ __kernel void Convolution(__global float* multipliers, __global float* inp, __gl
 	const int ysize = get_global_size(1);
 
 	const int x = ox * xstep;
-
+/*
 	float weight_no_border = 0;
 	for (int j = 0; j <= 2 * offset; j++)
 	{
 		weight_no_border += multipliers[j];
 	}
+*/
+	float weight_no_border = calcWeight(multipliers, len);
 
 	int minx = x < offset ? 0 : x - offset;
 	int maxx = min(xsize, x + len - offset);
