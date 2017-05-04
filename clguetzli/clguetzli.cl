@@ -201,7 +201,7 @@ __kernel void ConvolutionY(__global float* multipliers, __global float* inp, __g
 	result[y * xsize + x] = sum * scale;
 }
 
-__kernel void DownSample(__global float* pA, __global float* pC, int square)
+__kernel void DownSample(__global float* pA, __global float* pC, int xstep, int ystep)
 {
 	const int x = get_global_id(0);
 	const int y = get_global_id(1);
@@ -209,10 +209,10 @@ __kernel void DownSample(__global float* pA, __global float* pC, int square)
 	const int xsize = get_global_size(0);
 	const int ysize = get_global_size(1);
 
-	const int oxsize = xsize / square;
+	const int oxsize = xsize / xstep;
 
-	const int sample_x = x / square;
-	const int sample_y = y / square;
+	const int sample_x = x / xstep;
+	const int sample_y = y / ystep;
 
 	pC[y * xsize + x] = pA[sample_y * oxsize + sample_x];
 }
