@@ -43,13 +43,15 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType);
 * and make passing all these arguments in functions easier.
 */
 
-#define KERNEL_MINSQUAREVAL 0
-#define KERNEL_CONVOLUTION 1
-#define KERNEL_CONVOLUTIONX 2
-#define KERNEL_CONVOLUTIONY 3
-#define KERNEL_DOWNSAMPLE 4
-
-#define KERNEL_COUNT 5
+enum KernelName {
+	KERNEL_MINSQUAREVAL,
+	KERNEL_CONVOLUTION,
+	KERNEL_CONVOLUTIONX,
+	KERNEL_CONVOLUTIONY,
+	KERNEL_DOWNSAMPLE,
+	KERNEL_OPSINDYNAMICSIMAGE,
+	KERNEL_COUNT,
+};
 
 typedef union ocl_channels_t
 {
