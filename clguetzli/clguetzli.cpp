@@ -370,25 +370,55 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	clReleaseMemObject(mem_b);
 }
 
-void clMaskHighIntensityChangeEx(cl_mem r, cl_mem g, cl_mem b,
-								 cl_mem r2, cl_mem g2,cl_mem b2,
-								 size_t xsize, size_t ysize)
+void clMaskHighIntensityChangeEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize)
 {
 	// MaskHighIntensityChange
 }
 
-void clEdgeDetectorMap(cl_mem r, cl_mem g, cl_mem b,
-	cl_mem r2, cl_mem g2, cl_mem b2,
-	size_t xsize, size_t ysize)
+void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize, cl_mem result)
 {
 	static const double kSigma[3] = { 1.5, 0.586, 0.4 };
-	clBlurEx(r, xsize, ysize, kSigma[0], 0.0);
-	clBlurEx(r2, xsize, ysize, kSigma[0], 0.0);
-	clBlurEx(g, xsize, ysize, kSigma[1], 0.0);
-	clBlurEx(r2, xsize, ysize, kSigma[1], 0.0);
-	clBlurEx(b, xsize, ysize, kSigma[2], 0.0);
-	clBlurEx(b2, xsize, ysize, kSigma[2], 0.0);
+	clBlurEx(rgb.r,  xsize, ysize, kSigma[0], 0.0);
+	clBlurEx(rgb2.r, xsize, ysize, kSigma[0], 0.0);
+	clBlurEx(rgb.g,  xsize, ysize, kSigma[1], 0.0);
+	clBlurEx(rgb2.g, xsize, ysize, kSigma[1], 0.0);
+	clBlurEx(rgb.b,  xsize, ysize, kSigma[2], 0.0);
+	clBlurEx(rgb2.b, xsize, ysize, kSigma[2], 0.0);
+
+	// EdgeDetectorLowFreq
 }
+
+void clBlockDiffMapEx(ocl_channels rgb, ocl_channels rgb2,
+	size_t xsize, size_t ysize,
+	cl_mem block_diff_dc, cl_mem block_diff_ac)
+{
+
+}
+
+void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
+	size_t xsize, size_t ysize,
+	cl_mem block_diff_ac)
+{
+
+}
+
+void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
+	size_t xsize, size_t ysize,
+	ocl_channels mask, ocl_channels mask_dc)
+{
+
+}
+
+void clCombineChannelsEx(ocl_channels mask, ocl_channels mask_dc, cl_mem block_diff_dc, cl_mem block_diff_ac, cl_mem edge_detector_map, cl_mem result)
+{
+
+}
+
+void clCalculateDiffmap(cl_mem result, size_t xsize, size_t ysize, int step)
+{
+
+}
+
 void clDiffmapOpsinDynamicsImage(float* r, float* g, float* b,
 								 float* r2, float* g2, float* b2,
 								 size_t xsize, size_t ysize,
@@ -399,20 +429,32 @@ void clDiffmapOpsinDynamicsImage(float* r, float* g, float* b,
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	cl_mem mem_r = ocl.allocMem(channel_size);
-	cl_mem mem_g = ocl.allocMem(channel_size);
-	cl_mem mem_b = ocl.allocMem(channel_size);
-	cl_mem mem_r2 = ocl.allocMem(channel_size);
-	cl_mem mem_g2 = ocl.allocMem(channel_size);
-	cl_mem mem_b2 = ocl.allocMem(channel_size);
+	ocl_channels xyb = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb2 = ocl.allocMemChannels(channel_size);
 
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_r2, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_g2, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_b2, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb2.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb2.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb2.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
-	clMaskHighIntensityChangeEx(mem_r, mem_g, mem_b, mem_r2, mem_g2, mem_b2, xsize, ysize);
+	clMaskHighIntensityChangeEx(xyb, xyb2, xsize, ysize);
+
+	cl_mem edge_detector_map = ocl.allocMem(3 * xsize * ysize);
+	cl_mem block_diff_dc = ocl.allocMem(3 * xsize * ysize);
+	cl_mem block_diff_ac = ocl.allocMem(3 * xsize * ysize);
+
+	ocl_channels mask;
+	ocl_channels mask_dc;
+
+	cl_mem mem_result;
+
+	clEdgeDetectorMapEx(xyb, xyb2, xsize, ysize, edge_detector_map);
+	clBlockDiffMapEx(xyb, xyb2, xsize, ysize, block_diff_dc, block_diff_ac);
+	clEdgeDetectorLowFreqEx(xyb, xyb2, xsize, ysize, block_diff_ac);
+
+	clMaskEx(xyb, xyb2, xsize, ysize, mask, mask_dc);
+	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, mem_result);
 }
