@@ -440,3 +440,9 @@ __kernel void DoMask(__global float *mask_x, __global float *mask_y, __global fl
 	mask_dc_b[idx] = (float)(MaskDcB(p2));
 
 }
+
+__kernel void ScaleImage(double scale, __global float *result)
+{
+	const int i = get_global_id(0);
+	result[i] *= (float)(scale);
+}
