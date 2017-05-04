@@ -928,6 +928,24 @@ inline void ClenshawRecursion<0>(const double x, const double *coefficients,
   *b1 = x_b1 - (*b2) + coefficients[0];
 }
 
+void ClenshawRecursion_fun(const double x, const double *coefficients,
+	double *b1, double *b2, int n)
+{
+	if (n == 0) {
+		const double x_b1 = x * (*b1);
+		// The final iteration differs - no 2 * x_b1 here.
+		*b1 = x_b1 - (*b2) + coefficients[0];
+		return;
+	}
+
+	const double x_b1 = x * (*b1);
+	const double t = (x_b1 + x_b1) - (*b2) + coefficients[n];
+	*b2 = *b1;
+	*b1 = t;
+
+	ClenshawRecursion_fun(x, coefficients, b1, b2, n - 1);
+}
+
 // Rational polynomial := dividing two polynomial evaluations. These are easier
 // to find than minimax polynomials.
 struct RationalPolynomial {
@@ -936,9 +954,33 @@ struct RationalPolynomial {
                                    const double (&coefficients)[N]) {
     double b1 = 0.0;
     double b2 = 0.0;
+
     ClenshawRecursion<N - 1>(x, coefficients, &b1, &b2);
+
     return b1;
   }
+
+#ifdef ENABLE_OPENCL_CHECK
+  static double EvaluatePolynomialNonRecursion(const double x, const double *coefficients, int n) {
+	double b1 = 0.0;
+	double b2 = 0.0;
+
+	for (int i = n - 1; i >= 0; i--)
+	{
+		if (i == 0) {
+			const double x_b1 = x * b1;
+			b1 = x_b1 - b2 + coefficients[0];
+			break;
+		}
+		const double x_b1 = x * b1;
+		const double t = (x_b1 + x_b1) - b2 + coefficients[i];
+		b2 = b1;
+		b1 = t;
+	}
+
+	return b1;
+  }
+#endif // ENABLE_OPENCL_CHECK
 
   // Evaluates the polynomial at x (in [min_value, max_value]).
   inline double operator()(const float x) const {
@@ -978,6 +1020,32 @@ static inline float GammaPolynomial(float value) {
   return static_cast<float>(r(value));
 }
 
+#ifdef ENABLE_OPENCL_CHECK
+static double GammaNonRecursion(double v) {
+	double min_value = 0.770000000000000;
+	double max_value = 274.579999999999984;
+
+	double p[5 + 1] = {
+		881.979476556478289, 1496.058452015812463, 908.662212739659481,
+		373.566100223287378, 85.840860336314364, 6.683258861509244,
+	};
+	double q[5 + 1] = {
+		12.262350348616792, 20.557285797683576, 12.161463238367844,
+		4.711532733641639, 0.899112889751053, 0.035662329617191,
+	};
+
+	// First normalize to [0, 1].
+	const double x01 = (v - min_value) / (max_value - min_value);
+	// And then to [-1, 1] domain of Chebyshev polynomials.
+	const double xc = 2.0 * x01 - 1.0;
+
+	const double yp = RationalPolynomial::EvaluatePolynomialNonRecursion(xc, p, 6);
+	const double yq = RationalPolynomial::EvaluatePolynomialNonRecursion(xc, q, 6);
+	if (yq == 0.0) return 0.0;
+	return static_cast<float>(yp / yq);
+}
+#endif // ENABLE_OPENCL_CHECK
+
 static inline double Gamma(double v) {
   // return SimpleGamma(v);
   return GammaPolynomial(static_cast<float>(v));
@@ -1001,6 +1069,16 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
       sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
       sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
       sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
+
+#ifdef ENABLE_OPENCL_CHECK
+	  double sensitivity_new[3];
+	  sensitivity_new[0] = GammaNonRecursion(pre_mixed[0]) / pre_mixed[0];
+	  assert(fabs(sensitivity[0] - sensitivity_new[0]) < 0.01);
+	  sensitivity_new[1] = GammaNonRecursion(pre_mixed[1]) / pre_mixed[1];
+	  assert(fabs(sensitivity[1] - sensitivity_new[1]) < 0.01);
+	  sensitivity_new[2] = GammaNonRecursion(pre_mixed[2]) / pre_mixed[2];
+	  assert(fabs(sensitivity[2] - sensitivity_new[2]) < 0.01);
+#endif // ENABLE_OPENCL_CHECK
     }
     double cur_rgb[3] = { rgb[0][i],  rgb[1][i],  rgb[2][i] };
     double cur_mixed[3];

@@ -22,7 +22,7 @@ ocl_args_d_t& getOcl(void)
 
 	char* source = nullptr;
 	size_t src_size = 0;
-	ReadSourceFromFile("clguetzli.cl", &source, &src_size);
+	ReadSourceFromFile("clguetzli\\clguetzli.cl", &source, &src_size);
 
 	ocl.program = clCreateProgramWithSource(ocl.context, 1, (const char**)&source, &src_size, &err);
 
@@ -46,6 +46,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "ConvolutionX", &err);
 	ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "ConvolutionY", &err);
 	ocl.kernel[KERNEL_DOWNSAMPLE] = clCreateKernel(ocl.program, "DownSample", &err);
+	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "OpsinDynamicsImage", &err);
 
 	return ocl;
 }
@@ -314,32 +315,30 @@ void clBlurEx(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
 }
 
 // ian todo
-void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, size_t size)
+void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, ocl_channels rgb_blurred, size_t size)
 {
-/*
-	for (size_t i = 0; i < rgb[0].size(); ++i) {
-		double sensitivity[3];
-		{
-			// Calculate sensitivity[3] based on the smoothed image gamma derivative.
-			double pre_rgb[3] = { blurred[0][i], blurred[1][i], blurred[2][i] };
-			double pre_mixed[3];
-			OpsinAbsorbance(pre_rgb, pre_mixed);
-			sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
-			sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
-			sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
-		}
-		double cur_rgb[3] = { rgb[0][i],  rgb[1][i],  rgb[2][i] };
-		double cur_mixed[3];
-		OpsinAbsorbance(cur_rgb, cur_mixed);
-		cur_mixed[0] *= sensitivity[0];
-		cur_mixed[1] *= sensitivity[1];
-		cur_mixed[2] *= sensitivity[2];
-		double x, y, z;
-		RgbToXyb(cur_mixed[0], cur_mixed[1], cur_mixed[2], &x, &y, &z);
-		rgb[0][i] = static_cast<float>(x);
-		rgb[1][i] = static_cast<float>(y);
-		rgb[2][i] = static_cast<float>(z);
-*/
+	ocl_args_d_t &ocl = getOcl();
+	cl_int clSize = size;
+	cl_kernel kernel = ocl.kernel[KERNEL_MINSQUAREVAL];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&rgb.r);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&rgb.g);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&rgb.b);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&rgb_blurred.r);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&rgb_blurred.g);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&rgb_blurred.b);
+	clSetKernelArg(kernel, 6, sizeof(cl_int), (void*)&clSize);
+
+	size_t globalWorkSize[1] = { clSize };
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+	}
 }
 
 // strong todo
@@ -352,21 +351,26 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
     ocl_channels rgb = ocl.allocMemChannels(channel_size);
+	ocl_channels rgb_blurred = ocl.allocMemChannels(channel_size);
 
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueCopyBuffer(ocl.commandQueue, rgb.r, rgb_blurred.r, 0, 0, channel_size, 0, NULL, NULL);
+	clEnqueueCopyBuffer(ocl.commandQueue, rgb.g, rgb_blurred.g, 0, 0, channel_size, 0, NULL, NULL);
+	clEnqueueCopyBuffer(ocl.commandQueue, rgb.b, rgb_blurred.b, 0, 0, channel_size, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	clBlurEx(rgb.r, xsize, ysize, kSigma, 0.0);
 	clBlurEx(rgb.g, xsize, ysize, kSigma, 0.0);
 	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0);
 
-	clOpsinDynamicsImageEx(rgb, xsize * ysize);
+	clOpsinDynamicsImageEx(rgb, rgb_blurred, xsize * ysize);
 
 	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, rgb.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	cl_float *result_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, rgb.g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	cl_float *result_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, rgb.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+
 	err = clFinish(ocl.commandQueue);
 
 	memcpy(r, result_r, channel_size);
@@ -374,6 +378,7 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	memcpy(b, result_b, channel_size);
 
     ocl.releaseMemChannels(rgb);
+	ocl.releaseMemChannels(rgb_blurred);
 }
 
 // ian todo

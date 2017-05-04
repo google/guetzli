@@ -526,8 +526,7 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType)
 
 	// Query for all available OpenCL platforms on the system
 	// Here you enumerate all platforms and pick one which name has preferredPlatform as a sub-string
-	deviceType = CL_DEVICE_TYPE_GPU;
-	cl_platform_id platformId = FindOpenCLPlatform("", deviceType);
+	cl_platform_id platformId = FindOpenCLPlatform("Intel", deviceType);
 	if (NULL == platformId)
 	{
 		deviceType = CL_DEVICE_TYPE_CPU;
