@@ -357,7 +357,6 @@ void clBlurEx(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
 	clReleaseMemObject(mem_expn);
 }
 
-// ian todo
 void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, ocl_channels rgb_blurred, size_t size)
 {
 	ocl_args_d_t &ocl = getOcl();
@@ -494,10 +493,38 @@ void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
     clScaleImageEx(img, xsize * ysize, scale, img);
 }
 
-// ian todo
 void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t square_size, size_t offset)
 {
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
 
+	cl_int cloffset = offset;
+	cl_int clsquare_size = square_size;
+	ocl.allocA(sizeof(cl_float) * xsize * ysize);
+
+	cl_kernel kernel = ocl.kernel[KERNEL_MINSQUAREVAL];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&ocl.srcA);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clsquare_size);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&cloffset);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clMinSquareValEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	err = clEnqueueCopyBuffer(ocl.commandQueue, ocl.srcA, img, 0, 0, sizeof(cl_float) * xsize * ysize, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clMinSquareValEx() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clMinSquareValEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
 }
 
 static const double kInternalGoodQualityThreshold = 14.921561160295326;
