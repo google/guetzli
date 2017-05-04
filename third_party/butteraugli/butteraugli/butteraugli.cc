@@ -123,6 +123,7 @@ static void Convolution(size_t xsize, size_t ysize,
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
           double border_ratio) {
 
+/*
 #if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
 	if (g_useOpenCL && xsize > 100 && ysize > 100)
 	{
@@ -134,7 +135,7 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
 	std::vector<float> tmpChannel(xsize  * ysize);
 	memcpy(tmpChannel.data(), channel, xsize * ysize * sizeof(float));
 #endif
-
+*/
   PROFILER_FUNC;
   double m = 2.25;  // Accuracy increases when m is increased.
   const double scaler = -1.0 / (2 * sigma * sigma);
@@ -171,6 +172,7 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
     }
   }
 
+  /*
 #ifdef ENABLE_OPENCL_CHECK
   // for verify
   {
@@ -187,6 +189,7 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
 	  }
   }
 #endif // ENABLE_OPENCL_CHECK
+*/
 }
 
 // To change this to n, add the relevant FFTn function and kFFTnMapIndexTable.
@@ -1053,6 +1056,17 @@ static inline double Gamma(double v) {
 
 void OpsinDynamicsImage(size_t xsize, size_t ysize,
                         std::vector<std::vector<float> > &rgb) {
+
+    if (g_useOpenCL && xsize > 100 && ysize > 100)
+    {
+        float * r = rgb[0].data();
+        float * g = rgb[1].data();
+        float * b = rgb[2].data();
+
+        clOpsinDynamicsImage(xsize, ysize, r, g, b);
+        return;
+    }
+
   PROFILER_FUNC;
   std::vector<std::vector<float> > blurred = rgb;
   static const double kSigma = 1.1;
@@ -1448,6 +1462,7 @@ double MaskDcB(double delta) {
 void MinSquareVal(size_t square_size, size_t offset,
                   size_t xsize, size_t ysize,
                   float *values) {
+/*
 #if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
 	if (g_useOpenCL)
 	{
@@ -1461,7 +1476,7 @@ void MinSquareVal(size_t square_size, size_t offset,
 #ifdef ENABLE_OPENCL_CHECK
   std::vector<float> backup(values, values + xsize * ysize);
 #endif
-
+*/
   // offset is not negative and smaller than square_size.
   assert(offset < square_size);
   std::vector<float> tmp(xsize * ysize);
@@ -1502,7 +1517,7 @@ void MinSquareVal(size_t square_size, size_t offset,
         *pValuePoint = min; pValuePoint += xsize;
     }
   }
-
+/*
 #ifdef ENABLE_OPENCL_CHECK
   clMinSquareVal(square_size, offset, xsize, ysize, backup.data());
   for (int i = 0; i < xsize * ysize; i++)
@@ -1513,6 +1528,7 @@ void MinSquareVal(size_t square_size, size_t offset,
 	  }
   }
 #endif
+*/
 }
 
 // ===== Functions used by Mask only =====

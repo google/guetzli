@@ -17,3 +17,5 @@ void clConvolution(size_t xsize, size_t ysize,
 	float* result);
 
 void clBlur(size_t xsize, size_t ysize, float* channel, double sigma, double border_ratio);
+
+void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b);
