@@ -356,14 +356,11 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	clEnqueueCopyBuffer(ocl.commandQueue, rgb.r, rgb_blurred.r, 0, 0, channel_size, 0, NULL, NULL);
-	clEnqueueCopyBuffer(ocl.commandQueue, rgb.g, rgb_blurred.g, 0, 0, channel_size, 0, NULL, NULL);
-	clEnqueueCopyBuffer(ocl.commandQueue, rgb.b, rgb_blurred.b, 0, 0, channel_size, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
-	clBlurEx(rgb.r, xsize, ysize, kSigma, 0.0);
-	clBlurEx(rgb.g, xsize, ysize, kSigma, 0.0);
-	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0);
+	clBlurEx(rgb.r, xsize, ysize, kSigma, 0.0, rgb_blurred.r);
+	clBlurEx(rgb.g, xsize, ysize, kSigma, 0.0, rgb_blurred.g);
+	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0, rgb_blurred.b);
 
 	clOpsinDynamicsImageEx(rgb, rgb_blurred, xsize * ysize);
 
@@ -454,7 +451,7 @@ void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
     clScaleImageEx(img, xsize * ysize, scale, img);
 }
 
-//
+// ian todo
 void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t square_size, size_t offset)
 {
 

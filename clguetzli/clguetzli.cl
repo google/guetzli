@@ -1,11 +1,3 @@
-float minfun(float a, float b)
-{
-	if (a < b)
-		return a;
-	else
-		return b;
-}
-
 __kernel void MinSquareVal(__global float* pA, __global float* pC, int square_size, int offset)
 {
 	const int x = get_global_id(0);
@@ -25,9 +17,8 @@ __kernel void MinSquareVal(__global float* pA, __global float* pC, int square_si
 	{
 		for (int i = minW; i < maxW; i++)
 		{
-			minValue = minfun(minValue, pA[j * width + i]);
-//			float tmp = pA[j * width + i];
-//			if (tmp < minValue) minValue = tmp;
+			float tmp = pA[j * width + i];
+			if (tmp < minValue) minValue = tmp;
 		}
 	}
 
@@ -274,11 +265,11 @@ float Gamma(double v)
 	double min_value = 0.770000000000000;
 	double max_value = 274.579999999999984;
 
-	static const double p[5 + 1] = {
+	/*static*/ const double p[5 + 1] = {
 		881.979476556478289, 1496.058452015812463, 908.662212739659481,
 		373.566100223287378, 85.840860336314364, 6.683258861509244,
 	};
-	static const double q[5 + 1] = {
+	/*static*/ const double q[5 + 1] = {
 		12.262350348616792, 20.557285797683576, 12.161463238367844,
 		4.711532733641639, 0.899112889751053, 0.035662329617191,
 	};
@@ -294,10 +285,10 @@ float Gamma(double v)
 
 void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *valz)
 {
-	static const double a0 = 1.01611726948;
-	static const double a1 = 0.982482243696;
-	static const double a2 = 1.43571362627;
-	static const double a3 = 0.896039849412;
+	/*static*/ const double a0 = 1.01611726948;
+	/*static*/ const double a1 = 0.982482243696;
+	/*static*/ const double a2 = 1.43571362627;
+	/*static*/ const double a3 = 0.896039849412;
 	*valx = a0 * r - a1 * g;
 	*valy = a2 * r + a3 * g;
 	*valz = b;
