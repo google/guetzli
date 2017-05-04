@@ -189,6 +189,18 @@ void* ocl_args_d_t::allocC(size_t s)
 	return outputC;
 }
 
+cl_mem ocl_args_d_t::allocMem(size_t s)
+{
+	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
+	cl_int err = 0;
+	cl_mem mem = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: allocMem() for buffer returned %s.\n", TranslateOpenCLError(err));
+	}
+	return mem;
+}
+
 const char* TranslateOpenCLError(cl_int errorCode)
 {
 	switch (errorCode)

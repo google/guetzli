@@ -242,3 +242,177 @@ void clBlur(size_t xsize, size_t ysize, float* channel, double sigma, double bor
 		memcpy(channel, resultPtr, sizeof(cl_float) * xsize * ysize);
 	}
 }
+
+void clConvolutionEx(cl_mem image, size_t xsize, size_t ysize, cl_mem expn, size_t expn_size, 
+	int step, int offset, double border_ratio, cl_mem result)
+{
+	// Convolution
+}
+
+void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize, size_t xstep, size_t ystep, cl_mem result)
+{
+/*
+	for (size_t y = 0; y < ysize; y++) {
+		for (size_t x = 0; x < xsize; x++) {
+			// TODO: Use correct rounding.
+			channel[y * xsize + x] =
+				downsampled_output[(y / ystep) * dxsize + (x / xstep)];
+		}
+	}
+*/
+}
+
+void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double border_ratio)
+{
+	double m = 2.25;  // Accuracy increases when m is increased.
+	const double scaler = -1.0 / (2 * sigma * sigma);
+	// For m = 9.0: exp(-scaler * diff * diff) < 2^ {-52}
+	const int diff = std::max<int>(1, m * fabs(sigma));
+	const int expn_size = 2 * diff + 1;
+	std::vector<float> expn(expn_size);
+	for (int i = -diff; i <= diff; ++i) {
+		expn[i + diff] = static_cast<float>(exp(scaler * i * i));
+	}
+
+	const int xstep = std::max<int>(1, int(sigma / 3));
+	const int ystep = xstep;
+	int dxsize = (xsize + xstep - 1) / xstep;
+	int dysize = (ysize + ystep - 1) / ystep;
+
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	cl_mem mem_expn = ocl.allocMem(sizeof(cl_float) * expn_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_expn, CL_FALSE, 0, sizeof(cl_float) * expn_size, expn.data(), 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	if (xstep > 1)
+	{
+		ocl.allocA(sizeof(cl_float) * dxsize * ysize);
+		ocl.allocB(sizeof(cl_float) * dxsize * dysize);
+
+		clConvolutionEx(image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, ocl.srcA);
+		clConvolutionEx(ocl.srcA, ysize, dxsize, mem_expn, expn_size, ystep, diff, border_ratio, ocl.srcB);
+		clUpsampleEx(ocl.srcB, dxsize, dysize, xstep, ystep, image);
+	}
+	else
+	{
+		ocl.allocA(sizeof(cl_float) * xsize * ysize);
+		clConvolutionEx(image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, ocl.srcA);
+		clConvolutionEx(ocl.srcA, ysize, dxsize, mem_expn, expn_size, ystep, diff, border_ratio, image);
+	}
+
+	clReleaseMemObject(mem_expn);
+}
+
+void clOpsinDynamicsImageEx(cl_mem r, cl_mem g, cl_mem b, size_t size)
+{
+/*
+	for (size_t i = 0; i < rgb[0].size(); ++i) {
+		double sensitivity[3];
+		{
+			// Calculate sensitivity[3] based on the smoothed image gamma derivative.
+			double pre_rgb[3] = { blurred[0][i], blurred[1][i], blurred[2][i] };
+			double pre_mixed[3];
+			OpsinAbsorbance(pre_rgb, pre_mixed);
+			sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
+			sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
+			sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
+		}
+		double cur_rgb[3] = { rgb[0][i],  rgb[1][i],  rgb[2][i] };
+		double cur_mixed[3];
+		OpsinAbsorbance(cur_rgb, cur_mixed);
+		cur_mixed[0] *= sensitivity[0];
+		cur_mixed[1] *= sensitivity[1];
+		cur_mixed[2] *= sensitivity[2];
+		double x, y, z;
+		RgbToXyb(cur_mixed[0], cur_mixed[1], cur_mixed[2], &x, &y, &z);
+		rgb[0][i] = static_cast<float>(x);
+		rgb[1][i] = static_cast<float>(y);
+		rgb[2][i] = static_cast<float>(z);
+*/
+}
+
+void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b)
+{
+	static const double kSigma = 1.1;
+
+	cl_int channel_size = xsize * ysize * sizeof(float);
+	
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	cl_mem mem_r = ocl.allocMem(channel_size);
+	cl_mem mem_g = ocl.allocMem(channel_size);
+	cl_mem mem_b = ocl.allocMem(channel_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clBlurEx(mem_r, xsize, ysize, kSigma, 0.0);
+	clBlurEx(mem_g, xsize, ysize, kSigma, 0.0);
+	clBlurEx(mem_b, xsize, ysize, kSigma, 0.0);
+
+	clOpsinDynamicsImageEx(mem_r, mem_g, mem_b, xsize * ysize);
+
+	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	cl_float *result_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	cl_float *result_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
+
+	memcpy(r, result_r, channel_size);
+	memcpy(g, result_g, channel_size);
+	memcpy(b, result_b, channel_size);
+
+	clReleaseMemObject(mem_r);
+	clReleaseMemObject(mem_g);
+	clReleaseMemObject(mem_b);
+}
+
+void clMaskHighIntensityChangeEx(cl_mem r, cl_mem g, cl_mem b, 
+								 cl_mem r2, cl_mem g2,cl_mem b2, 
+								 size_t xsize, size_t ysize)
+{
+	// MaskHighIntensityChange
+}
+
+void clEdgeDetectorMap(cl_mem r, cl_mem g, cl_mem b,
+	cl_mem r2, cl_mem g2, cl_mem b2,
+	size_t xsize, size_t ysize)
+{
+	static const double kSigma[3] = { 1.5, 0.586, 0.4 };
+	clBlurEx(r, xsize, ysize, kSigma[0], 0.0);
+	clBlurEx(r2, xsize, ysize, kSigma[0], 0.0);
+	clBlurEx(g, xsize, ysize, kSigma[1], 0.0);
+	clBlurEx(r2, xsize, ysize, kSigma[1], 0.0);
+	clBlurEx(b, xsize, ysize, kSigma[2], 0.0);
+	clBlurEx(b2, xsize, ysize, kSigma[2], 0.0);
+}
+void clDiffmapOpsinDynamicsImage(float* r, float* g, float* b, 
+								 float* r2, float* g2, float* b2, 
+								 size_t xsize, size_t ysize,
+								 float* result)
+{
+
+	cl_int channel_size = xsize * ysize * sizeof(float);
+
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	cl_mem mem_r = ocl.allocMem(channel_size);
+	cl_mem mem_g = ocl.allocMem(channel_size);
+	cl_mem mem_b = ocl.allocMem(channel_size);
+	cl_mem mem_r2 = ocl.allocMem(channel_size);
+	cl_mem mem_g2 = ocl.allocMem(channel_size);
+	cl_mem mem_b2 = ocl.allocMem(channel_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_r2, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_g2, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_b2, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clMaskHighIntensityChangeEx(mem_r, mem_g, mem_b, mem_r2, mem_g2, mem_b2, xsize, ysize);
+}

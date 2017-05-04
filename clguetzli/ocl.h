@@ -60,6 +60,8 @@ struct ocl_args_d_t
 	void* allocB(size_t s);
 	void* allocC(size_t s);
 
+	cl_mem allocMem(size_t s);
+
 	// Regular OpenCL objects:
 	cl_context       context;           // hold the context handler
 	cl_device_id     device;            // hold the selected device handler
