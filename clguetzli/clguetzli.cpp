@@ -243,14 +243,51 @@ void clBlur(size_t xsize, size_t ysize, float* channel, double sigma, double bor
 		memcpy(channel, resultPtr, sizeof(cl_float) * xsize * ysize);
 	}
 }
-//=========================================================
-// ian todo
-void clConvolutionEx(cl_mem image, size_t xsize, size_t ysize, 
-				     cl_mem expn, size_t expn_size, 
-                     int step, int offset, double border_ratio, 
+
+void clConvolutionEx(cl_mem inp, size_t xsize, size_t ysize,
+				     cl_mem multipliers, size_t len,
+                     int xstep, int offset, double border_ratio, 
                      cl_mem result/*out*/)
 {
-	// Convolution
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	size_t oxsize = xsize / xstep;
+
+	ocl.allocA(sizeof(cl_float) * len);
+	ocl.allocB(sizeof(cl_float) * xsize * ysize);
+	ocl.allocC(sizeof(cl_float) * oxsize * ysize);
+
+	memcpy(ocl.inputA, multipliers, sizeof(cl_float) * len);
+	memcpy(ocl.inputB, inp, sizeof(cl_float) * xsize * ysize);
+
+	cl_int clxsize = xsize;
+	cl_int clxstep = xstep;
+	cl_int cllen = len;
+	cl_int cloffset = offset;
+	cl_float clborder_ratio = border_ratio;
+
+	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTION];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&multipliers);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clxsize);
+	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&clxstep);
+	clSetKernelArg(kernel, 5, sizeof(cl_int), (void*)&cllen);
+	clSetKernelArg(kernel, 6, sizeof(cl_int), (void*)&cloffset);
+	clSetKernelArg(kernel, 7, sizeof(cl_float), (void*)&clborder_ratio);
+
+	size_t globalWorkSize[2] = { oxsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+	}
 }
 
 // ian todo
