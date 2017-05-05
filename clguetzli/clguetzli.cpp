@@ -545,12 +545,12 @@ void clDiffPrecomputeEx(ocl_channels xyb0, ocl_channels xyb1, size_t xsize, size
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
-		LogError("Error: clScaleImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+		LogError("Error: clDiffPrecomputeEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
 	}
 	err = clFinish(ocl.commandQueue);
 	if (CL_SUCCESS != err)
 	{
-		LogError("Error: clScaleImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+		LogError("Error: clDiffPrecomputeEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
 }
 
