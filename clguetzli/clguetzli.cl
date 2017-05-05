@@ -302,7 +302,10 @@ void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *
 	*valz = b;
 }
 
-__kernel void OpsinDynamicsImage(__global float *r, __global float *g, __global float *b, __global float *r_blurred, __global float *g_blurred, __global float *b_blurred, int size)
+__kernel void OpsinDynamicsImage(
+	__global float *r, __global float *g, __global float *b,
+	__global float *r_blurred, __global float *g_blurred, __global float *b_blurred,
+	int size)
 {
 	const int i = get_global_id(0);
 	double pre[3] = { r_blurred[i], g_blurred[i],  b_blurred[i] };
@@ -423,7 +426,10 @@ double MaskDcB(double delta) {
 	return InterpolateClampNegative(lut, 512, delta);
 }
 
-__kernel void DoMask(__global float *mask_x, __global float *mask_y, __global float *mask_b, __global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b, int xsize, int ysize)
+__kernel void DoMask(
+	__global float *mask_x, __global float *mask_y, __global float *mask_b,
+	__global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b,
+	int xsize, int ysize)
 {
 	const double w00 = 232.206464018;
 	const double w11 = 22.9455222245;
@@ -453,4 +459,171 @@ __kernel void ScaleImage(double scale, __global float *result)
 {
 	const int i = get_global_id(0);
 	result[i] *= (float)(scale);
+}
+
+double DotProduct(float u[3], double v[3]) {
+  return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+}
+
+__kernel void CombineChannels(
+	__global float *mask_x, __global float *mask_y, __global float *mask_b,
+	__global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b,
+	__global float *block_diff_dc,
+	__global float *block_diff_ac,
+	__global float *edge_detector_map,
+	int xsize, int ysize,
+	int step,
+	int res_xsize,
+	__global float *result)
+{
+	const int res_x = get_global_id(0);
+	const int res_y = get_global_id(1);
+
+	if (res_x * step >= xsize - (8 - step)) return;
+	if (res_y * step >= ysize - (8 - step)) return;
+
+	double mask[3];
+	double dc_mask[3];
+	mask[0] = mask_x[(res_y + 3) * xsize + (res_x + 3)];
+	dc_mask[0] = mask_dc_x[(res_y + 3) * xsize + (res_x + 3)];
+
+	mask[1] = mask_y[(res_y + 3) * xsize + (res_x + 3)];
+	dc_mask[1] = mask_dc_y[(res_y + 3) * xsize + (res_x + 3)];
+
+	mask[1] = mask_b[(res_y + 3) * xsize + (res_x + 3)];
+	dc_mask[1] = mask_dc_b[(res_y + 3) * xsize + (res_x + 3)];
+
+	size_t res_ix = (res_y * res_xsize + res_x) / step;
+	result[res_ix] = (float)(
+		DotProduct((float *)&block_diff_dc[3 * res_ix], dc_mask) +
+		DotProduct((float *)&block_diff_ac[3 * res_ix], mask) +
+		DotProduct((float *)&edge_detector_map[3 * res_ix], mask));
+}
+
+inline double Interpolate(const double *array, int size, double sx) {
+	double ix = fabs(sx);
+
+	int baseix = static_cast<int>(ix);
+	double res;
+	if (baseix >= size - 1) {
+		res = array[size - 1];
+	}
+	else {
+		double mix = ix - baseix;
+		int nextix = baseix + 1;
+		res = array[baseix] + mix * (array[nextix] - array[baseix]);
+	}
+	if (sx < 0) res = -res;
+	return res;
+}
+
+std::array<double, 21> MakeLowFreqColorDiffDy() {
+	std::array<double, 21> lut;
+	static const double inc = 5.2511644570349185;
+	lut[0] = 0.0;
+	for (int i = 1; i < 21; ++i) {
+		lut[i] = lut[i - 1] + inc;
+	}
+	return lut;
+}
+
+const double *GetLowFreqColorDiffDy() {
+	static const std::array<double, 21> kLut = MakeLowFreqColorDiffDy();
+	return kLut.data();
+}
+
+void XybLowFreqToVals(double x, double y, double z,
+	double *valx, double *valy, double *valz) {
+	static const double xmul = 6.64482198135;
+	static const double ymul = 0.837846224276;
+	static const double zmul = 7.34905756986;
+	static const double y_to_z_mul = 0.0812519812628;
+	z += y_to_z_mul * y;
+	*valz = z * zmul;
+	*valx = x * xmul;
+	*valy = Interpolate(GetLowFreqColorDiffDy(), 21, y * ymul);
+}
+
+void XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
+	double r1, double g1, double b1,
+	double factor, double res[3]) {
+	double valx0, valy0, valz0;
+	double valx1, valy1, valz1;
+	XybLowFreqToVals(r0, g0, b0, &valx0, &valy0, &valz0);
+	if (r1 == 0.0 && g1 == 0.0 && b1 == 0.0) {
+		PROFILER_ZONE("XybDiff r1=g1=b1=0");
+		res[0] += factor * valx0 * valx0;
+		res[1] += factor * valy0 * valy0;
+		res[2] += factor * valz0 * valz0;
+		return;
+	}
+	XybLowFreqToVals(r1, g1, b1, &valx1, &valy1, &valz1);
+	// Approximate the distance of the colors by their respective distances
+	// to gray.
+	double valx = valx0 - valx1;
+	double valy = valy0 - valy1;
+	double valz = valz0 - valz1;
+	res[0] += factor * valx * valx;
+	res[1] += factor * valy * valy;
+	res[2] += factor * valz * valz;
+}
+
+__kernel void edgeDetectorMap(__global float *result, __global float *r, __global float *g, __global float* b, __global float *r2, __global float* g2, __global float *b2, int xsize, int ysize, int step)
+{
+	const int result_x = get_global_id(0);
+	const int result_y = get_global_id(1);
+
+	const int result_xsize = get_global_size(0);
+	const int result_ysize = get_global_size(1);
+
+	int pos_x = result_x * step;
+	int pos_y = result_y * step;
+
+	int local_count = 0;
+	double local_xyb[3] = { 0 };
+	const double w = 0.711100840192;
+
+	int offset[4][2] = { { 0£¬0}£¬ { 0£¬7}£¬{ 7£¬0}£¬{ 7£¬7} };
+	int edgeSize = 3;
+
+	for (int k = 0; i < 4; k++)
+	{
+		int x = pos_x + offset[k][0];
+		int y = pos_y + offset[k][1];
+
+		if (x >= edgeSize && x + edgeSize < xsize) {
+			size_t ix = y * xsize + (x - edgeSize);
+			size_t ix2 = ix + 2 * edgeSize;
+			XybDiffLowFreqSquaredAccumulate(
+				w * (r[ix] - r[ix2]),
+				w * (g[ix] - g[ix2]),
+				w * (b[ix] - b[ix2]),
+				w * (r2[ix] - r2[ix2]),
+				w * (g2[ix] - g2[ix2]),
+				w * (b2[ix] - b2[ix2]),
+				1.0, local_xyb);
+			++local_count;
+		}
+		if (y >= edgeSize && y + edgeSize < ysize) {
+			size_t ix = (y - edgeSize) * xsize + x;
+			size_t ix2 = ix + 2 * edgeSize * xsize;
+			XybDiffLowFreqSquaredAccumulate(
+				w * (r[ix] - r[ix2]),
+				w * (g[ix] - g[ix2]),
+				w * (b[ix] - b[ix2]),
+				w * (r2[ix] - r2[ix2]),
+				w * (g2[ix] - g2[ix2]),
+				w * (b2[ix] - b2[ix2]),
+				1.0, local_xyb);
+			++local_count;
+		}
+	}
+
+	static const double weight = 0.01617112696;
+	const double mul = weight * 8.0 / local_count;
+
+	int idx = (result_y * result_xsize + result_x) * 3;
+	result[idx]     = local_xyb[0];
+	result[idx + 1] = local_xyb[1];
+	result[idx + 2] = local_xyb[2];
 }

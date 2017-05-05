@@ -19,3 +19,9 @@ void clConvolution(size_t xsize, size_t ysize,
 void clBlur(size_t xsize, size_t ysize, float* channel, double sigma, double border_ratio);
 
 void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b);
+
+void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
+	float* r2, float* g2, float* b2,
+	size_t xsize, size_t ysize,
+	size_t step,
+	float* result);
