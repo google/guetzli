@@ -22,7 +22,7 @@ ocl_args_d_t& getOcl(void)
 
 	char* source = nullptr;
 	size_t src_size = 0;
-	ReadSourceFromFile("clguetzli.cl", &source, &src_size);
+	ReadSourceFromFile("clguetzli\\clguetzli.cl", &source, &src_size);
 
 	ocl.program = clCreateProgramWithSource(ocl.context, 1, (const char**)&source, &src_size, &err);
 
@@ -62,6 +62,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "ScaleImage", &err);
 	ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "CombineChannels", &err);
 	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "MaskHighIntensityChange", &err);
+	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "DiffPrecompute", &err);
 
 	return ocl;
 }
@@ -447,12 +448,15 @@ void clMaskHighIntensityChangeEx(ocl_channels xyb0_arg/*in,out*/,
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0_arg.r);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0_arg.g);
 	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&xyb0_arg.b);
-	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&c0.r);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&c0.g);
-	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&c0.b);
-	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&c1.r);
-	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&c1.g);
-	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&c1.b);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb1.r);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb1.g);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&xyb1.b);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&c0.r);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&c0.g);
+	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&c0.b);
+	clSetKernelArg(kernel, 9, sizeof(cl_mem), (void*)&c1.r);
+	clSetKernelArg(kernel, 10, sizeof(cl_mem), (void*)&c1.g);
+	clSetKernelArg(kernel, 11, sizeof(cl_mem), (void*)&c1.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -521,10 +525,33 @@ void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
 	}
 }
 
-// ian todo
-void clDiffPrecomputeEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize, ocl_channels mask/*out*/)
+void clDiffPrecomputeEx(ocl_channels xyb0, ocl_channels xyb1, size_t xsize, size_t ysize, ocl_channels mask/*out*/)
 {
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
 
+	cl_kernel kernel = ocl.kernel[KERNEL_DIFFPRECOMPUTE];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.r);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0.g);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&xyb0.b);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb1.r);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb1.g);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&xyb1.b);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&mask.r);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&mask.g);
+	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&mask.b);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clScaleImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clScaleImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
 }
 
 void clScaleImageEx(cl_mem img/*in, out*/, size_t size, float w)
