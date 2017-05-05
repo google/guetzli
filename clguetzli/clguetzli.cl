@@ -302,7 +302,10 @@ void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *
 	*valz = b;
 }
 
-__kernel void OpsinDynamicsImage(__global float *r, __global float *g, __global float *b, __global float *r_blurred, __global float *g_blurred, __global float *b_blurred, int size)
+__kernel void OpsinDynamicsImage(
+	__global float *r, __global float *g, __global float *b, 
+	__global float *r_blurred, __global float *g_blurred, __global float *b_blurred, 
+	int size)
 { 
 	const int i = get_global_id(0);
 	double pre[3] = { r_blurred[i], g_blurred[i],  b_blurred[i] };
@@ -423,7 +426,10 @@ double MaskDcB(double delta) {
 	return InterpolateClampNegative(lut, 512, delta);
 }
 
-__kernel void DoMask(__global float *mask_x, __global float *mask_y, __global float *mask_b, __global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b, int xsize, int ysize)
+__kernel void DoMask(
+	__global float *mask_x, __global float *mask_y, __global float *mask_b, 
+	__global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b, 
+	int xsize, int ysize)
 {
 	const double w00 = 232.206464018;
 	const double w11 = 22.9455222245;
@@ -453,6 +459,45 @@ __kernel void ScaleImage(double scale, __global float *result)
 {
 	const int i = get_global_id(0);
 	result[i] *= (float)(scale);
+}
+
+double DotProduct(float u[3], double v[3]) {
+  return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+}
+
+__kernel void CombineChannels(
+	__global float *mask_x, __global float *mask_y, __global float *mask_b, 
+	__global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b, 
+	__global float *block_diff_dc,
+	__global float *block_diff_ac,
+	__global float *edge_detector_map,
+	int xsize, int ysize, 
+	int step, 
+	int res_xsize,
+	__global float *result)
+{
+	const int res_x = get_global_id(0);
+	const int res_y = get_global_id(1);
+
+	if (res_x * step >= xsize - (8 - step)) return;
+	if (res_y * step >= ysize - (8 - step)) return;
+
+	double mask[3];
+	double dc_mask[3];
+	mask[0] = mask_x[(res_y + 3) * xsize + (res_x + 3)];
+	dc_mask[0] = mask_dc_x[(res_y + 3) * xsize + (res_x + 3)];
+
+	mask[1] = mask_y[(res_y + 3) * xsize + (res_x + 3)];
+	dc_mask[1] = mask_dc_y[(res_y + 3) * xsize + (res_x + 3)];
+
+	mask[1] = mask_b[(res_y + 3) * xsize + (res_x + 3)];
+	dc_mask[1] = mask_dc_b[(res_y + 3) * xsize + (res_x + 3)];
+
+	size_t res_ix = (res_y * res_xsize + res_x) / step;
+	result[res_ix] = (float)(
+		DotProduct((float *)&block_diff_dc[3 * res_ix], dc_mask) +
+		DotProduct((float *)&block_diff_ac[3 * res_ix], mask) +
+		DotProduct((float *)&edge_detector_map[3 * res_ix], mask));
 }
 
 inline double Interpolate(const double *array, int size, double sx) {
