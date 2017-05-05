@@ -503,7 +503,7 @@ __kernel void CombineChannels(
 inline double Interpolate(const double *array, int size, double sx) {
 	double ix = fabs(sx);
 
-	int baseix = static_cast<int>(ix);
+	int baseix = (int)(ix);
 	double res;
 	if (baseix >= size - 1) {
 		res = array[size - 1];
@@ -517,6 +517,7 @@ inline double Interpolate(const double *array, int size, double sx) {
 	return res;
 }
 
+/*
 std::array<double, 21> MakeLowFreqColorDiffDy() {
 	std::array<double, 21> lut;
 	static const double inc = 5.2511644570349185;
@@ -531,6 +532,7 @@ const double *GetLowFreqColorDiffDy() {
 	static const std::array<double, 21> kLut = MakeLowFreqColorDiffDy();
 	return kLut.data();
 }
+*/
 
 void XybLowFreqToVals(double x, double y, double z,
 	double *valx, double *valy, double *valz) {
@@ -541,7 +543,7 @@ void XybLowFreqToVals(double x, double y, double z,
 	z += y_to_z_mul * y;
 	*valz = z * zmul;
 	*valx = x * xmul;
-	*valy = Interpolate(GetLowFreqColorDiffDy(), 21, y * ymul);
+	//*valy = Interpolate(GetLowFreqColorDiffDy(), 21, y * ymul);
 }
 
 void XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
@@ -551,7 +553,7 @@ void XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
 	double valx1, valy1, valz1;
 	XybLowFreqToVals(r0, g0, b0, &valx0, &valy0, &valz0);
 	if (r1 == 0.0 && g1 == 0.0 && b1 == 0.0) {
-		PROFILER_ZONE("XybDiff r1=g1=b1=0");
+		//PROFILER_ZONE("XybDiff r1=g1=b1=0");
 		res[0] += factor * valx0 * valx0;
 		res[1] += factor * valy0 * valy0;
 		res[2] += factor * valz0 * valz0;
@@ -583,9 +585,10 @@ __kernel void edgeDetectorMap(__global float *result, __global float *r, __globa
 	double local_xyb[3] = { 0 };
 	const double w = 0.711100840192;
 
-	int offset[4][2] = { { 0£¬0}£¬ { 0£¬7}£¬{ 7£¬0}£¬{ 7£¬7} };
+	//int offset[4][2] = { { 0£¬0}£¬ { 0£¬7}£¬{ 7£¬0}£¬{ 7£¬7} };
 	int edgeSize = 3;
 
+	/*
 	for (int k = 0; i < 4; k++)
 	{
 		int x = pos_x + offset[k][0];
@@ -618,6 +621,7 @@ __kernel void edgeDetectorMap(__global float *result, __global float *r, __globa
 			++local_count;
 		}
 	}
+	*/
 
 	static const double weight = 0.01617112696;
 	const double mul = weight * 8.0 / local_count;
@@ -626,4 +630,63 @@ __kernel void edgeDetectorMap(__global float *result, __global float *r, __globa
 	result[idx]     = local_xyb[0];
 	result[idx + 1] = local_xyb[1];
 	result[idx + 2] = local_xyb[2];
+}
+
+__kernel void MaskHighIntensityChange(
+	__global float *xyb0_x, __global float *xyb0_y, __global float *xyb0_b,
+	__global float *xyb1_x, __global float *xyb1_y, __global float *xyb1_b,
+	__global float *c0_x, __global float *c0_y, __global float *c0_b,
+	__global float *c1_x, __global float *c1_y, __global float *c1_b
+	)
+{
+	const int x = get_global_id(0);
+	const int y = get_global_id(1);
+	const int xsize = get_global_size(0);
+	const int ysize = get_global_size(1);
+
+	size_t ix = y * xsize + x;
+	const double ave[3] = {
+	(c0_x[ix] + c1_x[ix]) * 0.5,
+	(c0_y[ix] + c1_y[ix]) * 0.5,
+	(c0_b[ix] + c1_b[ix]) * 0.5,
+	};
+	double sqr_max_diff = -1;
+	{
+		int offset[4] =
+			{ -1, 1, -(int)(xsize), (int)(xsize) };
+		int border[4] =
+			{ x == 0, x + 1 == xsize, y == 0, y + 1 == ysize };
+		for (int dir = 0; dir < 4; ++dir) {
+			if (border[dir]) {
+			continue;
+			}
+			const int ix2 = ix + offset[dir];
+			double diff = 0.5 * (c0_y[ix2] + c1_y[ix2]) - ave[1];
+			diff *= diff;
+			if (sqr_max_diff < diff) {
+			sqr_max_diff = diff;
+			}
+		}
+	}
+	const double kReductionX = 275.19165240059317;
+	const double kReductionY = 18599.41286306991;
+	const double kReductionZ = 410.8995306951065;
+	const double kChromaBalance = 106.95800948271017;
+	double chroma_scale = kChromaBalance / (ave[1] + kChromaBalance);
+
+	const double mix[3] = {
+		chroma_scale * kReductionX / (sqr_max_diff + kReductionX),
+		kReductionY / (sqr_max_diff + kReductionY),
+		chroma_scale * kReductionZ / (sqr_max_diff + kReductionZ),
+	};
+	// Interpolate lineraly between the average color and the actual
+	// color -- to reduce the importance of this pixel.
+	xyb0_x[ix] = (float)(mix[0] * c0_x[ix] + (1 - mix[0]) * ave[0]);
+	xyb1_x[ix] = (float)(mix[0] * c1_x[ix] + (1 - mix[0]) * ave[0]);
+
+	xyb0_y[ix] = (float)(mix[1] * c0_y[ix] + (1 - mix[1]) * ave[1]);
+	xyb1_y[ix] = (float)(mix[1] * c1_y[ix] + (1 - mix[1]) * ave[1]);
+
+	xyb0_b[ix] = (float)(mix[2] * c0_b[ix] + (1 - mix[2]) * ave[2]);
+	xyb1_b[ix] = (float)(mix[2] * c1_b[ix] + (1 - mix[2]) * ave[2]);
 }
