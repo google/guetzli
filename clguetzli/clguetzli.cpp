@@ -618,7 +618,6 @@ void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
     }
 }
 
-// ian todo
 void clCombineChannelsEx(
 	ocl_channels mask, 
 	ocl_channels mask_dc, 
