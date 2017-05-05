@@ -68,16 +68,6 @@ static void Convolution(size_t xsize, size_t ysize,
 	const float* __restrict__ inp,
 	float border_ratio,
 	float* __restrict__ result) {
-/*
-#if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
-	if (g_useOpenCL && xsize > 100 && ysize > 100)
-	{
-		clConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
-		return;
-	}
-#endif // ENABLE_OPENCL
-*/
-
   PROFILER_FUNC;
   float weight_no_border = 0;
 
@@ -102,40 +92,11 @@ static void Convolution(size_t xsize, size_t ysize,
       result[ox * ysize + y] = static_cast<float>(sum * scale);
     }
   }
-
-  /*
-#ifdef ENABLE_OPENCL_CHECK
-  // for verify
-  std::vector<float> tmp(xsize / xstep * ysize);
-  clConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, &tmp[0]);
-
-  for (int i = 0; i < xsize / xstep * ysize; i++)
-  {
-	  if (fabs(result[i] - tmp[i]) > 0.0001)
-	  {
-		  assert(false);
-	  }
-  }
-#endif // ENABLE_OPENCL_CHECK
-*/
 }
 
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
           double border_ratio) {
 
-/*
-#if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
-	if (g_useOpenCL && xsize > 100 && ysize > 100)
-	{
-		clBlur(xsize, ysize, channel, sigma, border_ratio);
-		return;
-	}
-#endif // ENABLE_OPENCL
-#ifdef ENABLE_OPENCL_CHECK
-	std::vector<float> tmpChannel(xsize  * ysize);
-	memcpy(tmpChannel.data(), channel, xsize * ysize * sizeof(float));
-#endif
-*/
   PROFILER_FUNC;
   double m = 2.25;  // Accuracy increases when m is increased.
   const double scaler = -1.0 / (2 * sigma * sigma);
@@ -171,25 +132,6 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
       }
     }
   }
-
-  /*
-#ifdef ENABLE_OPENCL_CHECK
-  // for verify
-  {
-	  if (xsize < 100 || ysize < 100) return;
-
-	  clBlur(xsize, ysize, tmpChannel.data(), sigma, border_ratio);
-
-	  for (int i = 0; i < xsize * ysize; i++)
-	  {
-		  if (fabs(channel[i] - tmpChannel[i]) > 0.0001)
-		  {
-			  float k = channel[i] - tmpChannel[i];
-		  }
-	  }
-  }
-#endif // ENABLE_OPENCL_CHECK
-*/
 }
 
 // To change this to n, add the relevant FFTn function and kFFTnMapIndexTable.
@@ -1452,31 +1394,9 @@ double MaskDcB(double delta) {
   return InterpolateClampNegative(lut.data(), lut.size(), delta);
 }
 
-// Replaces values[x + y * xsize] with the minimum of the values in the
-// square_size square with coordinates
-//   x - offset .. x + square_size - offset - 1,
-//   y - offset .. y + square_size - offset - 1.
-
-// 实际过程中squre_size一直为4，offset为0，可以SIMD特化
-
 void MinSquareVal(size_t square_size, size_t offset,
-                  size_t xsize, size_t ysize,
+				  size_t xsize, size_t ysize,
                   float *values) {
-/*
-#if (defined ENABLE_OPENCL) && (!defined ENABLE_OPENCL_CHECK)
-	if (g_useOpenCL)
-	{
-		clMinSquareVal(square_size, offset, xsize, ysize, values);
-		return;
-	}
-#endif // ENABLE_OPENCL
-
-  PROFILER_FUNC;
-
-#ifdef ENABLE_OPENCL_CHECK
-  std::vector<float> backup(values, values + xsize * ysize);
-#endif
-*/
   // offset is not negative and smaller than square_size.
   assert(offset < square_size);
   std::vector<float> tmp(xsize * ysize);
@@ -1517,18 +1437,6 @@ void MinSquareVal(size_t square_size, size_t offset,
         *pValuePoint = min; pValuePoint += xsize;
     }
   }
-/*
-#ifdef ENABLE_OPENCL_CHECK
-  clMinSquareVal(square_size, offset, xsize, ysize, backup.data());
-  for (int i = 0; i < xsize * ysize; i++)
-  {
-	  if (fabs(backup[i] - values[i]) > 0.0001)
-	  {
-		  assert(false);
-	  }
-  }
-#endif
-*/
 }
 
 // ===== Functions used by Mask only =====

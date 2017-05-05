@@ -382,12 +382,18 @@ cl_platform_id FindOpenCLPlatform(const char* preferredPlatform, cl_device_type 
 		bool match = true;
 		cl_uint numDevices = 0;
 
-		// If the preferredPlatform is not NULL then check if platforms[i] is the required one
-		// Otherwise, continue the check with platforms[i]
+		size_t nameLen = 0;
+		clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, 0, NULL, &nameLen);
+
+		std::vector<char> platformName(nameLen + 1);
+		clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, nameLen, &platformName[0], NULL);
+		platformName[nameLen] = 0;
+
+		LogError("DeviceName: %s\n", platformName.data());
+
 		if ((NULL != preferredPlatform) && (strlen(preferredPlatform) > 0))
 		{
-			// In case we're looking for a specific platform
-			match = CheckPreferredPlatformMatch(platforms[i], preferredPlatform);
+			match = (strstr(&platformName[0], preferredPlatform) != 0);
 		}
 
 		// match is true if the platform's name is the required one or don't care (NULL)
@@ -400,12 +406,20 @@ cl_platform_id FindOpenCLPlatform(const char* preferredPlatform, cl_device_type 
 			err = clGetDeviceIDs(platforms[i], deviceType, 0, NULL, &numDevices);
 			if (CL_SUCCESS != err)
 			{
-				LogError("clGetDeviceIDs() returned %s.\n", TranslateOpenCLError(err));
+				if (CL_DEVICE_TYPE_GPU == deviceType)
+				{
+					LogError("%s try GPU returned %s.\n", platformName.data(), TranslateOpenCLError(err));
+				}
+				if (CL_DEVICE_TYPE_CPU == deviceType)
+				{
+					LogError("%s try CPU returned %s.\n", platformName.data(), TranslateOpenCLError(err));
+				}
 			}
 
 			if (0 != numDevices)
 			{
 				// There is at list one device that answer the requirements
+				LogError("SelectDevice: %s GPU=%d\n", platformName.data(), deviceType == CL_DEVICE_TYPE_GPU ? 1 : 0);
 				return platforms[i];
 			}
 		}
@@ -526,11 +540,11 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType)
 
 	// Query for all available OpenCL platforms on the system
 	// Here you enumerate all platforms and pick one which name has preferredPlatform as a sub-string
-	cl_platform_id platformId = FindOpenCLPlatform("Intel", deviceType);
+	cl_platform_id platformId = FindOpenCLPlatform(nullptr, deviceType);
 	if (NULL == platformId)
 	{
 		deviceType = CL_DEVICE_TYPE_CPU;
-		platformId = FindOpenCLPlatform("", deviceType);
+		platformId = FindOpenCLPlatform(nullptr, deviceType);
 	}
 
 	if (NULL == platformId)
