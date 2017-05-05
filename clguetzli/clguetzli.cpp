@@ -61,6 +61,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "DoMask", &err);
 	ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "ScaleImage", &err);
 	ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "CombineChannels", &err);
+	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "MaskHighIntensityChange", &err);
 
 	return ocl;
 }
@@ -433,12 +434,37 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	ocl.releaseMemChannels(rgb_blurred);
 }
 
-// ian todo
-void clMaskHighIntensityChangeEx(ocl_channels rgb/*in,out*/, 
-                                 ocl_channels rgb2/*in,out*/, 
+void clMaskHighIntensityChangeEx(ocl_channels xyb0_arg/*in,out*/,
+                                 ocl_channels xyb1/*in,out*/,
+								 ocl_channels c0,
+								 ocl_channels c1,
                                  size_t xsize, size_t ysize)
 {
-	// MaskHighIntensityChange
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_kernel kernel = ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0_arg.r);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0_arg.g);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&xyb0_arg.b);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&c0.r);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&c0.g);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&c0.b);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&c1.r);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&c1.g);
+	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&c1.b);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clScaleImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clScaleImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
 }
 
 // strong todo
@@ -486,7 +512,7 @@ void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
 	ocl_channels rgb_blured = ocl.allocMemChannels(channel_size);
 	ocl_channels rgb2_blured = ocl.allocMemChannels(channel_size);
 
-	static const double kSigma[3] = { 1.5, 0.586, 0.4 };
+	//static const double kSigma[3] = { 1.5, 0.586, 0.4 };
 
 	for (int i = 0; i < 3; i++)
 	{
@@ -501,7 +527,7 @@ void clDiffPrecomputeEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_
 
 }
 
-void clScaleImageEx(cl_mem img, size_t size, float w, cl_mem result/*out*/)
+void clScaleImageEx(cl_mem img/*in, out*/, size_t size, float w)
 {
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
@@ -509,16 +535,9 @@ void clScaleImageEx(cl_mem img, size_t size, float w, cl_mem result/*out*/)
 	cl_int clsize = size;
 	cl_float clscale = w;
 
-
-	err = clEnqueueCopyBuffer(ocl.commandQueue, img, result, 0, 0, clsize, 0, NULL, NULL);	
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clScaleImageEx() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
-	}
-
 	cl_kernel kernel = ocl.kernel[KERNEL_SCALEIMAGE];
 	clSetKernelArg(kernel, 0, sizeof(cl_int), (void*)&clscale);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&img);
 
 	size_t globalWorkSize[1] = { clsize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -536,16 +555,75 @@ void clScaleImageEx(cl_mem img, size_t size, float w, cl_mem result/*out*/)
 // ian todo
 void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
 {
-    static const float w = 0.679144890667f;
-    static const float scale = 1.0f / (5.0f + 4 * w);
+	if (xsize < 4 || ysize < 4) {
+		// TODO: Make this work for small dimensions as well.
+		return;
+	}
 
-    cl_mem tmp0;
-    cl_mem tmp1;
-    clScaleImageEx(img, xsize * ysize, w, tmp0);
-    clScaleImageEx(img, xsize * ysize, 1, tmp1);
-    // average5x5 calc
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
 
-    clScaleImageEx(img, xsize * ysize, scale, img);
+	size_t len = xsize * ysize * sizeof(float);
+	ocl.allocA(len);
+	ocl.allocB(len);
+	ocl.allocC(len);
+	cl_mem result = ocl.srcA;
+	cl_mem tmp0 = ocl.srcB;
+	cl_mem tmp1 = ocl.dstMem;
+
+	err = clEnqueueCopyBuffer(ocl.commandQueue, img, result, 0, 0, len, 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, img, tmp0, 0, 0, len, 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, img, tmp1, 0, 0, len, 0, NULL, NULL);
+
+	static const float w = 0.679144890667f;
+	static const float scale = 1.0f / (5.0f + 4 * w);
+
+	clScaleImageEx(tmp1, xsize * ysize, w);
+	/* TODO
+	for (int y = 0; y < ysize; y++) {
+		const int row0 = y * xsize;
+		result[row0 + 1] += tmp0[row0];
+		result[row0 + 0] += tmp0[row0 + 1];
+		result[row0 + 2] += tmp0[row0 + 1];
+		for (int x = 2; x < xsize - 2; ++x) {
+			result[row0 + x - 1] += tmp0[row0 + x];
+			result[row0 + x + 1] += tmp0[row0 + x];
+		}
+		result[row0 + xsize - 3] += tmp0[row0 + xsize - 2];
+		result[row0 + xsize - 1] += tmp0[row0 + xsize - 2];
+		result[row0 + xsize - 2] += tmp0[row0 + xsize - 1];
+		if (y > 0) {
+			const int rowd1 = row0 - xsize;
+			result[rowd1 + 1] += tmp1[row0];
+			result[rowd1 + 0] += tmp0[row0];
+			for (int x = 1; x < xsize - 1; ++x) {
+				result[rowd1 + x + 1] += tmp1[row0 + x];
+				result[rowd1 + x + 0] += tmp0[row0 + x];
+				result[rowd1 + x - 1] += tmp1[row0 + x];
+			}
+			result[rowd1 + xsize - 1] += tmp0[row0 + xsize - 1];
+			result[rowd1 + xsize - 2] += tmp1[row0 + xsize - 1];
+		}
+		if (y + 1 < ysize) {
+			const int rowu1 = row0 + xsize;
+			result[rowu1 + 1] += tmp1[row0];
+			result[rowu1 + 0] += tmp0[row0];
+			for (int x = 1; x < xsize - 1; ++x) {
+				result[rowu1 + x + 1] += tmp1[row0 + x];
+				result[rowu1 + x + 0] += tmp0[row0 + x];
+				result[rowu1 + x - 1] += tmp1[row0 + x];
+			}
+			result[rowu1 + xsize - 1] += tmp0[row0 + xsize - 1];
+			result[rowu1 + xsize - 2] += tmp1[row0 + xsize - 1];
+		}
+	}
+	*/
+	err = clEnqueueCopyBuffer(ocl.commandQueue, result, img, 0, 0, len, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clAverage5x5Ex() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
+	}
+	clScaleImageEx(img, xsize * ysize, scale);
 }
 
 void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t square_size, size_t offset)
@@ -639,8 +717,8 @@ void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
 
     for (int i = 0; i < 3; i++)
     {
-        clScaleImageEx(mask.ch[i], xsize * ysize, kGlobalScale * kGlobalScale, mask.ch[i]);
-        clScaleImageEx(mask_dc.ch[i], xsize * ysize, kGlobalScale * kGlobalScale, mask_dc.ch[i]);
+        clScaleImageEx(mask.ch[i], xsize * ysize, kGlobalScale * kGlobalScale);
+        clScaleImageEx(mask_dc.ch[i], xsize * ysize, kGlobalScale * kGlobalScale);
     }
 }
 
@@ -746,7 +824,7 @@ void clCalculateDiffmapEx(cl_mem result/*in,out*/, size_t xsize, size_t ysize, i
     }
     }
 */
-    clScaleImageEx(result, xsize * ysize, scale, result);
+    clScaleImageEx(result, xsize * ysize, scale);
 }
 
 void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b, 
@@ -760,15 +838,26 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	ocl_channels xyb = ocl.allocMemChannels(channel_size);
-	ocl_channels xyb2 = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb0_arg = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
 
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb2.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb2.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb2.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb1_c = ocl.allocMemChannels(channel_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0_arg.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0_arg.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0_arg.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+
+
+	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb0_arg.r, xyb0.r, 0, 0, channel_size, 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb0_arg.g, xyb0.g, 0, 0, channel_size, 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb0_arg.b, xyb0.b, 0, 0, channel_size, 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb1.r, xyb1_c.r, 0, 0, channel_size, 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb1.g, xyb1_c.g, 0, 0, channel_size, 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb1.b, xyb1_c.b, 0, 0, channel_size, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	cl_mem edge_detector_map = ocl.allocMem(3 * xsize * ysize * sizeof(float));
@@ -782,13 +871,13 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	size_t res_ysize_; // 成员变量，需要传递
 	cl_mem mem_result = ocl.allocMem(channel_size);
 
-	clMaskHighIntensityChangeEx(xyb, xyb2, xsize, ysize);
+	clMaskHighIntensityChangeEx(xyb0_arg, xyb1_c, xyb0, xyb1, xsize, ysize);
 
-	clEdgeDetectorMapEx(xyb, xyb2, xsize, ysize, step, edge_detector_map);
-	clBlockDiffMapEx(xyb, xyb2, xsize, ysize, block_diff_dc, block_diff_ac);
-	clEdgeDetectorLowFreqEx(xyb, xyb2, xsize, ysize, block_diff_ac);
-
-	clMaskEx(xyb, xyb2, xsize, ysize, mask, mask_dc);
+	//clEdgeDetectorMapEx(xyb0_arg, xyb1, xsize, ysize, edge_detector_map);
+	clBlockDiffMapEx(xyb0_arg, xyb1, xsize, ysize, block_diff_dc, block_diff_ac);
+	clEdgeDetectorLowFreqEx(xyb0_arg, xyb1, xsize, ysize, block_diff_ac);
+	
+	clMaskEx(xyb0_arg, xyb1, xsize, ysize, mask, mask_dc);
 
 	size_t xsize_ = 0, ysize_ = 0; // 成员变量，需要传递
 	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, xsize_, ysize_, step, res_xsize_, mem_result);
@@ -799,8 +888,10 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	memcpy(result, result_r, channel_size);
 
-	ocl.releaseMemChannels(xyb);
-	ocl.releaseMemChannels(xyb2);
+	ocl.releaseMemChannels(xyb0_arg);
+	ocl.releaseMemChannels(xyb1);
+	ocl.releaseMemChannels(xyb0);
+	ocl.releaseMemChannels(xyb1_c);
 
 	clReleaseMemObject(edge_detector_map);
 	clReleaseMemObject(block_diff_dc);
