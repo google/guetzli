@@ -690,3 +690,92 @@ __kernel void MaskHighIntensityChange(
 	xyb0_b[ix] = (float)(mix[2] * c0_b[ix] + (1 - mix[2]) * ave[2]);
 	xyb1_b[ix] = (float)(mix[2] * c1_b[ix] + (1 - mix[2]) * ave[2]);
 }
+
+void XybToVals(
+	double x, double y, double z,
+	double *valx, double *valy, double *valz)
+{
+	static const double xmul = 0.758304045695;
+	static const double ymul = 2.28148649801;
+	static const double zmul = 1.87816926918;
+
+	double lut[21] = { 0.0 };
+	const double off = 11.38708334481672;
+	const double inc = 14.550189611520716;
+	lut[0] = 0.0;
+	lut[1] = off;
+	for (int i = 2; i < 21; ++i) {
+		lut[i] = lut[i - 1] + inc;
+	}
+
+	*valx = Interpolate(lut, 21, x * xmul);
+	*valy = Interpolate(lut, 21, y * ymul);
+	*valz = zmul * z;
+}
+
+
+__kernel void DiffPrecompute(
+	__global float *xyb0_x, __global float *xyb0_y, __global float *xyb0_b,
+	__global float *xyb1_x, __global float *xyb1_y, __global float *xyb1_b,
+	__global float *mask_x, __global float *mask_y, __global float *mask_b )
+{
+	const int x = get_global_id(0);
+	const int y = get_global_id(1);
+	const int xsize = get_global_size(0);
+	const int ysize = get_global_size(1);
+	
+	double valsh0[3] = { 0.0 };
+	double valsv0[3] = { 0.0 };
+	double valsh1[3] = { 0.0 };
+	double valsv1[3] = { 0.0 };
+	int ix2;
+
+	size_t ix = x + xsize * y;
+	if (x + 1 < xsize) {
+		ix2 = ix + 1;
+	}
+	else {
+		ix2 = ix - 1;
+	}
+	{
+		double x0 = (xyb0_x[ix] - xyb0_x[ix2]);
+		double y0 = (xyb0_y[ix] - xyb0_y[ix2]);
+		double z0 = (xyb0_b[ix] - xyb0_b[ix2]);
+		XybToVals(x0, y0, z0, &valsh0[0], &valsh0[1], &valsh0[2]);
+		double x1 = (xyb1_x[ix] - xyb1_x[ix2]);
+		double y1 = (xyb1_y[ix] - xyb1_y[ix2]);
+		double z1 = (xyb1_b[ix] - xyb1_b[ix2]);
+		XybToVals(x1, y1, z1, &valsh1[0], &valsh1[1], &valsh1[2]);
+	}
+	if (y + 1 < ysize) {
+		ix2 = ix + xsize;
+	}
+	else {
+		ix2 = ix - xsize;
+	}
+	{
+		double x0 = (xyb0_x[ix] - xyb0_x[ix2]);
+		double y0 = (xyb0_y[ix] - xyb0_y[ix2]);
+		double z0 = (xyb0_b[ix] - xyb0_b[ix2]);
+		XybToVals(x0, y0, z0, &valsv0[0], &valsv0[1], &valsv0[2]);
+		double x1 = (xyb1_x[ix] - xyb1_x[ix2]);
+		double y1 = (xyb1_y[ix] - xyb1_y[ix2]);
+		double z1 = (xyb1_b[ix] - xyb1_b[ix2]);
+		XybToVals(x1, y1, z1, &valsv1[0], &valsv1[1], &valsv1[2]);
+	}
+
+	double sup0 = fabs(valsh0[0]) + fabs(valsv0[0]);
+	double sup1 = fabs(valsh1[0]) + fabs(valsv1[0]);
+	double m = min(sup0, sup1);
+	mask_x[ix] = (float)(m);
+
+	sup0 = fabs(valsh0[1]) + fabs(valsv0[1]);
+	sup1 = fabs(valsh1[1]) + fabs(valsv1[1]);
+	m = min(sup0, sup1);
+	mask_y[ix] = (float)(m);
+
+	sup0 = fabs(valsh0[2]) + fabs(valsv0[2]);
+	sup1 = fabs(valsh1[2]) + fabs(valsv1[2]);
+	m = min(sup0, sup1);
+	mask_b[ix] = (float)(m);
+}
