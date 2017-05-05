@@ -22,7 +22,7 @@ ocl_args_d_t& getOcl(void)
 
 	char* source = nullptr;
 	size_t src_size = 0;
-	ReadSourceFromFile("clguetzli\\clguetzli.cl", &source, &src_size);
+	ReadSourceFromFile("clguetzli.cl", &source, &src_size);
 
 	ocl.program = clCreateProgramWithSource(ocl.context, 1, (const char**)&source, &src_size, &err);
 
@@ -32,6 +32,17 @@ ocl_args_d_t& getOcl(void)
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+
+        if (err == CL_BUILD_PROGRAM_FAILURE)
+        {
+            size_t log_size = 0;
+            clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+            std::vector<char> build_log(log_size);
+            clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, log_size, &build_log[0], NULL);
+
+            LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
+        }
 	}
 	ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "MinSquareVal", &err);
 	if (CL_SUCCESS != err)
