@@ -1120,14 +1120,14 @@ void ButteraugliComparator::DiffmapOpsinDynamicsImage(
     const std::vector<std::vector<float>> &xyb0_arg,
     std::vector<std::vector<float>> &xyb1,
     std::vector<float> &result) {
-/*
+
 	if (g_useOpenCL && xsize_ > 100 && ysize_ > 100)
 	{
 		result.resize(xsize_ * ysize_);
 		clDiffmapOpsinDynamicsImage(xyb0_arg[0].data(), xyb0_arg[1].data(), xyb0_arg[2].data(),
-			xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, result.data());
+			xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_, result.data());
 	}
-*/
+
 
   if (xsize_ < 8 || ysize_ < 8) return;
   auto xyb0 = xyb0_arg;
