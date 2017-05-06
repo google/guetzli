@@ -41,6 +41,7 @@
 #include <array>
 
 #include "clguetzli\clguetzli.h"
+#include "clguetzli\clguetzli_test.h"
 
 // Restricted pointers speed up Convolution(); MSVC uses a different keyword.
 #ifdef _MSC_VER
@@ -828,6 +829,12 @@ void MaskHighIntensityChange(
       }
     }
   }
+
+  clMaskHighIntensityChange(c0[0].data(), c0[1].data(), c0[2].data(),
+	  c1[0].data(), c1[1].data(), c1[2].data(),
+	  xsize, ysize,
+	  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+	  xyb0[0].data(), xyb1[1].data(), xyb1[2].data());
 }
 
 double SimpleGamma(double v) {
@@ -1609,6 +1616,12 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask)[i]);
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask_dc)[i]);
   }
+
+  clMask(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+	  xsize, ysize,
+	  (*mask)[0].data(), (*mask)[1].data(), (*mask)[2].data(),
+	  (*mask_dc)[0].data(), (*mask_dc)[1].data(), (*mask_dc)[2].data());
 }
 
 }  // namespace butteraugli
