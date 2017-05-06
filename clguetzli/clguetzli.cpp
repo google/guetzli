@@ -63,6 +63,9 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "CombineChannels", &err);
 	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "MaskHighIntensityChange", &err);
 	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "DiffPrecompute", &err);
+	ocl.kernel[KERNEL_CALCULATEDIFFMAPGETBLURRED] = clCreateKernel(ocl.program, "CalculateDiffmapGetBlurred", &err);
+	ocl.kernel[KERNEL_GETDIFFMAPFROMBLURRED] = clCreateKernel(ocl.program, "GetDiffmapFromBlurred", &err);
+	ocl.kernel[KERNEL_AVERAGEADDIMAGE] = clCreateKernel(ocl.program, "AverageAddImage", &err);
 	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "edgeDetectorMap", &err);
 	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "blockDiffMap", &err);
 	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "edgeDetectorLowFreq", &err);
@@ -675,7 +678,29 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, float w)
 	}
 }
 
-// ian todo
+void clAverageAddImage(cl_mem img, cl_mem tmp0, cl_mem tmp1, size_t xsize, size_t ysize)
+{
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_kernel kernel = ocl.kernel[KERNEL_AVERAGEADDIMAGE];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&tmp0);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&tmp1);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clAverageAddImage() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clAverageAddImage() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
 void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
 {
 	if (xsize < 4 || ysize < 4) {
@@ -702,45 +727,8 @@ void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
 	static const float scale = 1.0f / (5.0f + 4 * w);
 
 	clScaleImageEx(tmp1, xsize * ysize, w);
-	/* TODO
-	for (int y = 0; y < ysize; y++) {
-		const int row0 = y * xsize;
-		result[row0 + 1] += tmp0[row0];
-		result[row0 + 0] += tmp0[row0 + 1];
-		result[row0 + 2] += tmp0[row0 + 1];
-		for (int x = 2; x < xsize - 2; ++x) {
-			result[row0 + x - 1] += tmp0[row0 + x];
-			result[row0 + x + 1] += tmp0[row0 + x];
-		}
-		result[row0 + xsize - 3] += tmp0[row0 + xsize - 2];
-		result[row0 + xsize - 1] += tmp0[row0 + xsize - 2];
-		result[row0 + xsize - 2] += tmp0[row0 + xsize - 1];
-		if (y > 0) {
-			const int rowd1 = row0 - xsize;
-			result[rowd1 + 1] += tmp1[row0];
-			result[rowd1 + 0] += tmp0[row0];
-			for (int x = 1; x < xsize - 1; ++x) {
-				result[rowd1 + x + 1] += tmp1[row0 + x];
-				result[rowd1 + x + 0] += tmp0[row0 + x];
-				result[rowd1 + x - 1] += tmp1[row0 + x];
-			}
-			result[rowd1 + xsize - 1] += tmp0[row0 + xsize - 1];
-			result[rowd1 + xsize - 2] += tmp1[row0 + xsize - 1];
-		}
-		if (y + 1 < ysize) {
-			const int rowu1 = row0 + xsize;
-			result[rowu1 + 1] += tmp1[row0];
-			result[rowu1 + 0] += tmp0[row0];
-			for (int x = 1; x < xsize - 1; ++x) {
-				result[rowu1 + x + 1] += tmp1[row0 + x];
-				result[rowu1 + x + 0] += tmp0[row0 + x];
-				result[rowu1 + x - 1] += tmp1[row0 + x];
-			}
-			result[rowu1 + xsize - 1] += tmp0[row0 + xsize - 1];
-			result[rowu1 + xsize - 2] += tmp1[row0 + xsize - 1];
-		}
-	}
-	*/
+	clAverageAddImage(result, tmp0, tmp1, xsize, ysize);
+
 	err = clEnqueueCopyBuffer(ocl.commandQueue, result, img, 0, 0, len, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -864,7 +852,6 @@ void clCombineChannelsEx(
 	cl_int clxsize = xsize;
 	cl_int clysize = ysize;
 	cl_int clstep = step;
-	cl_int clres_xsize = res_xsize;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_COMBINECHANNELS];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mask.r);
@@ -894,61 +881,115 @@ void clCombineChannelsEx(
 	}
 }
 
-// ian todo
-void clCalculateDiffmapEx(cl_mem result/*in,out*/, size_t xsize, size_t ysize, int step)
+void clUpsampleSquareRootEx(cl_mem diffmap, size_t xsize, size_t ysize, int step)
 {
-/*
-    int s2 = (8 - step) / 2;
-    {
-        // Upsample and take square root.
-        std::vector<float> diffmap_out(xsize * ysize);
-        const size_t res_xsize = (xsize + step - 1) / step;
-        for (size_t res_y = 0; res_y + 8 - step < ysize; res_y += step) {
-            for (size_t res_x = 0; res_x + 8 - step < xsize; res_x += step) {
-                size_t res_ix = (res_y * res_xsize + res_x) / step;
-                float orig_val = (*diffmap)[res_ix];
-                constexpr float kInitialSlope = 100;
-                // TODO(b/29974893): Until that is fixed do not call sqrt on very small
-                // numbers.
-                double val = orig_val < (1.0 / (kInitialSlope * kInitialSlope))
-                    ? kInitialSlope * orig_val
-                    : std::sqrt(orig_val);
-                for (size_t off_y = 0; off_y < step; ++off_y) {
-                    for (size_t off_x = 0; off_x < step; ++off_x) {
-                        diffmap_out[(res_y + off_y + s2) * xsize +
-                            res_x + off_x + s2] = val;
-                    }
-                }
-            }
-        }
-        *diffmap = diffmap_out;
-    }
-*/
-    static const double kSigma = 8.8510880283;
-    static const double mul1 = 24.8235314874;
-    static const double scale = 1.0 / (1.0 + mul1);
-    const int s = 8 - step;
-    const int s2 = (8 - step) / 2;
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
 
-    cl_mem blurred;
-/*
-    for (size_t y = 0; y < ysize - s; ++y) {
-    for (size_t x = 0; x < xsize - s; ++x) {
-    blurred[y * (xsize - s) + x] = (*diffmap)[(y + s2) * xsize + x + s2];
-    }
-    }
-*/
-    static const double border_ratio = 0.03027655136;
-    clBlurEx(blurred, xsize - s, ysize - s, kSigma, border_ratio);
-/*
-    for (size_t y = 0; y < ysize - s; ++y) {
-    for (size_t x = 0; x < xsize - s; ++x) {
-    (*diffmap)[(y + s2) * xsize + x + s2]
-    += static_cast<float>(mul1) * blurred[y * (xsize - s) + x];
-    }
-    }
-*/
-    clScaleImageEx(result, xsize * ysize, scale);
+	cl_int clxsize = xsize;
+	cl_int clysize = ysize;
+	cl_int clstep = step;
+	ocl.allocC(xsize * ysize * sizeof(float));
+
+	cl_kernel kernel = ocl.kernel[KERNEL_UPSAMPLESQUAREROOT];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&diffmap);
+	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&xsize);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&ysize);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&step);
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&ocl.dstMem);
+
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (xsize + step - 1) / step;
+
+	size_t globalWorkSize[2] = { res_xsize, res_ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clUpsampleSquareRootEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clEnqueueCopyBuffer(ocl.commandQueue, ocl.dstMem, diffmap, 0, 0, xsize * ysize * sizeof(float), 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clUpsampleSquareRootEx() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clUpsampleSquareRootEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
+void clCalculateDiffmapGetBlurredEx(cl_mem diffmap, size_t xsize, size_t ysize, int s, int s2, cl_mem blurred)
+{
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_int cls = s;
+	cl_int cls2 = s2;
+	cl_kernel kernel = ocl.kernel[KERNEL_CALCULATEDIFFMAPGETBLURRED];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&diffmap);
+	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&s);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&s2);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&blurred);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clCalculateDiffmapGetBlurredEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clCalculateDiffmapGetBlurredEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
+void clGetDiffmapFromBlurredEx(cl_mem diffmap, size_t xsize, size_t ysize, int s, int s2, cl_mem blurred)
+{
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_int cls = s;
+	cl_int cls2 = s2;
+	cl_kernel kernel = ocl.kernel[KERNEL_CALCULATEDIFFMAPGETBLURRED];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&blurred);
+	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&s);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&s2);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&diffmap);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clGetDiffmapFromBlurredEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clGetDiffmapFromBlurredEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
+void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, size_t xsize, size_t ysize, int step)
+{
+	clUpsampleSquareRootEx(diffmap, xsize, ysize, step);
+
+	static const double kSigma = 8.8510880283;
+	static const double mul1 = 24.8235314874;
+	static const double scale = 1.0 / (1.0 + mul1);
+	const int s = 8 - step;
+	int s2 = (8 - step) / 2;
+
+	ocl_args_d_t &ocl = getOcl();
+	ocl.allocA((xsize - s) * (ysize - s) * sizeof(float));
+	cl_mem blurred = ocl.srcA;
+	clCalculateDiffmapGetBlurredEx(diffmap, (xsize - s), (ysize - s), s, s2, blurred);
+
+	static const double border_ratio = 0.03027655136;
+	clBlurEx(blurred, xsize - s, ysize - s, kSigma, border_ratio);
+	clGetDiffmapFromBlurredEx(diffmap, (xsize - s), (ysize - s), s, s2, blurred);
+	clScaleImageEx(diffmap, xsize * ysize, scale);
 }
 
 void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b, 
