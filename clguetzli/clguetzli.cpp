@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <vector>
 #include "clguetzli.h"
-#include "ocl.h"
 
 extern bool g_useOpenCL = false;
 
@@ -238,19 +237,30 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	ocl.releaseMemChannels(rgb_blurred);
 }
 
-void clMaskHighIntensityChangeEx(ocl_channels xyb0_arg/*in,out*/,
-                                 ocl_channels xyb1/*in,out*/,
-								 ocl_channels c0,
-								 ocl_channels c1,
+void clMaskHighIntensityChangeEx(ocl_channels xyb0/*in,out*/,
+								 ocl_channels xyb1/*in,out*/,
                                  size_t xsize, size_t ysize)
 {
+	cl_int channel_size = xsize * ysize * sizeof(float);
+
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
+	ocl_channels c0 = ocl.allocMemChannels(channel_size);
+	ocl_channels c1 = ocl.allocMemChannels(channel_size);
+
+	clEnqueueCopyBuffer(ocl.commandQueue, xyb0.r, c0.r, 0, 0, channel_size, 0, NULL, NULL);
+	clEnqueueCopyBuffer(ocl.commandQueue, xyb0.g, c0.g, 0, 0, channel_size, 0, NULL, NULL);
+	clEnqueueCopyBuffer(ocl.commandQueue, xyb0.b, c0.b, 0, 0, channel_size, 0, NULL, NULL);
+	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.r, c1.r, 0, 0, channel_size, 0, NULL, NULL);
+	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.g, c1.g, 0, 0, channel_size, 0, NULL, NULL);
+	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.b, c1.b, 0, 0, channel_size, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
 	cl_kernel kernel = ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0_arg.r);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0_arg.g);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&xyb0_arg.b);
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.r);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0.g);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&xyb0.b);
 	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb1.r);
 	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb1.g);
 	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&xyb1.b);
@@ -272,6 +282,9 @@ void clMaskHighIntensityChangeEx(ocl_channels xyb0_arg/*in,out*/,
 	{
 		LogError("Error: clMaskHighIntensityChangeEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
+
+	ocl.releaseMemChannels(c0);
+	ocl.releaseMemChannels(c1);
 }
 
 void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize, size_t step, cl_mem result/*out*/)
@@ -802,26 +815,16 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	ocl_channels xyb0_arg = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
 	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
 
-	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
-	ocl_channels xyb1_c = ocl.allocMemChannels(channel_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0_arg.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0_arg.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0_arg.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
 
-
-	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb0_arg.r, xyb0.r, 0, 0, channel_size, 0, NULL, NULL);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb0_arg.g, xyb0.g, 0, 0, channel_size, 0, NULL, NULL);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb0_arg.b, xyb0.b, 0, 0, channel_size, 0, NULL, NULL);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb1.r, xyb1_c.r, 0, 0, channel_size, 0, NULL, NULL);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb1.g, xyb1_c.g, 0, 0, channel_size, 0, NULL, NULL);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb1.b, xyb1_c.b, 0, 0, channel_size, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	cl_mem mem_result = ocl.allocMem(channel_size);
@@ -835,13 +838,13 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	cl_mem block_diff_dc = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
 	cl_mem block_diff_ac = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
 
-	clMaskHighIntensityChangeEx(xyb0_arg, xyb1_c, xyb0, xyb1, xsize, ysize);
+	clMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
 	
-	clEdgeDetectorMapEx(xyb0_arg, xyb1, xsize, ysize, step, edge_detector_map);
-	clBlockDiffMapEx(xyb0_arg, xyb1, xsize, ysize, step, block_diff_dc, block_diff_ac);
-	clEdgeDetectorLowFreqEx(xyb0_arg, xyb1, xsize, ysize, step, block_diff_ac);
+	clEdgeDetectorMapEx(xyb0, xyb1, xsize, ysize, step, edge_detector_map);
+	clBlockDiffMapEx(xyb0, xyb1, xsize, ysize, step, block_diff_dc, block_diff_ac);
+	clEdgeDetectorLowFreqEx(xyb0, xyb1, xsize, ysize, step, block_diff_ac);
 	
-	clMaskEx(xyb0_arg, xyb1, xsize, ysize, mask, mask_dc);
+	clMaskEx(xyb0, xyb1, xsize, ysize, mask, mask_dc);
 
 	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, xsize, ysize, step, mem_result);
 
@@ -851,10 +854,8 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	err = clFinish(ocl.commandQueue);
 	memcpy(result, result_r, channel_size);
 
-	ocl.releaseMemChannels(xyb0_arg);
 	ocl.releaseMemChannels(xyb1);
 	ocl.releaseMemChannels(xyb0);
-	ocl.releaseMemChannels(xyb1_c);
 
 	clReleaseMemObject(edge_detector_map);
 	clReleaseMemObject(block_diff_dc);

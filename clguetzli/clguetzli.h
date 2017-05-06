@@ -1,22 +1,18 @@
 #pragma once
 #include "CL\cl.h"
+#include "ocl.h"
+
 extern bool g_useOpenCL;
 
-void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double border_ratio, cl_mem result = nullptr);
+void clMaskHighIntensityChangeEx(ocl_channels xyb0/*in,out*/,
+	ocl_channels xyb1/*in,out*/,
+	size_t xsize, size_t ysize);
 
-void clMinSquareVal(size_t square_size, size_t offset,
+void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
 	size_t xsize, size_t ysize,
-	float *values);
+	ocl_channels mask/*out*/, ocl_channels mask_dc/*out*/);
 
-void clConvolution(size_t xsize, size_t ysize,
-	size_t xstep,
-	size_t len, size_t offset, 
-	const float* multiplier,
-	const float* inp,
-	float border_ratio,
-	float* result);
-
-void clBlur(size_t xsize, size_t ysize, float* channel, double sigma, double border_ratio);
+void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double border_ratio, cl_mem result = nullptr);
 
 void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b);
 
