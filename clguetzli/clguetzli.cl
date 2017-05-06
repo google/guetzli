@@ -33,16 +33,6 @@ __kernel void MinSquareVal(__global float* pA, __global float* pC, int square_si
 	pC[y * width + x] = minValue;
 }
 
-float calcWeight(__global float* multipliers, int len)
-{
-	float weight_no_border = 0;
-	for (int j = 0; j < len; j++)
-	{
-		weight_no_border += multipliers[j];
-	}
-	return weight_no_border;
-}
-
 __kernel void Convolution(__global float* multipliers, __global float* inp, __global float* result,
 							int xsize, int xstep, int len, int offset, float border_ratio)
 {
@@ -53,14 +43,12 @@ __kernel void Convolution(__global float* multipliers, __global float* inp, __gl
 	const int ysize = get_global_size(1);
 
 	const int x = ox * xstep;
-/*
+
 	float weight_no_border = 0;
 	for (int j = 0; j <= 2 * offset; j++)
 	{ 
 		weight_no_border += multipliers[j];
 	}
-*/
-	float weight_no_border = calcWeight(multipliers, len);
 
 	int minx = x < offset ? 0 : x - offset;
 	int maxx = min(xsize, x + len - offset);
@@ -473,11 +461,13 @@ __kernel void CombineChannels(
 	__global float *edge_detector_map,
 	int xsize, int ysize, 
 	int step, 
-	int res_xsize,
 	__global float *result)
 {
 	const int res_x = get_global_id(0);
 	const int res_y = get_global_id(1);
+
+	const int res_xsize = get_global_size(0);
+	const int res_ysize = get_global_size(1);
 
 	if (res_x * step >= xsize - (8 - step)) return;
 	if (res_y * step >= ysize - (8 - step)) return;
@@ -500,7 +490,7 @@ __kernel void CombineChannels(
 		DotProduct((float *)&edge_detector_map[3 * res_ix], mask));
 }
 
-inline double Interpolate(const double *array, int size, double sx) {
+inline double Interpolate(__constant double *array, int size, double sx) {
 	double ix = fabs(sx);
 
 	int baseix = (int)(ix);
@@ -517,33 +507,41 @@ inline double Interpolate(const double *array, int size, double sx) {
 	return res;
 }
 
-/*
-std::array<double, 21> MakeLowFreqColorDiffDy() {
-	std::array<double, 21> lut;
-	static const double inc = 5.2511644570349185;
-	lut[0] = 0.0;
-	for (int i = 1; i < 21; ++i) {
-		lut[i] = lut[i - 1] + inc;
-	}
-	return lut;
-}
-
-const double *GetLowFreqColorDiffDy() {
-	static const std::array<double, 21> kLut = MakeLowFreqColorDiffDy();
-	return kLut.data();
-}
-*/
+__constant double XybLowFreqToVals_inc = 5.2511644570349185;
+__constant double XybLowFreqToVals_lut[21] = {
+	0,
+	1 * XybLowFreqToVals_inc,
+	2 * XybLowFreqToVals_inc,
+	3 * XybLowFreqToVals_inc,
+	4 * XybLowFreqToVals_inc,
+	5 * XybLowFreqToVals_inc,
+	6 * XybLowFreqToVals_inc,
+	7 * XybLowFreqToVals_inc,
+	8 * XybLowFreqToVals_inc,
+	9 * XybLowFreqToVals_inc,
+	10 * XybLowFreqToVals_inc,
+	11 * XybLowFreqToVals_inc,
+	12 * XybLowFreqToVals_inc,
+	13 * XybLowFreqToVals_inc,
+	14 * XybLowFreqToVals_inc,
+	15 * XybLowFreqToVals_inc,
+	16 * XybLowFreqToVals_inc,
+	17 * XybLowFreqToVals_inc,
+	18 * XybLowFreqToVals_inc,
+	19 * XybLowFreqToVals_inc,
+	20 * XybLowFreqToVals_inc,
+};
 
 void XybLowFreqToVals(double x, double y, double z,
 	double *valx, double *valy, double *valz) {
-	static const double xmul = 6.64482198135;
-	static const double ymul = 0.837846224276;
-	static const double zmul = 7.34905756986;
-	static const double y_to_z_mul = 0.0812519812628;
+	const double xmul = 6.64482198135;
+	const double ymul = 0.837846224276;
+	const double zmul = 7.34905756986;
+	const double y_to_z_mul = 0.0812519812628;
 	z += y_to_z_mul * y;
 	*valz = z * zmul;
 	*valx = x * xmul;
-	//*valy = Interpolate(GetLowFreqColorDiffDy(), 21, y * ymul);
+	*valy = Interpolate(&XybLowFreqToVals_lut[0], 21, y * ymul);
 }
 
 void XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
@@ -570,26 +568,31 @@ void XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
 	res[2] += factor * valz * valz;
 }
 
-__kernel void edgeDetectorMap(__global float *result, __global float *r, __global float *g, __global float* b, __global float *r2, __global float* g2, __global float *b2, int xsize, int ysize, int step)
+__kernel void edgeDetectorMap(__global float *result,
+						      __global float *r, __global float *g, __global float* b, 
+						      __global float *r2, __global float* g2, __global float *b2, 
+						     int xsize, int ysize, int step)
 {
-	const int result_x = get_global_id(0);
-	const int result_y = get_global_id(1);
+	const int res_x = get_global_id(0);
+	const int res_y = get_global_id(1);
 
-	const int result_xsize = get_global_size(0);
-	const int result_ysize = get_global_size(1);
+	const int res_xsize = get_global_size(0);
+	const int res_ysize = get_global_size(1);
 
-	int pos_x = result_x * step;
-	int pos_y = result_y * step;
+	int pos_x = res_x * step;
+	int pos_y = res_y * step;
+
+	if (res_x * step >= xsize - (8 - step)) return;
+	if (res_y * step >= ysize - (8 - step)) return;
 
 	int local_count = 0;
 	double local_xyb[3] = { 0 };
 	const double w = 0.711100840192;
 
-	//int offset[4][2] = { { 0£¬0}£¬ { 0£¬7}£¬{ 7£¬0}£¬{ 7£¬7} };
+	int offset[4][2] = {{0,0}, {0,7}, {7,0}, {7,7}};
 	int edgeSize = 3;
 	
-	/*
-	for (int k = 0; i < 4; k++)
+	for (int k = 0; k < 4; k++)
 	{ 
 		int x = pos_x + offset[k][0];
 		int y = pos_y + offset[k][1];
@@ -621,17 +624,547 @@ __kernel void edgeDetectorMap(__global float *result, __global float *r, __globa
 			++local_count;
 		}
 	}
-	*/
 
-	static const double weight = 0.01617112696;
+	const double weight = 0.01617112696;
 	const double mul = weight * 8.0 / local_count;
 
-	int idx = (result_y * result_xsize + result_x) * 3;
+	int idx = (res_y * res_xsize + res_x) * 3;
 	result[idx]     = local_xyb[0];
 	result[idx + 1] = local_xyb[1];
 	result[idx + 2] = local_xyb[2];
 }
 
+__kernel void edgeDetectorLowFreq(__global float *result,
+	__global float *r, __global float *g, __global float* b,
+	__global float *r2, __global float* g2, __global float *b2,
+	int xsize, int ysize, int step)
+{
+	const int res_x = get_global_id(0);
+	const int res_y = get_global_id(1);
+
+	if (res_x < 8 / step) return;
+
+	const int res_xsize = get_global_size(0);
+	const int res_ysize = get_global_size(1);
+
+	int pos_x = (res_x - (8 / step)) * step;
+	int pos_y = res_y * step;
+
+	if (pos_x + 8 >= xsize) return;
+	if (pos_y + 8 >= ysize) return;
+
+	int ix = pos_y * xsize + pos_x;
+	
+	double diff[4][3];
+	__global float* blurred0[3] = { r, g, b };
+	__global float* blurred1[3] = { r2, g2, b2 };
+
+	for (int i = 0; i < 3; ++i) {
+		int ix2 = ix + 8;
+		diff[0][i] =
+			((blurred1[i][ix] - blurred0[i][ix]) +
+			(blurred0[i][ix2] - blurred1[i][ix2]));
+		ix2 = ix + 8 * xsize;
+		diff[1][i] =
+			((blurred1[i][ix] - blurred0[i][ix]) +
+			(blurred0[i][ix2] - blurred1[i][ix2]));
+		ix2 = ix + 6 * xsize + 6;
+		diff[2][i] =
+			((blurred1[i][ix] - blurred0[i][ix]) +
+			(blurred0[i][ix2] - blurred1[i][ix2]));
+		ix2 = ix + 6 * xsize - 6;
+		diff[3][i] = pos_x < 8 ? 0 :
+			((blurred1[i][ix] - blurred0[i][ix]) +
+			(blurred0[i][ix2] - blurred1[i][ix2]));
+	}
+	double max_diff_xyb[3] = { 0 };
+	for (int k = 0; k < 4; ++k) {
+		double diff_xyb[3] = { 0 };
+		XybDiffLowFreqSquaredAccumulate(diff[k][0], diff[k][1], diff[k][2],
+			0, 0, 0, 1.0,
+			diff_xyb);
+		for (int i = 0; i < 3; ++i) {
+			max_diff_xyb[i] = max(max_diff_xyb[i], diff_xyb[i]);
+		}
+	}
+
+	int res_ix = res_y * res_xsize + res_x;
+
+	const double kMul = 10;
+
+	result[res_ix * 3] = max_diff_xyb[0] * kMul;
+	result[res_ix * 3 + 1] = max_diff_xyb[1] * kMul;
+	result[res_ix * 3 + 2] = max_diff_xyb[2] * kMul;
+}
+
+#define kBlockEdge 8
+#define kBlockSize (kBlockEdge * kBlockEdge)
+#define kBlockEdgeHalf  (kBlockEdge / 2)
+#define kBlockHalf (kBlockEdge * kBlockEdgeHalf)
+
+__constant double csf8x8[kBlockHalf + kBlockEdgeHalf + 1] = {
+	5.28270670524,
+	0.0,
+	0.0,
+	0.0,
+	0.3831134973,
+	0.676303603859,
+	3.58927792424,
+	18.6104367002,
+	18.6104367002,
+	3.09093131948,
+	1.0,
+	0.498250875965,
+	0.36198671102,
+	0.308982169883,
+	0.1312701920435,
+	2.37370549629,
+	3.58927792424,
+	1.0,
+	2.37370549629,
+	0.991205724152,
+	1.05178802919,
+	0.627264168628,
+	0.4,
+	0.1312701920435,
+	0.676303603859,
+	0.498250875965,
+	0.991205724152,
+	0.5,
+	0.3831134973,
+	0.349686450518,
+	0.627264168628,
+	0.308982169883,
+	0.3831134973,
+	0.36198671102,
+	1.05178802919,
+	0.3831134973,
+	0.12,
+};
+
+typedef struct __Complex
+{
+	double real;
+	double imag;
+}Complex;
+
+constant double kSqrtHalf = 0.70710678118654752440084436210484903;
+
+void RealFFT8(const double* in, Complex* out) {
+	double t1, t2, t3, t5, t6, t7, t8;
+	t8 = in[6];
+	t5 = in[2] - t8;
+	t8 += in[2];
+	out[2].real = t8;
+	out[6].imag = -t5;
+	out[4].imag = t5;
+	t8 = in[4];
+	t3 = in[0] - t8;
+	t8 += in[0];
+	out[0].real = t8;
+	out[4].real = t3;
+	out[6].real = t3;
+	t7 = in[5];
+	t3 = in[1] - t7;
+	t7 += in[1];
+	out[1].real = t7;
+	t8 = in[7];
+	t5 = in[3] - t8;
+	t8 += in[3];
+	out[3].real = t8;
+	t2 = -t5;
+	t6 = t3 - t5;
+	t8 = kSqrtHalf;
+	t6 *= t8;
+	out[5].real = out[4].real - t6;
+	t1 = t3 + t5;
+	t1 *= t8;
+	out[5].imag = out[4].imag - t1;
+	t6 += out[4].real;
+	out[4].real = t6;
+	t1 += out[4].imag;
+	out[4].imag = t1;
+	t5 = t2 - t3;
+	t5 *= t8;
+	out[7].imag = out[6].imag - t5;
+	t2 += t3;
+	t2 *= t8;
+	out[7].real = out[6].real - t2;
+	t2 += out[6].real;
+	out[6].real = t2;
+	t5 += out[6].imag;
+	out[6].imag = t5;
+	t5 = out[2].real;
+	t1 = out[0].real - t5;
+	t7 = out[3].real;
+	t5 += out[0].real;
+	t3 = out[1].real - t7;
+	t7 += out[1].real;
+	t8 = t5 + t7;
+	out[0].real = t8;
+	t5 -= t7;
+	out[1].real = t5;
+	out[2].imag = t3;
+	out[3].imag = -t3;
+	out[3].real = t1;
+	out[2].real = t1;
+	out[0].imag = 0;
+	out[1].imag = 0;
+
+	// Reorder to the correct output order.
+	// TODO: Modify the above computation so that this is not needed.
+	Complex tmp = out[2];
+	out[2] = out[3];
+	out[3] = out[5];
+	out[5] = out[7];
+	out[7] = out[4];
+	out[4] = out[1];
+	out[1] = out[6];
+	out[6] = tmp;
+}
+
+void TransposeBlock(Complex data[kBlockSize]) {
+	for (int i = 0; i < kBlockEdge; i++) {
+		for (int j = 0; j < i; j++) {
+			Complex tmp = data[kBlockEdge * i + j];
+			data[kBlockEdge * i + j] = data[kBlockEdge * j + i];
+			data[kBlockEdge * j + i] = tmp;
+		}
+	}
+}
+
+//  D. J. Bernstein's Fast Fourier Transform algorithm on 4 elements.
+inline void FFT4(Complex* a) {
+	double t1, t2, t3, t4, t5, t6, t7, t8;
+	t5 = a[2].real;
+	t1 = a[0].real - t5;
+	t7 = a[3].real;
+	t5 += a[0].real;
+	t3 = a[1].real - t7;
+	t7 += a[1].real;
+	t8 = t5 + t7;
+	a[0].real = t8;
+	t5 -= t7;
+	a[1].real = t5;
+	t6 = a[2].imag;
+	t2 = a[0].imag - t6;
+	t6 += a[0].imag;
+	t5 = a[3].imag;
+	a[2].imag = t2 + t3;
+	t2 -= t3;
+	a[3].imag = t2;
+	t4 = a[1].imag - t5;
+	a[3].real = t1 + t4;
+	t1 -= t4;
+	a[2].real = t1;
+	t5 += a[1].imag;
+	a[0].imag = t6 + t5;
+	t6 -= t5;
+	a[1].imag = t6;
+}
+
+//  D. J. Bernstein's Fast Fourier Transform algorithm on 8 elements.
+void FFT8(Complex* a) {
+	double t1, t2, t3, t4, t5, t6, t7, t8;
+
+	t7 = a[4].imag;
+	t4 = a[0].imag - t7;
+	t7 += a[0].imag;
+	a[0].imag = t7;
+
+	t8 = a[6].real;
+	t5 = a[2].real - t8;
+	t8 += a[2].real;
+	a[2].real = t8;
+
+	t7 = a[6].imag;
+	a[6].imag = t4 - t5;
+	t4 += t5;
+	a[4].imag = t4;
+
+	t6 = a[2].imag - t7;
+	t7 += a[2].imag;
+	a[2].imag = t7;
+
+	t8 = a[4].real;
+	t3 = a[0].real - t8;
+	t8 += a[0].real;
+	a[0].real = t8;
+
+	a[4].real = t3 - t6;
+	t3 += t6;
+	a[6].real = t3;
+
+	t7 = a[5].real;
+	t3 = a[1].real - t7;
+	t7 += a[1].real;
+	a[1].real = t7;
+
+	t8 = a[7].imag;
+	t6 = a[3].imag - t8;
+	t8 += a[3].imag;
+	a[3].imag = t8;
+	t1 = t3 - t6;
+	t3 += t6;
+
+	t7 = a[5].imag;
+	t4 = a[1].imag - t7;
+	t7 += a[1].imag;
+	a[1].imag = t7;
+
+	t8 = a[7].real;
+	t5 = a[3].real - t8;
+	t8 += a[3].real;
+	a[3].real = t8;
+
+	t2 = t4 - t5;
+	t4 += t5;
+
+	t6 = t1 - t4;
+	t8 = kSqrtHalf;
+	t6 *= t8;
+	a[5].real = a[4].real - t6;
+	t1 += t4;
+	t1 *= t8;
+	a[5].imag = a[4].imag - t1;
+	t6 += a[4].real;
+	a[4].real = t6;
+	t1 += a[4].imag;
+	a[4].imag = t1;
+
+	t5 = t2 - t3;
+	t5 *= t8;
+	a[7].imag = a[6].imag - t5;
+	t2 += t3;
+	t2 *= t8;
+	a[7].real = a[6].real - t2;
+	t2 += a[6].real;
+	a[6].real = t2;
+	t5 += a[6].imag;
+	a[6].imag = t5;
+
+	FFT4(a);
+
+	// Reorder to the correct output order.
+	// TODO: Modify the above computation so that this is not needed.
+	Complex tmp = a[2];
+	a[2] = a[3];
+	a[3] = a[5];
+	a[5] = a[7];
+	a[7] = a[4];
+	a[4] = a[1];
+	a[1] = a[6];
+	a[6] = tmp;
+}
+
+double abssq(const Complex c) {
+	return c.real * c.real + c.imag * c.imag;
+}
+
+void ButteraugliFFTSquared(double block[kBlockSize]) {
+	double global_mul = 0.000064;
+	Complex block_c[kBlockSize];
+
+	for (int y = 0; y < kBlockEdge; ++y) {
+		RealFFT8(block + y * kBlockEdge, block_c + y * kBlockEdge);
+	}
+	TransposeBlock(block_c);
+	double r0[kBlockEdge];
+	double r1[kBlockEdge];
+	for (int x = 0; x < kBlockEdge; ++x) {
+		r0[x] = block_c[x].real;
+		r1[x] = block_c[kBlockHalf + x].real;
+	}
+	RealFFT8(r0, block_c);
+	RealFFT8(r1, block_c + kBlockHalf);
+	for (int y = 1; y < kBlockEdgeHalf; ++y) {
+		FFT8(block_c + y * kBlockEdge);
+	}
+	for (int i = kBlockEdgeHalf; i < kBlockHalf + kBlockEdgeHalf + 1; ++i) {
+		block[i] = abssq(block_c[i]);
+		block[i] *= global_mul;
+	}
+}
+
+__constant double MakeHighFreqColorDiffDy_off = 1.4103373714040413;
+__constant double MakeHighFreqColorDiffDy_inc = 0.7084088867024;
+__constant double MakeHighFreqColorDiffDy_lut[21] ={
+	0.0,
+	MakeHighFreqColorDiffDy_off,
+	MakeHighFreqColorDiffDy_off + 1 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 2 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 3 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 4 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 5 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 6 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 7 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 8 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 9 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 10 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 11 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 12 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 13 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 14 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 15 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 16 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 17 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 18 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 19 * MakeHighFreqColorDiffDy_inc,
+};
+
+double RemoveRangeAroundZero(double v, double range) {
+	if (v >= -range && v < range) {
+		return 0;
+	}
+	if (v < 0) {
+		return v + range;
+	}
+	else {
+		return v - range;
+	}
+}
+
+// Computes 8x8 FFT of each channel of xyb0 and xyb1 and adds the total squared
+// 3-dimensional xybdiff of the two blocks to diff_xyb_{dc,ac} and the average
+// diff on the edges to diff_xyb_edge_dc.
+void ButteraugliBlockDiff(double xyb0[3 * kBlockSize],
+	double xyb1[3 * kBlockSize],
+	double diff_xyb_dc[3],
+	double diff_xyb_ac[3],
+	double diff_xyb_edge_dc[3]) {
+
+	double avgdiff_xyb[3] = { 0.0 };
+	double avgdiff_edge[3][4] = { { 0.0 } };
+	for (int i = 0; i < 3 * kBlockSize; ++i) {
+		const double diff_xyb = xyb0[i] - xyb1[i];
+		const int c = i / kBlockSize;
+		avgdiff_xyb[c] += diff_xyb / kBlockSize;
+		const int k = i % kBlockSize;
+		const int kx = k % kBlockEdge;
+		const int ky = k / kBlockEdge;
+		const int h_edge_idx = ky == 0 ? 1 : ky == 7 ? 3 : -1;
+		const int v_edge_idx = kx == 0 ? 0 : kx == 7 ? 2 : -1;
+		if (h_edge_idx >= 0) {
+			avgdiff_edge[c][h_edge_idx] += diff_xyb / kBlockEdge;
+		}
+		if (v_edge_idx >= 0) {
+			avgdiff_edge[c][v_edge_idx] += diff_xyb / kBlockEdge;
+		}
+	}
+	XybDiffLowFreqSquaredAccumulate(avgdiff_xyb[0],
+		avgdiff_xyb[1],
+		avgdiff_xyb[2],
+		0, 0, 0, csf8x8[0],
+		diff_xyb_dc);
+	for (int i = 0; i < 4; ++i) {
+		XybDiffLowFreqSquaredAccumulate(avgdiff_edge[0][i],
+			avgdiff_edge[1][i],
+			avgdiff_edge[2][i],
+			0, 0, 0, csf8x8[0],
+			diff_xyb_edge_dc);
+	}
+
+	double* xyb_avg = xyb0;
+	double* xyb_halfdiff = xyb1;
+	for (int i = 0; i < 3 * kBlockSize; ++i) {
+		double avg = (xyb0[i] + xyb1[i]) / 2;
+		double halfdiff = (xyb0[i] - xyb1[i]) / 2;
+		xyb_avg[i] = avg;
+		xyb_halfdiff[i] = halfdiff;
+	}
+	double *y_avg = &xyb_avg[kBlockSize];
+	double *x_halfdiff_squared = &xyb_halfdiff[0];
+	double *y_halfdiff = &xyb_halfdiff[kBlockSize];
+	double *z_halfdiff_squared = &xyb_halfdiff[2 * kBlockSize];
+	ButteraugliFFTSquared(y_avg);
+	ButteraugliFFTSquared(x_halfdiff_squared);
+	ButteraugliFFTSquared(y_halfdiff);
+	ButteraugliFFTSquared(z_halfdiff_squared);
+
+	const double xmul = 64.8;
+	const double ymul = 1.753123908348329;
+	const double ymul2 = 1.51983458269;
+	const double zmul = 2.4;
+
+	for (size_t i = kBlockEdgeHalf; i < kBlockHalf + kBlockEdgeHalf + 1; ++i) {
+		double d = csf8x8[i];
+		diff_xyb_ac[0] += d * xmul * x_halfdiff_squared[i];
+		diff_xyb_ac[2] += d * zmul * z_halfdiff_squared[i];
+
+		y_avg[i] = sqrt(y_avg[i]);
+		y_halfdiff[i] = sqrt(y_halfdiff[i]);
+		double y0 = y_avg[i] - y_halfdiff[i];
+		double y1 = y_avg[i] + y_halfdiff[i];
+		// Remove the impact of small absolute values.
+		// This improves the behavior with flat noise.
+		const double ylimit = 0.04;
+		y0 = RemoveRangeAroundZero(y0, ylimit);
+		y1 = RemoveRangeAroundZero(y1, ylimit);
+		if (y0 != y1) {
+			double valy0 = Interpolate(&MakeHighFreqColorDiffDy_lut[0], 21, y0 * ymul2);
+			double valy1 = Interpolate(&MakeHighFreqColorDiffDy_lut[0], 21, y1 * ymul2);
+			double valy = ymul * (valy0 - valy1);
+			diff_xyb_ac[1] += d * valy * valy;
+		}
+	}
+}
+
+__kernel void blockDiffMap(__global float* r, __global float* g, __global float* b,
+	__global float* r2, __global float* g2, __global float* b2,
+	__global float* block_diff_dc, __global float* block_diff_ac,
+	int xsize, int ysize, int step)
+{
+	const int res_x = get_global_id(0);
+	const int res_y = get_global_id(1);
+
+	const int res_xsize = get_global_size(0);
+	const int res_ysize = get_global_size(1);
+
+	int pos_x = res_x * step;
+	int pos_y = res_y * step;
+
+	if ((pos_x + kBlockEdge - step - 1) >= ysize) return;
+	if ((pos_y + kBlockEdge - step - 1) >= xsize) return;
+
+	size_t res_ix = res_y * res_xsize + res_x;
+	size_t offset = min(res_y * step, ysize - 8) * xsize + min(res_x * step, xsize - 8);
+
+	double block0[3 * kBlockEdge * kBlockEdge];
+	double block1[3 * kBlockEdge * kBlockEdge];
+
+	double *block0_r = &block0[0];
+	double *block0_g = &block0[kBlockEdge * kBlockEdge];
+	double *block0_b = &block0[2 * kBlockEdge * kBlockEdge];
+
+	double *block1_r = &block1[0];
+	double *block1_g = &block1[kBlockEdge * kBlockEdge];
+	double *block1_b = &block1[2 * kBlockEdge * kBlockEdge];
+
+	for (int y = 0; y < kBlockEdge; y++)
+	{
+		for (int x = 0; x < kBlockEdge; x++)
+		{
+			block0_r[kBlockEdge * y + x] = r[offset + y * xsize + x];
+			block0_g[kBlockEdge * y + x] = g[offset + y * xsize + x];
+			block0_b[kBlockEdge * y + x] = b[offset + y * xsize + x];
+			block1_r[kBlockEdge * y + x] = r2[offset + y * xsize + x];
+			block1_g[kBlockEdge * y + x] = g2[offset + y * xsize + x];
+			block1_b[kBlockEdge * y + x] = b2[offset + y * xsize + x];
+		}
+	}
+
+	double diff_xyb_dc[3] = { 0.0 };
+	double diff_xyb_ac[3] = { 0.0 };
+	double diff_xyb_edge_dc[3] = { 0.0 };
+
+	ButteraugliBlockDiff(block0, block1, diff_xyb_dc, diff_xyb_ac, diff_xyb_edge_dc);
+
+	for (int i = 0; i < 3; i++)
+	{
+		block_diff_dc[3 * res_ix + i] = diff_xyb_dc[i];
+		block_diff_ac[3 * res_ix + i] = diff_xyb_ac[i];
+	}
+}
 __kernel void MaskHighIntensityChange(
 	__global float *xyb0_x, __global float *xyb0_y, __global float *xyb0_b, 
 	__global float *xyb1_x, __global float *xyb1_y, __global float *xyb1_b,  
@@ -691,28 +1224,45 @@ __kernel void MaskHighIntensityChange(
 	xyb1_b[ix] = (float)(mix[2] * c1_b[ix] + (1 - mix[2]) * ave[2]);
 }
 
+
+__constant double XybToVals_off = 11.38708334481672;
+__constant double XybToVals_inc = 14.550189611520716;
+__constant double XybToVals_lut[21] = {
+	0,
+	XybToVals_off,
+	XybToVals_off + 1 * XybToVals_inc,
+	XybToVals_off + 2 * XybToVals_inc,
+	XybToVals_off + 3 * XybToVals_inc,
+	XybToVals_off + 4 * XybToVals_inc,
+	XybToVals_off + 5 * XybToVals_inc,
+	XybToVals_off + 6 * XybToVals_inc,
+	XybToVals_off + 7 * XybToVals_inc,
+	XybToVals_off + 8 * XybToVals_inc,
+	XybToVals_off + 9 * XybToVals_inc,
+	XybToVals_off + 10 * XybToVals_inc,
+	XybToVals_off + 11 * XybToVals_inc,
+	XybToVals_off + 12 * XybToVals_inc,
+	XybToVals_off + 13 * XybToVals_inc,
+	XybToVals_off + 14 * XybToVals_inc,
+	XybToVals_off + 15 * XybToVals_inc,
+	XybToVals_off + 16 * XybToVals_inc,
+	XybToVals_off + 17 * XybToVals_inc,
+	XybToVals_off + 18 * XybToVals_inc,
+	XybToVals_off + 19 * XybToVals_inc,
+};
+
 void XybToVals(
 	double x, double y, double z,
 	double *valx, double *valy, double *valz)
 {
-	static const double xmul = 0.758304045695;
-	static const double ymul = 2.28148649801;
-	static const double zmul = 1.87816926918;
+	const double xmul = 0.758304045695;
+    const double ymul = 2.28148649801;
+	const double zmul = 1.87816926918;
 
-	double lut[21] = { 0.0 };
-	const double off = 11.38708334481672;
-	const double inc = 14.550189611520716;
-	lut[0] = 0.0;
-	lut[1] = off;
-	for (int i = 2; i < 21; ++i) {
-		lut[i] = lut[i - 1] + inc;
-	}
-
-	*valx = Interpolate(lut, 21, x * xmul);
-	*valy = Interpolate(lut, 21, y * ymul);
+	*valx = Interpolate(&XybToVals_lut[0], 21, x * xmul);
+	*valy = Interpolate(&XybToVals_lut[0], 21, y * ymul);
 	*valz = zmul * z;
 }
-
 
 __kernel void DiffPrecompute(
 	__global float *xyb0_x, __global float *xyb0_y, __global float *xyb0_b,
@@ -779,3 +1329,4 @@ __kernel void DiffPrecompute(
 	m = min(sup0, sup1);
 	mask_b[ix] = (float)(m);
 }
+

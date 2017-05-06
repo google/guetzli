@@ -63,6 +63,9 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "CombineChannels", &err);
 	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "MaskHighIntensityChange", &err);
 	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "DiffPrecompute", &err);
+	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "edgeDetectorMap", &err);
+	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "blockDiffMap", &err);
+	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "edgeDetectorLowFreq", &err);
 
 	return ocl;
 }
@@ -471,7 +474,6 @@ void clMaskHighIntensityChangeEx(ocl_channels xyb0_arg/*in,out*/,
 	}
 }
 
-// strong todo
 void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize, size_t step, cl_mem result/*out*/)
 {
 	cl_int channel_size = xsize * ysize * sizeof(float);
@@ -489,40 +491,134 @@ void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size
 		clBlurEx(rgb.ch[i], xsize, ysize, kSigma[i], 0.0, rgb_blured.ch[i]);
 		clBlurEx(rgb2.ch[i], xsize, ysize, kSigma[i], 0.0, rgb2_blured.ch[i]);
 	}
-	// EdgeDetectorLowFreq
 
+	cl_int clxsize = xsize;
+	cl_int clysize = ysize;
+	cl_int clstep = step;
+
+	cl_kernel kernel = ocl.kernel[KERNEL_EDGEDETECTOR];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), &result);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), &rgb_blured.r);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), &rgb_blured.g);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), &rgb_blured.b);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), &rgb2_blured.r);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), &rgb2_blured.g);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), &rgb2_blured.b);
+	clSetKernelArg(kernel, 7, sizeof(cl_int), &clxsize);
+	clSetKernelArg(kernel, 8, sizeof(cl_int), &clysize);
+	clSetKernelArg(kernel, 9, sizeof(cl_int), &clstep);
+
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (xsize + step - 1) / step;
+
+	size_t globalWorkSize[2] = { res_xsize, res_ysize};
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clEdgeDetectorMapEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clEdgeDetectorMapEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	ocl.releaseMemChannels(rgb_blured);
+	ocl.releaseMemChannels(rgb2_blured);
 }
 
-// strong todo
 void clBlockDiffMapEx(ocl_channels rgb, ocl_channels rgb2,
-	size_t xsize, size_t ysize,
+	size_t xsize, size_t ysize, size_t step,
 	cl_mem block_diff_dc/*out*/, cl_mem block_diff_ac/*out*/)
 {
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
 
+	cl_int clxsize = xsize;
+	cl_int clysize = ysize;
+	cl_int clstep = step;
+
+	cl_kernel kernel = ocl.kernel[KERNEL_BLOCKDIFFMAP];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), &rgb.r);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), &rgb.g);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), &rgb.b);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), &rgb2.r);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), &rgb2.g);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), &rgb2.b);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), &block_diff_dc);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), &block_diff_ac);
+	clSetKernelArg(kernel, 8, sizeof(cl_int), &clxsize);
+	clSetKernelArg(kernel, 9, sizeof(cl_int), &clysize);
+	clSetKernelArg(kernel, 10, sizeof(cl_int), &clstep);
+
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (xsize + step - 1) / step;
+
+	size_t globalWorkSize[2] = { res_xsize, res_ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBlockDiffMapEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clBlockDiffMapEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
 }
 
-// strong todo
 void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
-	size_t xsize, size_t ysize,
+	size_t xsize, size_t ysize, size_t step,
 	cl_mem block_diff_ac/*out*/)
 {
 	cl_int channel_size = xsize * ysize * sizeof(float);
 
 	static const double kSigma = 14;
-	static const double kMul = 10;
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
 	ocl_channels rgb_blured = ocl.allocMemChannels(channel_size);
 	ocl_channels rgb2_blured = ocl.allocMemChannels(channel_size);
 
-	//static const double kSigma[3] = { 1.5, 0.586, 0.4 };
-
 	for (int i = 0; i < 3; i++)
 	{
 		clBlurEx(rgb.ch[i], xsize, ysize, kSigma, 0.0, rgb_blured.ch[i]);
 		clBlurEx(rgb2.ch[i], xsize, ysize, kSigma, 0.0, rgb2_blured.ch[i]);
 	}
+
+	cl_int clxsize = xsize;
+	cl_int clysize = ysize;
+	cl_int clstep = step;
+
+	cl_kernel kernel = ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), &block_diff_ac);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), &rgb_blured.r);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), &rgb_blured.g);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), &rgb_blured.b);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), &rgb2_blured.r);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), &rgb2_blured.g);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), &rgb2_blured.b);
+	clSetKernelArg(kernel, 7, sizeof(cl_int), &clxsize);
+	clSetKernelArg(kernel, 8, sizeof(cl_int), &clysize);
+	clSetKernelArg(kernel, 9, sizeof(cl_int), &clstep);
+
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (xsize + step - 1) / step;
+
+	size_t globalWorkSize[2] = { res_xsize, res_ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clEdgeDetectorLowFreqEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clEdgeDetectorLowFreqEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+
+	ocl.releaseMemChannels(rgb_blured);
+	ocl.releaseMemChannels(rgb2_blured);
 }
 
 void clDiffPrecomputeEx(ocl_channels xyb0, ocl_channels xyb1, size_t xsize, size_t ysize, ocl_channels mask/*out*/)
@@ -757,11 +853,13 @@ void clCombineChannelsEx(
 	cl_mem edge_detector_map, 
 	size_t xsize, size_t ysize, 
 	size_t step, 
-	size_t res_xsize,
 	cl_mem result/*out*/)
 {
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
+
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (xsize + step - 1) / step;
 
 	cl_int clxsize = xsize;
 	cl_int clysize = ysize;
@@ -781,10 +879,9 @@ void clCombineChannelsEx(
 	clSetKernelArg(kernel, 9, sizeof(cl_int), (void*)&clxsize);
 	clSetKernelArg(kernel, 10, sizeof(cl_int), (void*)&clysize);
 	clSetKernelArg(kernel, 11, sizeof(cl_int), (void*)&clstep);
-	clSetKernelArg(kernel, 12, sizeof(cl_int), (void*)&clres_xsize);
-	clSetKernelArg(kernel, 13, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 12, sizeof(cl_mem), (void*)&result);
 
-	size_t globalWorkSize[2] = { xsize / step, ysize /step };
+	size_t globalWorkSize[2] = { res_xsize, res_ysize};
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -797,7 +894,7 @@ void clCombineChannelsEx(
 	}
 }
 
-// strong todo
+// ian todo
 void clCalculateDiffmapEx(cl_mem result/*in,out*/, size_t xsize, size_t ysize, int step)
 {
 /*
@@ -887,30 +984,28 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	err = clEnqueueCopyBuffer(ocl.commandQueue, xyb1.b, xyb1_c.b, 0, 0, channel_size, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
-	cl_mem edge_detector_map = ocl.allocMem(3 * xsize * ysize * sizeof(float));
-	cl_mem block_diff_dc = ocl.allocMem(3 * xsize * ysize * sizeof(float));
-	cl_mem block_diff_ac = ocl.allocMem(3 * xsize * ysize * sizeof(float));
-
+	cl_mem mem_result = ocl.allocMem(channel_size);
 	ocl_channels mask = ocl.allocMemChannels(channel_size);
 	ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
 	
-	size_t res_xsize_; // 成员变量，需要传递
-	size_t res_ysize_; // 成员变量，需要传递
-	cl_mem mem_result = ocl.allocMem(channel_size);
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (xsize + step - 1) / step;
+	
+	cl_mem edge_detector_map = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
+	cl_mem block_diff_dc = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
+	cl_mem block_diff_ac = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
 
 	clMaskHighIntensityChangeEx(xyb0_arg, xyb1_c, xyb0, xyb1, xsize, ysize);
-
-	//clEdgeDetectorMapEx(xyb0_arg, xyb1, xsize, ysize, edge_detector_map);
-	clBlockDiffMapEx(xyb0_arg, xyb1, xsize, ysize, block_diff_dc, block_diff_ac);
-	clEdgeDetectorLowFreqEx(xyb0_arg, xyb1, xsize, ysize, block_diff_ac);
+	
+	clEdgeDetectorMapEx(xyb0_arg, xyb1, xsize, ysize, step, edge_detector_map);
+	clBlockDiffMapEx(xyb0_arg, xyb1, xsize, ysize, step, block_diff_dc, block_diff_ac);
+	clEdgeDetectorLowFreqEx(xyb0_arg, xyb1, xsize, ysize, step, block_diff_ac);
 	
 	clMaskEx(xyb0_arg, xyb1, xsize, ysize, mask, mask_dc);
 
-	size_t xsize_ = 0, ysize_ = 0; // 成员变量，需要传递
-	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, xsize_, ysize_, step, res_xsize_, mem_result);
+	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, xsize, ysize, step, mem_result);
 
     clCalculateDiffmapEx(mem_result, xsize, ysize, step);
-
 
 	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	memcpy(result, result_r, channel_size);
