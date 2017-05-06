@@ -45,15 +45,7 @@ ocl_args_d_t& getOcl(void)
         }
 	}
 	ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "MinSquareVal", &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clCreateKernel(MinSquareVal) for source program returned %s.\n", TranslateOpenCLError(err));
-	}
 	ocl.kernel[KERNEL_CONVOLUTION] = clCreateKernel(ocl.program, "Convolution", &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clCreateKernel(Convolution) for source program returned %s.\n", TranslateOpenCLError(err));
-	}
 	ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "ConvolutionX", &err);
 	ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "ConvolutionY", &err);
 	ocl.kernel[KERNEL_DOWNSAMPLE] = clCreateKernel(ocl.program, "DownSample", &err);
@@ -63,6 +55,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "CombineChannels", &err);
 	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "MaskHighIntensityChange", &err);
 	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "DiffPrecompute", &err);
+	ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "UpsampleSquareRoot", &err);
 	ocl.kernel[KERNEL_CALCULATEDIFFMAPGETBLURRED] = clCreateKernel(ocl.program, "CalculateDiffmapGetBlurred", &err);
 	ocl.kernel[KERNEL_GETDIFFMAPFROMBLURRED] = clCreateKernel(ocl.program, "GetDiffmapFromBlurred", &err);
 	ocl.kernel[KERNEL_AVERAGEADDIMAGE] = clCreateKernel(ocl.program, "AverageAddImage", &err);
@@ -316,12 +309,12 @@ void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize,
 	cl_int clxstep = xstep;
 	cl_int clystep = ystep;
 	cl_kernel kernel = ocl.kernel[KERNEL_DOWNSAMPLE];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&ocl.srcB);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&ocl.dstMem);
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&image);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&result);
 	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clxstep);
 	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clystep);
 
-	size_t globalWorkSize[2] = { ysize, xsize };
+	size_t globalWorkSize[2] = { xsize, ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -367,7 +360,7 @@ void clBlurEx(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
 
 		clConvolutionEx(image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, ocl.srcA);
 		clConvolutionEx(ocl.srcA, ysize, dxsize, mem_expn, expn_size, ystep, diff, border_ratio, ocl.srcB);
-		clUpsampleEx(ocl.srcB, dxsize, dysize, xstep, ystep, result ? result : image);
+		clUpsampleEx(ocl.srcB, xsize, ysize, xstep, ystep, result ? result : image);
 	}
 	else
 	{
@@ -468,12 +461,12 @@ void clMaskHighIntensityChangeEx(ocl_channels xyb0_arg/*in,out*/,
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
-		LogError("Error: clScaleImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+		LogError("Error: clMaskHighIntensityChangeEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
 	}
 	err = clFinish(ocl.commandQueue);
 	if (CL_SUCCESS != err)
 	{
-		LogError("Error: clScaleImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+		LogError("Error: clMaskHighIntensityChangeEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
 }
 
@@ -512,7 +505,7 @@ void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size
 	clSetKernelArg(kernel, 9, sizeof(cl_int), &clstep);
 
 	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize};
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -555,7 +548,7 @@ void clBlockDiffMapEx(ocl_channels rgb, ocl_channels rgb2,
 	clSetKernelArg(kernel, 10, sizeof(cl_int), &clstep);
 
 	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -606,7 +599,7 @@ void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
 	clSetKernelArg(kernel, 9, sizeof(cl_int), &clstep);
 
 	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -658,14 +651,13 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, float w)
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
-	cl_int clsize = size;
 	cl_float clscale = w;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_SCALEIMAGE];
-	clSetKernelArg(kernel, 0, sizeof(cl_int), (void*)&clscale);
+	clSetKernelArg(kernel, 0, sizeof(cl_float), (void*)&clscale);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&img);
 
-	size_t globalWorkSize[1] = { clsize };
+	size_t globalWorkSize[1] = { size };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -734,6 +726,8 @@ void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
 	{
 		LogError("Error: clAverage5x5Ex() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
 	}
+	err = clFinish(ocl.commandQueue);
+
 	clScaleImageEx(img, xsize * ysize, scale);
 }
 
@@ -847,7 +841,7 @@ void clCombineChannelsEx(
 	ocl_args_d_t &ocl = getOcl();
 
 	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
 
 	cl_int clxsize = xsize;
 	cl_int clysize = ysize;
@@ -896,10 +890,10 @@ void clUpsampleSquareRootEx(cl_mem diffmap, size_t xsize, size_t ysize, int step
 	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&xsize);
 	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&ysize);
 	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&step);
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&ocl.dstMem);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&ocl.dstMem);
 
 	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -907,6 +901,7 @@ void clUpsampleSquareRootEx(cl_mem diffmap, size_t xsize, size_t ysize, int step
 	{
 		LogError("Error: clUpsampleSquareRootEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
 	}
+	err = clFinish(ocl.commandQueue);
 	err = clEnqueueCopyBuffer(ocl.commandQueue, ocl.dstMem, diffmap, 0, 0, xsize * ysize * sizeof(float), 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -1030,7 +1025,7 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
 	
 	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
 	
 	cl_mem edge_detector_map = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
 	cl_mem block_diff_dc = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
@@ -1049,6 +1044,7 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
     clCalculateDiffmapEx(mem_result, xsize, ysize, step);
 
 	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
 	memcpy(result, result_r, channel_size);
 
 	ocl.releaseMemChannels(xyb0_arg);

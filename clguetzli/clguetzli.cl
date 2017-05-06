@@ -207,8 +207,8 @@ __kernel void DownSample(__global float* pA, __global float* pC, int xstep, int 
 
 	const int oxsize = xsize / xstep;
 
-	const int sample_x = x / xstep * xstep;
-	const int sample_y = y / ystep * ystep;
+	const int sample_x = x / xstep;
+	const int sample_y = y / ystep;
 
 	pC[y * xsize + x] = pA[sample_y * oxsize + sample_x];
 }
@@ -443,10 +443,10 @@ __kernel void DoMask(
 
 }
 
-__kernel void ScaleImage(double scale, __global float *result)
+__kernel void ScaleImage(float scale, __global float *result)
 {
 	const int i = get_global_id(0);
-	result[i] *= (float)(scale);
+	result[i] *= scale;
 }
 
 double DotProduct(float u[3], double v[3]) {
@@ -582,8 +582,11 @@ __kernel void edgeDetectorMap(__global float *result,
 	int pos_x = res_x * step;
 	int pos_y = res_y * step;
 
-	if (res_x * step >= xsize - (8 - step)) return;
-	if (res_y * step >= ysize - (8 - step)) return;
+	if (pos_x >= xsize - (8 - step)) return;
+	if (pos_y >= ysize - (8 - step)) return;
+
+	pos_x = min(pos_x, xsize - 8);
+	pos_y = min(pos_y, ysize - 8);
 
 	int local_count = 0;
 	double local_xyb[3] = { 0 };
@@ -1330,7 +1333,7 @@ __kernel void DiffPrecompute(
 	mask_b[ix] = (float)(m);
 }
 
-void UpsampleSquareRoot(float *diffmap, size_t xsize, size_t ysize, int step, float *diffmap_out)
+__kernel void UpsampleSquareRoot(__global float *diffmap, int xsize, int ysize, int step, __global float *diffmap_out)
 {
 	const int res_x = get_global_id(0);
 	const int res_y = get_global_id(1);
@@ -1357,7 +1360,7 @@ void UpsampleSquareRoot(float *diffmap, size_t xsize, size_t ysize, int step, fl
 	}
 }
 
-void CalculateDiffmapGetBlurred(float *diffmap, int s, int s2, float *blurred)
+kernel void CalculateDiffmapGetBlurred(__global float *diffmap, int s, int s2, __global float *blurred)
 { 
 	const int x = get_global_id(0);
 	const int y = get_global_id(1);
@@ -1367,7 +1370,7 @@ void CalculateDiffmapGetBlurred(float *diffmap, int s, int s2, float *blurred)
 	blurred[y * xsize + x] = diffmap[(y + s2) * xsize + s + x + s2];
 }
 
-void GetDiffmapFromBlurred(float *blurred, int s, int s2, float *diffmap)
+kernel void GetDiffmapFromBlurred(__global float *blurred, int s, int s2, __global float *diffmap)
 {
 	const int x = get_global_id(0);
 	const int y = get_global_id(1);
@@ -1379,7 +1382,7 @@ void GetDiffmapFromBlurred(float *blurred, int s, int s2, float *diffmap)
 
 }
 
-void AverageAddImage(float *img, float *tmp0, float *tmp1)
+__kernel void AverageAddImage(__global float *img, __global float *tmp0, __global float *tmp1)
 {
 	const int x = get_global_id(0);
 	const int y = get_global_id(1);
