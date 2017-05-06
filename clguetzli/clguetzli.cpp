@@ -65,6 +65,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "DiffPrecompute", &err);
 	ocl.kernel[KERNEL_CALCULATEDIFFMAPGETBLURRED] = clCreateKernel(ocl.program, "CalculateDiffmapGetBlurred", &err);
 	ocl.kernel[KERNEL_GETDIFFMAPFROMBLURRED] = clCreateKernel(ocl.program, "GetDiffmapFromBlurred", &err);
+	ocl.kernel[KERNEL_AVERAGEADDIMAGE] = clCreateKernel(ocl.program, "AverageAddImage", &err);
 
 	return ocl;
 }
@@ -581,7 +582,29 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, float w)
 	}
 }
 
-// ian todo
+void clAverageAddImage(cl_mem img, cl_mem tmp0, cl_mem tmp1, size_t xsize, size_t ysize)
+{
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_kernel kernel = ocl.kernel[KERNEL_AVERAGEADDIMAGE];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&tmp0);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&tmp1);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clAverageAddImage() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clAverageAddImage() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
 void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
 {
 	if (xsize < 4 || ysize < 4) {
@@ -608,45 +631,8 @@ void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
 	static const float scale = 1.0f / (5.0f + 4 * w);
 
 	clScaleImageEx(tmp1, xsize * ysize, w);
-	/* TODO
-	for (int y = 0; y < ysize; y++) {
-		const int row0 = y * xsize;
-		result[row0 + 1] += tmp0[row0];
-		result[row0 + 0] += tmp0[row0 + 1];
-		result[row0 + 2] += tmp0[row0 + 1];
-		for (int x = 2; x < xsize - 2; ++x) {
-			result[row0 + x - 1] += tmp0[row0 + x];
-			result[row0 + x + 1] += tmp0[row0 + x];
-		}
-		result[row0 + xsize - 3] += tmp0[row0 + xsize - 2];
-		result[row0 + xsize - 1] += tmp0[row0 + xsize - 2];
-		result[row0 + xsize - 2] += tmp0[row0 + xsize - 1];
-		if (y > 0) {
-			const int rowd1 = row0 - xsize;
-			result[rowd1 + 1] += tmp1[row0];
-			result[rowd1 + 0] += tmp0[row0];
-			for (int x = 1; x < xsize - 1; ++x) {
-				result[rowd1 + x + 1] += tmp1[row0 + x];
-				result[rowd1 + x + 0] += tmp0[row0 + x];
-				result[rowd1 + x - 1] += tmp1[row0 + x];
-			}
-			result[rowd1 + xsize - 1] += tmp0[row0 + xsize - 1];
-			result[rowd1 + xsize - 2] += tmp1[row0 + xsize - 1];
-		}
-		if (y + 1 < ysize) {
-			const int rowu1 = row0 + xsize;
-			result[rowu1 + 1] += tmp1[row0];
-			result[rowu1 + 0] += tmp0[row0];
-			for (int x = 1; x < xsize - 1; ++x) {
-				result[rowu1 + x + 1] += tmp1[row0 + x];
-				result[rowu1 + x + 0] += tmp0[row0 + x];
-				result[rowu1 + x - 1] += tmp1[row0 + x];
-			}
-			result[rowu1 + xsize - 1] += tmp0[row0 + xsize - 1];
-			result[rowu1 + xsize - 2] += tmp1[row0 + xsize - 1];
-		}
-	}
-	*/
+	clAverageAddImage(result, tmp0, tmp1, xsize, ysize);
+
 	err = clEnqueueCopyBuffer(ocl.commandQueue, result, img, 0, 0, len, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{

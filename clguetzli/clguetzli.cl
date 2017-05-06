@@ -828,3 +828,61 @@ void GetDiffmapFromBlurred(float *blurred, int s, int s2, float *diffmap)
 	diffmap[(y + s2) * xsize + x + s2]	+= (float)(mul1) * blurred[y * (xsize - s) + x];
 
 }
+
+void AverageAddImage(float *img, float *tmp0, float *tmp1)
+{
+	const int x = get_global_id(0);
+	const int y = get_global_id(1);
+	const int xsize = get_global_size(0);
+	const int ysize = get_global_size(1);
+	
+	const int row0 = y * xsize;
+	if (x == 0) // excute once per y
+	{ 
+		img[row0 + 1] += tmp0[row0];
+		img[row0 + 0] += tmp0[row0 + 1];
+		img[row0 + 2] += tmp0[row0 + 1];
+
+		img[row0 + xsize - 3] += tmp0[row0 + xsize - 2];
+		img[row0 + xsize - 1] += tmp0[row0 + xsize - 2];
+		img[row0 + xsize - 2] += tmp0[row0 + xsize - 1];
+
+		if (y > 0) {
+			const int rowd1 = row0 - xsize;
+			img[rowd1 + 1] += tmp1[row0];
+			img[rowd1 + 0] += tmp0[row0];
+			
+			img[rowd1 + xsize - 1] += tmp0[row0 + xsize - 1];
+			img[rowd1 + xsize - 2] += tmp1[row0 + xsize - 1];
+		}
+		if (y + 1 < ysize) {
+			const int rowu1 = row0 + xsize;
+			img[rowu1 + 1] += tmp1[row0];
+			img[rowu1 + 0] += tmp0[row0];
+
+			img[rowu1 + xsize - 1] += tmp0[row0 + xsize - 1];
+			img[rowu1 + xsize - 2] += tmp1[row0 + xsize - 1];
+		}
+	}
+
+	if (x >= 2 && x < xsize - 2) 
+	{
+		img[row0 + x - 1] += tmp0[row0 + x];
+		img[row0 + x + 1] += tmp0[row0 + x];
+	}
+
+	if (x >= 1 && x < xsize - 1) { 
+		if (y > 0) { 
+			const int rowd1 = row0 - xsize;
+			img[rowd1 + x + 1] += tmp1[row0 + x];
+			img[rowd1 + x + 0] += tmp0[row0 + x];
+			img[rowd1 + x - 1] += tmp1[row0 + x];
+		}
+		if (y + 1 < ysize) {
+			const int rowu1 = row0 + xsize;
+			img[rowu1 + x + 1] += tmp1[row0 + x];
+			img[rowu1 + x + 0] += tmp0[row0 + x];
+			img[rowu1 + x - 1] += tmp1[row0 + x];
+		}
+	}
+}
