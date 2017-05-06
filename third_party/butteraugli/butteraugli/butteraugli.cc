@@ -1126,6 +1126,7 @@ void ButteraugliComparator::DiffmapOpsinDynamicsImage(
 		result.resize(xsize_ * ysize_);
 		clDiffmapOpsinDynamicsImage(xyb0_arg[0].data(), xyb0_arg[1].data(), xyb0_arg[2].data(),
 			xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_, result.data());
+		return;
 	}
 
 
