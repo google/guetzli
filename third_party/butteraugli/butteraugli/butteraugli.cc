@@ -1200,6 +1200,10 @@ void ButteraugliComparator::BlockDiffMap(
       }
     }
   }
+  clBlockDiffMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+	  xsize_, ysize_, step_,
+	  (*block_diff_dc).data(), (*block_diff_ac).data());
 }
 
 void ButteraugliComparator::EdgeDetectorMap(
@@ -1232,6 +1236,11 @@ void ButteraugliComparator::EdgeDetectorMap(
       }
     }
   }
+
+  clEdgeDetectorMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+	  xsize_, ysize_, step_,
+	  (*edge_detector_map).data());
 }
 
 void ButteraugliComparator::EdgeDetectorLowFreq(
@@ -1288,6 +1297,11 @@ void ButteraugliComparator::EdgeDetectorLowFreq(
       }
     }
   }
+
+  clEdgeDetectorLowFreq(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+	  xsize_, ysize_, step_,
+	  (*block_diff_ac).data());
 }
 
 void ButteraugliComparator::CombineChannels(
