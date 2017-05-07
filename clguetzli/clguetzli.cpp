@@ -233,6 +233,11 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	memcpy(g, result_g, channel_size);
 	memcpy(b, result_b, channel_size);
 
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.r, result_r, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.g, result_g, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.b, result_b, channel_size, NULL, NULL);
+	clFinish(ocl.commandQueue);
+
     ocl.releaseMemChannels(rgb);
 	ocl.releaseMemChannels(rgb_blurred);
 }
@@ -853,6 +858,9 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 	memcpy(result, result_r, channel_size);
+
+	clEnqueueUnmapMemObject(ocl.commandQueue, mem_result, result_r, channel_size, NULL, NULL);
+	clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb1);
 	ocl.releaseMemChannels(xyb0);
