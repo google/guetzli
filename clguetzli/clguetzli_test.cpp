@@ -30,6 +30,8 @@ void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	const float* result_r, const float* result_g, const float* result_b,
 	const float* result_r2, const float* result_g2, const float* result_b2)
 {
+	if (xsize < 100 || ysize < 100) return;
+
 	size_t channel_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
@@ -79,6 +81,8 @@ void clEdgeDetectorMap(const float* r, const float* g, const float* b,
 	size_t xsize, size_t ysize, size_t step,
 	const float* result)
 {
+	if (xsize < 100 || ysize < 100) return;
+
 	size_t channel_size = xsize * ysize * sizeof(float);
 	const size_t res_xsize = (xsize + step - 1) / step;
 	const size_t res_ysize = (ysize + step - 1) / step;
@@ -119,6 +123,8 @@ void clBlockDiffMap(const float* r, const float* g, const float* b,
 	size_t xsize, size_t ysize, size_t step,
 	const float* result_diff_dc, const float* result_diff_ac)
 {
+	if (xsize < 100 || ysize < 100) return;
+
 	size_t channel_size = xsize * ysize * sizeof(float);
 	const size_t res_xsize = (xsize + step - 1) / step;
 	const size_t res_ysize = (ysize + step - 1) / step;
@@ -166,6 +172,8 @@ void clEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 	size_t xsize, size_t ysize, size_t step,
 	const float* result_diff_dc)
 {
+	if (xsize < 100 || ysize < 100) return;
+
 	size_t channel_size = xsize * ysize * sizeof(float);
 	const size_t res_xsize = (xsize + step - 1) / step;
 	const size_t res_ysize = (ysize + step - 1) / step;
@@ -208,6 +216,8 @@ void clMask(const float* r, const float* g, const float* b,
 	const float* mask_r, const float* mask_g, const float* mask_b,
 	const float* maskdc_r, const float* maskdc_g, const float* maskdc_b)
 {
+	if (xsize < 100 || ysize < 100) return;
+
 	size_t channel_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
