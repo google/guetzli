@@ -5,7 +5,9 @@
 #include "clguetzli.h"
 #include "ocl.h"
 
-int floatCompare(const float* a, const float* b, size_t size)
+#define FLOAT_COMPARE(a, b, c)  floatCompare((a), (b), (c), __FUNCTION__, __LINE__ )
+
+int floatCompare(const float* a, const float* b, size_t size, const char* szFunc, int line)
 {
 	int count = 0;
 	for (int i = 0; i < size; i++)
@@ -14,6 +16,10 @@ int floatCompare(const float* a, const float* b, size_t size)
 		{
 			count++;
 		}
+	}
+	if (count > 0)
+	{
+		LogError("CHK %s(%d) %d:%d\r\n", szFunc, line, count, size);
 	}
 	return count;
 }
@@ -48,12 +54,20 @@ void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	cl_float *r1_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, xyb1.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
-	floatCompare(result_r, r0_r, xsize * ysize);
-	floatCompare(result_g, r0_g, xsize * ysize);
-	floatCompare(result_b, r0_b, xsize * ysize);
-	floatCompare(result_r2, r1_r, xsize * ysize);
-	floatCompare(result_g2, r1_g, xsize * ysize);
-	floatCompare(result_b2, r1_b, xsize * ysize);
+	FLOAT_COMPARE(result_r, r0_r, xsize * ysize);
+	FLOAT_COMPARE(result_g, r0_g, xsize * ysize);
+	FLOAT_COMPARE(result_b, r0_b, xsize * ysize);
+	FLOAT_COMPARE(result_r2, r1_r, xsize * ysize);
+	FLOAT_COMPARE(result_g2, r1_g, xsize * ysize);
+	FLOAT_COMPARE(result_b2, r1_b, xsize * ysize);
+
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.r, r0_r, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.g, r0_g, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.b, r0_b, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.r, r1_r, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.g, r1_g, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.b, r1_b, channel_size, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb0);
 	ocl.releaseMemChannels(xyb1);
@@ -89,8 +103,11 @@ void clEdgeDetectorMap(const float* r, const float* g, const float* b,
 	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, edge, true, CL_MAP_READ, 0, edgemap_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
-	floatCompare(result, r_r, res_xsize * res_ysize * 3);
+	FLOAT_COMPARE(result, r_r, res_xsize * res_ysize * 3);
 	
+	clEnqueueUnmapMemObject(ocl.commandQueue, edge, r_r, edgemap_size, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
 	ocl.releaseMemChannels(xyb0);
 	ocl.releaseMemChannels(xyb1);
 	clReleaseMemObject(edge);
@@ -129,8 +146,12 @@ void clBlockDiffMap(const float* r, const float* g, const float* b,
 	cl_float *r_ac = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, block_diff_ac, true, CL_MAP_READ, 0, reschannel_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
-	floatCompare(r_dc, result_diff_dc, res_xsize * res_ysize * 3);
-	floatCompare(r_ac, result_diff_ac, res_xsize * res_ysize * 3);
+	FLOAT_COMPARE(r_dc, result_diff_dc, res_xsize * res_ysize * 3);
+	FLOAT_COMPARE(r_ac, result_diff_ac, res_xsize * res_ysize * 3);
+
+	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_dc, r_dc, reschannel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_ac, r_ac, reschannel_size, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb0);
 	ocl.releaseMemChannels(xyb1);
@@ -170,7 +191,10 @@ void clEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 	cl_float *r_dc = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, block_diff_dc, true, CL_MAP_READ, 0, reschannel_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
-	floatCompare(r_dc, result_diff_dc, res_xsize * res_ysize * 3);
+	FLOAT_COMPARE(r_dc, result_diff_dc, res_xsize * res_ysize * 3);
+
+	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_dc, r_dc, reschannel_size, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb0);
 	ocl.releaseMemChannels(xyb1);
@@ -211,12 +235,20 @@ void clMask(const float* r, const float* g, const float* b,
 	cl_float *r1_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask_dc.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
-	floatCompare(mask_r, r0_r, xsize * ysize);
-	floatCompare(mask_g, r0_g, xsize * ysize);
-	floatCompare(mask_b, r0_b, xsize * ysize);
-	floatCompare(maskdc_r, r1_r, xsize * ysize);
-	floatCompare(maskdc_g, r1_g, xsize * ysize);
-	floatCompare(maskdc_b, r1_b, xsize * ysize);
+	FLOAT_COMPARE(mask_r, r0_r, xsize * ysize);
+	FLOAT_COMPARE(mask_g, r0_g, xsize * ysize);
+	FLOAT_COMPARE(mask_b, r0_b, xsize * ysize);
+	FLOAT_COMPARE(maskdc_r, r1_r, xsize * ysize);
+	FLOAT_COMPARE(maskdc_g, r1_g, xsize * ysize);
+	FLOAT_COMPARE(maskdc_b, r1_b, xsize * ysize);
+
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask.r, r0_r, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask.g, r0_g, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask.b, r0_b, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.r, r1_r, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.g, r1_g, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.b, r1_b, channel_size, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(rgb);
 	ocl.releaseMemChannels(rgb2);
@@ -232,6 +264,48 @@ void clCombineChannels(void)
 
 // ian todo
 void clCalculateDiffmapEx(void)
+{
+
+}
+
+//
+void clBlur(void)
+{
+
+}
+
+//
+void clConvolution(void)
+{
+
+}
+
+//
+void clUpsample(void)
+{
+
+}
+
+//
+void clDiffPrecompute(void)
+{
+
+}
+
+//
+void clAverage5x5(void)
+{
+
+}
+
+//
+void clMinSquareVal(void)
+{
+
+}
+
+//
+void clScaleImage(void)
 {
 
 }
