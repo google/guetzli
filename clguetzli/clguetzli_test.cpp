@@ -268,43 +268,43 @@ void clCalculateDiffmapEx(void)
 
 }
 
-//
+// strong todo
 void clBlur(void)
 {
 
 }
 
-//
+// strong todo
 void clConvolution(void)
 {
 
 }
 
-//
+// strong todo
 void clUpsample(void)
 {
 
 }
 
-//
+// ian todo
 void clDiffPrecompute(void)
 {
 
 }
 
-//
+// ian todo
 void clAverage5x5(void)
 {
 
 }
 
-//
+// strong todo
 void clMinSquareVal(void)
 {
 
 }
 
-//
+// ian todo
 void clScaleImage(void)
 {
 
