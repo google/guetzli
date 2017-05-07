@@ -5,16 +5,17 @@
 #include "clguetzli.h"
 #include "ocl.h"
 
-bool floatCompare(const float* a, const float* b, size_t size)
+int floatCompare(const float* a, const float* b, size_t size)
 {
+	int count = 0;
 	for (int i = 0; i < size; i++)
 	{
 		if (fabs(a[i] - b[i]) > 0.001)
 		{
-			return false;
+			count++;
 		}
 	}
-	return true;
+	return count;
 }
 
 void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
@@ -35,7 +36,6 @@ void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-
 	err = clFinish(ocl.commandQueue);
 
 	clMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
@@ -46,6 +46,7 @@ void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	cl_float *r1_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, xyb1.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	cl_float *r1_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, xyb1.g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	cl_float *r1_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, xyb1.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
 
 	floatCompare(result_r, r0_r, xsize * ysize);
 	floatCompare(result_g, r0_g, xsize * ysize);
@@ -59,21 +60,122 @@ void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
 }
 
 // strong to
-void clEdgeDetectorMap(void)
+void clEdgeDetectorMap(const float* r, const float* g, const float* b,
+	const float* r2, const float* g2, const float* b2,
+	size_t xsize, size_t ysize, size_t step,
+	const float* result)
 {
+	size_t channel_size = xsize * ysize * sizeof(float);
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
+	const size_t edgemap_size = res_xsize * res_ysize * 3 * sizeof(float);
 
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
+	cl_mem edge = ocl.allocMem(edgemap_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clEdgeDetectorMapEx(xyb0, xyb1, xsize, ysize, step, edge);
+
+	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, edge, true, CL_MAP_READ, 0, edgemap_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
+
+	floatCompare(result, r_r, res_xsize * res_ysize * 3);
+	
+	ocl.releaseMemChannels(xyb0);
+	ocl.releaseMemChannels(xyb1);
+	clReleaseMemObject(edge);
 }
 
 // strong todo
-void clBlockDiffMap(void)
+void clBlockDiffMap(const float* r, const float* g, const float* b,
+	const float* r2, const float* g2, const float* b2,
+	size_t xsize, size_t ysize, size_t step,
+	const float* result_diff_dc, const float* result_diff_ac)
 {
+	size_t channel_size = xsize * ysize * sizeof(float);
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
+	const size_t reschannel_size = res_xsize * res_ysize * 3 * sizeof(float);
 
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
+	
+	cl_mem block_diff_dc = ocl.allocMem(reschannel_size);
+	cl_mem block_diff_ac = ocl.allocMem(reschannel_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clBlockDiffMapEx(xyb0, xyb1, xsize, ysize, step, block_diff_dc, block_diff_ac);
+
+	cl_float *r_dc = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, block_diff_dc, true, CL_MAP_READ, 0, reschannel_size, 0, NULL, NULL, &err);
+	cl_float *r_ac = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, block_diff_ac, true, CL_MAP_READ, 0, reschannel_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
+
+	floatCompare(r_dc, result_diff_dc, res_xsize * res_ysize * 3);
+	floatCompare(r_ac, result_diff_ac, res_xsize * res_ysize * 3);
+
+	ocl.releaseMemChannels(xyb0);
+	ocl.releaseMemChannels(xyb1);
+
+	clReleaseMemObject(block_diff_ac);
+	clReleaseMemObject(block_diff_dc);
 }
 
 // strong to
-void clEdgeDetectorLowFreq(void)
+void clEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
+	const float* r2, const float* g2, const float* b2,
+	size_t xsize, size_t ysize, size_t step,
+	const float* result_diff_dc)
 {
+	size_t channel_size = xsize * ysize * sizeof(float);
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
+	const size_t reschannel_size = res_xsize * res_ysize * 3 * sizeof(float);
 
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
+
+	cl_mem block_diff_dc = ocl.allocMem(reschannel_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clEdgeDetectorLowFreqEx(xyb0, xyb1, xsize, ysize, step, block_diff_dc);
+
+	cl_float *r_dc = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, block_diff_dc, true, CL_MAP_READ, 0, reschannel_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
+
+	floatCompare(r_dc, result_diff_dc, res_xsize * res_ysize * 3);
+
+	ocl.releaseMemChannels(xyb0);
+	ocl.releaseMemChannels(xyb1);
+
+	clReleaseMemObject(block_diff_dc);
 }
 
 void clMask(const float* r, const float* g, const float* b,
@@ -97,7 +199,6 @@ void clMask(const float* r, const float* g, const float* b,
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb2.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb2.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb2.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-
 	err = clFinish(ocl.commandQueue);
 	
 	clMaskEx(rgb, rgb2, xsize, ysize, mask/*out*/, mask_dc/*out*/);
@@ -108,6 +209,7 @@ void clMask(const float* r, const float* g, const float* b,
 	cl_float *r1_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask_dc.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	cl_float *r1_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask_dc.g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	cl_float *r1_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask_dc.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
 
 	floatCompare(mask_r, r0_r, xsize * ysize);
 	floatCompare(mask_g, r0_g, xsize * ysize);
