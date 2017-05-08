@@ -323,7 +323,7 @@ __kernel void ScaleImage(float scale, __global float *result)
 	result[i] *= scale;
 }
 
-double DotProduct(float u[3], double v[3]) {
+double DotProduct(__global float u[3], double v[3]) {
   return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
 }
 
@@ -359,9 +359,9 @@ __kernel void CombineChannels(
 
 	size_t res_ix = (res_y * res_xsize + res_x) / step;
 	result[res_ix] = (float)(
-		DotProduct((float *)&block_diff_dc[3 * res_ix], dc_mask) +
-		DotProduct((float *)&block_diff_ac[3 * res_ix], mask) +
-		DotProduct((float *)&edge_detector_map[3 * res_ix], mask));
+		DotProduct(&block_diff_dc[3 * res_ix], dc_mask) +
+		DotProduct(&block_diff_ac[3 * res_ix], mask) +
+		DotProduct(&edge_detector_map[3 * res_ix], mask));
 }
 
 inline double Interpolate(const double *array, int size, double sx) {
@@ -800,7 +800,7 @@ double abssq(const Complex c) {
 	return c.real * c.real + c.imag * c.imag;
 }
 
-void ButteraugliFFTSquared(double block[kBlockSize]) {
+void ButteraugliFFTSquared(__private double block[kBlockSize]) {
 	double global_mul = 0.000064;
 	Complex block_c[kBlockSize];
 
@@ -840,8 +840,8 @@ double RemoveRangeAroundZero(double v, double range) {
 // Computes 8x8 FFT of each channel of xyb0 and xyb1 and adds the total squared
 // 3-dimensional xybdiff of the two blocks to diff_xyb_{dc,ac} and the average
 // diff on the edges to diff_xyb_edge_dc.
-void ButteraugliBlockDiff(double xyb0[3 * kBlockSize],
-	double xyb1[3 * kBlockSize],
+void ButteraugliBlockDiff(__private double xyb0[3 * kBlockSize],
+	__private double xyb1[3 * kBlockSize],
 	double diff_xyb_dc[3],
 	double diff_xyb_ac[3],
 	double diff_xyb_edge_dc[3]) {
