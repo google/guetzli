@@ -587,8 +587,8 @@ typedef struct __Complex
 }Complex;
 
 
+__constant double kSqrtHalf = 0.70710678118654752440084436210484903;
 void RealFFT8(const double* in, Complex* out) {
-	const double kSqrtHalf = 0.70710678118654752440084436210484903;
 	double t1, t2, t3, t5, t6, t7, t8;
 	t8 = in[6];
 	t5 = in[2] - t8;
@@ -863,6 +863,45 @@ __constant double MakeHighFreqColorDiffDy_lut[21] = {
 	MakeHighFreqColorDiffDy_off + 19 * MakeHighFreqColorDiffDy_inc,
 };
 
+__constant double csf8x8[kBlockHalf + kBlockEdgeHalf + 1] = {
+	5.28270670524,
+	0.0,
+	0.0,
+	0.0,
+	0.3831134973,
+	0.676303603859,
+	3.58927792424,
+	18.6104367002,
+	18.6104367002,
+	3.09093131948,
+	1.0,
+	0.498250875965,
+	0.36198671102,
+	0.308982169883,
+	0.1312701920435,
+	2.37370549629,
+	3.58927792424,
+	1.0,
+	2.37370549629,
+	0.991205724152,
+	1.05178802919,
+	0.627264168628,
+	0.4,
+	0.1312701920435,
+	0.676303603859,
+	0.498250875965,
+	0.991205724152,
+	0.5,
+	0.3831134973,
+	0.349686450518,
+	0.627264168628,
+	0.308982169883,
+	0.3831134973,
+	0.36198671102,
+	1.05178802919,
+	0.3831134973,
+	0.12,
+};
 
 // Computes 8x8 FFT of each channel of xyb0 and xyb1 and adds the total squared
 // 3-dimensional xybdiff of the two blocks to diff_xyb_{dc,ac} and the average
