@@ -72,6 +72,13 @@ typedef union ocl_channels_t
         cl_mem b;
     };
 
+	struct
+	{
+		cl_mem x;
+		cl_mem y;
+		cl_mem b;
+	};
+
     cl_mem ch[3];
 }ocl_channels;
 
