@@ -580,55 +580,15 @@ __kernel void edgeDetectorLowFreq(__global float *result,
 #define kBlockEdgeHalf  (kBlockEdge / 2)
 #define kBlockHalf (kBlockEdge * kBlockEdgeHalf)
 
-__constant double csf8x8[kBlockHalf + kBlockEdgeHalf + 1] = {
-	5.28270670524,
-	0.0,
-	0.0,
-	0.0,
-	0.3831134973,
-	0.676303603859,
-	3.58927792424,
-	18.6104367002,
-	18.6104367002,
-	3.09093131948,
-	1.0,
-	0.498250875965,
-	0.36198671102,
-	0.308982169883,
-	0.1312701920435,
-	2.37370549629,
-	3.58927792424,
-	1.0,
-	2.37370549629,
-	0.991205724152,
-	1.05178802919,
-	0.627264168628,
-	0.4,
-	0.1312701920435,
-	0.676303603859,
-	0.498250875965,
-	0.991205724152,
-	0.5,
-	0.3831134973,
-	0.349686450518,
-	0.627264168628,
-	0.308982169883,
-	0.3831134973,
-	0.36198671102,
-	1.05178802919,
-	0.3831134973,
-	0.12,
-};
-
 typedef struct __Complex
 {
 	double real;
 	double imag;
 }Complex;
 
-constant double kSqrtHalf = 0.70710678118654752440084436210484903;
 
 void RealFFT8(const double* in, Complex* out) {
+	const double kSqrtHalf = 0.70710678118654752440084436210484903;
 	double t1, t2, t3, t5, t6, t7, t8;
 	t8 = in[6];
 	t5 = in[2] - t8;
@@ -743,6 +703,7 @@ inline void FFT4(Complex* a) {
 
 //  D. J. Bernstein's Fast Fourier Transform algorithm on 8 elements.
 void FFT8(Complex* a) {
+	const double kSqrtHalf = 0.70710678118654752440084436210484903;
 	double t1, t2, t3, t4, t5, t6, t7, t8;
 
 	t7 = a[4].imag;
@@ -887,6 +848,47 @@ void ButteraugliBlockDiff(double xyb0[3 * kBlockSize],
 
 	double avgdiff_xyb[3] = { 0.0 };
 	double avgdiff_edge[3][4] = { { 0.0 } };
+	
+	const double csf8x8[kBlockHalf + kBlockEdgeHalf + 1] = {
+		5.28270670524,
+		0.0,
+		0.0,
+		0.0,
+		0.3831134973,
+		0.676303603859,
+		3.58927792424,
+		18.6104367002,
+		18.6104367002,
+		3.09093131948,
+		1.0,
+		0.498250875965,
+		0.36198671102,
+		0.308982169883,
+		0.1312701920435,
+		2.37370549629,
+		3.58927792424,
+		1.0,
+		2.37370549629,
+		0.991205724152,
+		1.05178802919,
+		0.627264168628,
+		0.4,
+		0.1312701920435,
+		0.676303603859,
+		0.498250875965,
+		0.991205724152,
+		0.5,
+		0.3831134973,
+		0.349686450518,
+		0.627264168628,
+		0.308982169883,
+		0.3831134973,
+		0.36198671102,
+		1.05178802919,
+		0.3831134973,
+		0.12,
+	};
+
 	for (int i = 0; i < 3 * kBlockSize; ++i) {
 		const double diff_xyb = xyb0[i] - xyb1[i];
 		const int c = i / kBlockSize;
