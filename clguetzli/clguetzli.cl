@@ -109,7 +109,7 @@ void OpsinAbsorbance(const double in[3], double out[3])
 	out[2] = g_mix[8] * in[0] + g_mix[9] * in[1] + g_mix[10] * in[2] + g_mix[11];
 }
 
-double EvaluatePolynomial(const double x, const double *coefficients, int n)
+double EvaluatePolynomial(const double x, __constant const double *coefficients, int n)
 {
 	double b1 = 0.0;
 	double b2 = 0.0;
@@ -130,25 +130,25 @@ double EvaluatePolynomial(const double x, const double *coefficients, int n)
 	return b1;
 }
 
+
+__constant double g_gamma_p[5 + 1] = {
+	881.979476556478289, 1496.058452015812463, 908.662212739659481,
+	373.566100223287378, 85.840860336314364, 6.683258861509244,
+};
+__constant double g_gamma_q[5 + 1] = {
+	12.262350348616792, 20.557285797683576, 12.161463238367844,
+	4.711532733641639, 0.899112889751053, 0.035662329617191,
+};
+
 double Gamma(double v)
 {
-	double min_value = 0.770000000000000;
-	double max_value = 274.579999999999984;
-
-	const double p[5 + 1] = {
-		881.979476556478289, 1496.058452015812463, 908.662212739659481,
-		373.566100223287378, 85.840860336314364, 6.683258861509244,
-	};
-	const double q[5 + 1] = {
-		12.262350348616792, 20.557285797683576, 12.161463238367844,
-		4.711532733641639, 0.899112889751053, 0.035662329617191,
-	};
-
+	const double min_value = 0.770000000000000;
+	const double max_value = 274.579999999999984;
 	const double x01 = (v - min_value) / (max_value - min_value);
 	const double xc = 2.0 * x01 - 1.0;
 
-	const double yp = EvaluatePolynomial(xc, p, 6);
-	const double yq = EvaluatePolynomial(xc, q, 6);
+	const double yp = EvaluatePolynomial(xc, g_gamma_p, 6);
+	const double yq = EvaluatePolynomial(xc, g_gamma_q, 6);
 	if (yq == 0.0) return 0.0;
 	return (float)(yp / yq);
 }
@@ -842,46 +842,6 @@ void ButteraugliBlockDiff(__private double xyb0[3 * kBlockSize],
 	double avgdiff_xyb[3] = { 0.0 };
 	double avgdiff_edge[3][4] = { { 0.0 } };
 
-	const double csf8x8[kBlockHalf + kBlockEdgeHalf + 1] = {
-		5.28270670524,
-		0.0,
-		0.0,
-		0.0,
-		0.3831134973,
-		0.676303603859,
-		3.58927792424,
-		18.6104367002,
-		18.6104367002,
-		3.09093131948,
-		1.0,
-		0.498250875965,
-		0.36198671102,
-		0.308982169883,
-		0.1312701920435,
-		2.37370549629,
-		3.58927792424,
-		1.0,
-		2.37370549629,
-		0.991205724152,
-		1.05178802919,
-		0.627264168628,
-		0.4,
-		0.1312701920435,
-		0.676303603859,
-		0.498250875965,
-		0.991205724152,
-		0.5,
-		0.3831134973,
-		0.349686450518,
-		0.627264168628,
-		0.308982169883,
-		0.3831134973,
-		0.36198671102,
-		1.05178802919,
-		0.3831134973,
-		0.12,
-	};
-
 	for (int i = 0; i < 3 * kBlockSize; ++i) {
 		const double diff_xyb = xyb0[i] - xyb1[i];
 		const int c = i / kBlockSize;
@@ -932,8 +892,6 @@ void ButteraugliBlockDiff(__private double xyb0[3 * kBlockSize],
 	const double ymul = 1.753123908348329;
 	const double ymul2 = 1.51983458269;
 	const double zmul = 2.4;
-
-
 
 	for (size_t i = kBlockEdgeHalf; i < kBlockHalf + kBlockEdgeHalf + 1; ++i) {
 		double d = csf8x8[i];
@@ -1034,13 +992,11 @@ __kernel void MaskHighIntensityChange(
 	};
 	double sqr_max_diff = -1;
 	{
-		int offset[4] =
-			{ -1, 1, -(int)(xsize), (int)(xsize) };
-		int border[4] =
-			{ x == 0, x + 1 == xsize, y == 0, y + 1 == ysize };
+		int offset[4] = { -1, 1, -(int)(xsize), (int)(xsize) };
+		int border[4] = { x == 0, x + 1 == xsize, y == 0, y + 1 == ysize };
 		for (int dir = 0; dir < 4; ++dir) {
 			if (border[dir]) {
-			continue;
+				continue;
 			}
 			const int ix2 = ix + offset[dir];
 			double diff = 0.5 * (c0_y[ix2] + c1_y[ix2]) - ave[1];

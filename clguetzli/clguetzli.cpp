@@ -615,7 +615,7 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	double offset = 0.454909521427;
 	double scaler = 0.0738288224836;
 	double mul = 20.8029176447;
-	double lut_x[512];
+	static double lut_x[512];
 	MakeMask(extmul, extoff, mul, offset, scaler, lut_x);
 
 	extmul = 0.373995618954;
@@ -623,7 +623,7 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	offset = 0.911952641929;
 	scaler = 1.1731667845;
 	mul = 16.2447033988;
-	double lut_y[512];
+	static double lut_y[512];
 	MakeMask(extmul, extoff, mul, offset, scaler, lut_y);
 
 	extmul = 0.61582234137;
@@ -631,7 +631,7 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	offset = 1.05105070921;
 	scaler = 0.47434643535;
 	mul = 31.1444967089;
-	double lut_b[512];
+	static double lut_b[512];
 	MakeMask(extmul, extoff, mul, offset, scaler, lut_b);
 
 	extmul = 1.79116943438;
@@ -639,7 +639,7 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	offset = 0.670960225853;
 	scaler = 0.486575865525;
 	mul = 20.4563479139;
-	double lut_dcx[512];
+	static double lut_dcx[512];
 	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcx);
 
 	extmul = 0.212223514236;
@@ -647,7 +647,7 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	offset = 1.73396799447;
 	scaler = 0.170392660501;
 	mul = 21.6566724788;
-	double lut_dcy[512];
+	static double lut_dcy[512];
 	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcy);
 
 	extmul = 0.349376011816;
@@ -655,7 +655,7 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	offset = 0.901647926679;
 	scaler = 0.380086095024;
 	mul = 18.0373825149;
-	double lut_dcb[512];
+	static double lut_dcb[512];
 	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcb);
 
 	size_t channel_size = 512 * 3 * sizeof(double);
