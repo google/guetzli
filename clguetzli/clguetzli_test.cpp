@@ -283,19 +283,19 @@ void clCalculateDiffmapEx(void)
 
 }
 
-// strong todo
+// chrisk todo
 void clBlur(void)
 {
 
 }
 
-// strong todo
+// chrisk todo
 void clConvolution(void)
 {
 
 }
 
-// strong todo
+// chirsk todo
 void clUpsample(void)
 {
 
@@ -313,7 +313,7 @@ void clAverage5x5(void)
 
 }
 
-// strong todo
+// chrisk todo
 void clMinSquareVal(void)
 {
 
