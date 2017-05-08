@@ -188,7 +188,7 @@ void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, ocl_channels rgb_blurred
 	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&rgb_blurred.b);
 	clSetKernelArg(kernel, 6, sizeof(cl_int), (void*)&clSize);
 
-	size_t globalWorkSize[1] = { clSize };
+	size_t globalWorkSize[1] = { size };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -468,15 +468,15 @@ void clDiffPrecomputeEx(ocl_channels xyb0, ocl_channels xyb1, size_t xsize, size
 	}
 }
 
-void clScaleImageEx(cl_mem img/*in, out*/, size_t size, float w)
+void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w)
 {
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
-	cl_float clscale = w;
+	cl_double clscale = w;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_SCALEIMAGE];
-	clSetKernelArg(kernel, 0, sizeof(cl_float), (void*)&clscale);
+	clSetKernelArg(kernel, 0, sizeof(cl_double), (void*)&clscale);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&img);
 
 	size_t globalWorkSize[1] = { size };
@@ -587,6 +587,18 @@ void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t s
 	}
 }
 
+
+static void MakeMask(double extmul, double extoff,
+	double mul, double offset,
+	double scaler, double *result)
+{
+	for (size_t i = 0; i < 512; ++i) {
+		const double c = mul / ((0.01 * scaler * i) + offset);
+		result[i] = 1.0 + extmul * (c + extoff);
+		result[i] *= result[i];
+	}
+}
+
 static const double kInternalGoodQualityThreshold = 14.921561160295326;
 static const double kGlobalScale = 1.0 / kInternalGoodQualityThreshold;
 
@@ -598,6 +610,64 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	cl_int clxsize = xsize;
 	cl_int clysize = ysize;
 
+	double extmul = 0.975741017749;
+	double extoff = -4.25328244168;
+	double offset = 0.454909521427;
+	double scaler = 0.0738288224836;
+	double mul = 20.8029176447;
+	double lut_x[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut_x);
+
+	extmul = 0.373995618954;
+	extoff = 1.5307267433;
+	offset = 0.911952641929;
+	scaler = 1.1731667845;
+	mul = 16.2447033988;
+	double lut_y[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut_y);
+
+	extmul = 0.61582234137;
+	extoff = -4.25376118646;
+	offset = 1.05105070921;
+	scaler = 0.47434643535;
+	mul = 31.1444967089;
+	double lut_b[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut_b);
+
+	extmul = 1.79116943438;
+	extoff = -3.86797479189;
+	offset = 0.670960225853;
+	scaler = 0.486575865525;
+	mul = 20.4563479139;
+	double lut_dcx[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcx);
+
+	extmul = 0.212223514236;
+	extoff = -3.65647120524;
+	offset = 1.73396799447;
+	scaler = 0.170392660501;
+	mul = 21.6566724788;
+	double lut_dcy[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcy);
+
+	extmul = 0.349376011816;
+	extoff = -0.894711072781;
+	offset = 0.901647926679;
+	scaler = 0.380086095024;
+	mul = 18.0373825149;
+	double lut_dcb[512];
+	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcb);
+
+	size_t channel_size = 512 * 3 * sizeof(double);
+	ocl_channels xyb = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb_dc = ocl.allocMemChannels(channel_size);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb.x, CL_FALSE, 0, channel_size, lut_x, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb.y, CL_FALSE, 0, channel_size, lut_y, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb.b, CL_FALSE, 0, channel_size, lut_b, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb_dc.x, CL_FALSE, 0, channel_size, lut_dcx, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb_dc.y, CL_FALSE, 0, channel_size, lut_dcy, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, xyb_dc.b, CL_FALSE, 0, channel_size, lut_dcb, 0, NULL, NULL);
+
 	cl_kernel kernel = ocl.kernel[KERNEL_DOMASK];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mask.r);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mask.g);
@@ -605,8 +675,12 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&mask_dc.r);
 	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&mask_dc.g);
 	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&mask_dc.b);
-	clSetKernelArg(kernel, 6, sizeof(cl_int), (void*)&clxsize);
-	clSetKernelArg(kernel, 7, sizeof(cl_int), (void*)&clysize);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&xyb.x);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&xyb.y);
+	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&xyb.b);
+	clSetKernelArg(kernel, 9, sizeof(cl_mem), (void*)&xyb_dc.x);
+	clSetKernelArg(kernel, 10, sizeof(cl_mem), (void*)&xyb_dc.y);
+	clSetKernelArg(kernel, 11, sizeof(cl_mem), (void*)&xyb_dc.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -619,7 +693,11 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	{
 		LogError("Error: clDoMask() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
+
+	ocl.releaseMemChannels(xyb);
+	ocl.releaseMemChannels(xyb_dc);
 }
+
 
 void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
 	size_t xsize, size_t ysize,
