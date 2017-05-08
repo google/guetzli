@@ -87,9 +87,7 @@ __kernel void DownSample(__global float* pA, __global float* pC, int xstep, int 
 	pC[y * xsize + x] = pA[sample_y * oxsize + sample_x];
 }
 
-void OpsinAbsorbance(const double in[3], double out[3])
-{
-	const float mix[12] = {
+__constant 	float g_mix[12] = {
 	0.348036746003,
 	0.577814843137,
 	0.0544556093735,
@@ -102,11 +100,13 @@ void OpsinAbsorbance(const double in[3], double out[3])
 	0.158581714673,
 	0.712857943858,
 	10.6524069248,
-	};
+};
 
-	out[0] = mix[0] * in[0] + mix[1] * in[1] + mix[2] * in[2] + mix[3];
-	out[1] = mix[4] * in[0] + mix[5] * in[1] + mix[6] * in[2] + mix[7];
-	out[2] = mix[8] * in[0] + mix[9] * in[1] + mix[10] * in[2] + mix[11];
+void OpsinAbsorbance(const double in[3], double out[3])
+{
+	out[0] = g_mix[0] * in[0] + g_mix[1] * in[1] + g_mix[2] * in[2] + g_mix[3];
+	out[1] = g_mix[4] * in[0] + g_mix[5] * in[1] + g_mix[6] * in[2] + g_mix[7];
+	out[2] = g_mix[8] * in[0] + g_mix[9] * in[1] + g_mix[10] * in[2] + g_mix[11];
 }
 
 double EvaluatePolynomial(const double x, const double *coefficients, int n)
@@ -364,7 +364,7 @@ __kernel void CombineChannels(
 		DotProduct(&edge_detector_map[3 * res_ix], mask));
 }
 
-inline double Interpolate(const double *array, int size, double sx) {
+inline double Interpolate(__constant double *array, int size, double sx) {
 	double ix = fabs(sx);
 
 	int baseix = (int)(ix);
@@ -381,37 +381,37 @@ inline double Interpolate(const double *array, int size, double sx) {
 	return res;
 }
 
+#define XybLowFreqToVals_inc 5.2511644570349185
+__constant double XybLowFreqToVals_lut[21] = {
+	0,
+	1 * XybLowFreqToVals_inc,
+	2 * XybLowFreqToVals_inc,
+	3 * XybLowFreqToVals_inc,
+	4 * XybLowFreqToVals_inc,
+	5 * XybLowFreqToVals_inc,
+	6 * XybLowFreqToVals_inc,
+	7 * XybLowFreqToVals_inc,
+	8 * XybLowFreqToVals_inc,
+	9 * XybLowFreqToVals_inc,
+	10 * XybLowFreqToVals_inc,
+	11 * XybLowFreqToVals_inc,
+	12 * XybLowFreqToVals_inc,
+	13 * XybLowFreqToVals_inc,
+	14 * XybLowFreqToVals_inc,
+	15 * XybLowFreqToVals_inc,
+	16 * XybLowFreqToVals_inc,
+	17 * XybLowFreqToVals_inc,
+	18 * XybLowFreqToVals_inc,
+	19 * XybLowFreqToVals_inc,
+	20 * XybLowFreqToVals_inc,
+};
+
 void XybLowFreqToVals(double x, double y, double z,
 	double *valx, double *valy, double *valz) {
 	const double xmul = 6.64482198135;
 	const double ymul = 0.837846224276;
 	const double zmul = 7.34905756986;
 	const double y_to_z_mul = 0.0812519812628;
-
-	const double XybLowFreqToVals_inc = 5.2511644570349185;
-	const double XybLowFreqToVals_lut[21] = {
-		0,
-		1 * XybLowFreqToVals_inc,
-		2 * XybLowFreqToVals_inc,
-		3 * XybLowFreqToVals_inc,
-		4 * XybLowFreqToVals_inc,
-		5 * XybLowFreqToVals_inc,
-		6 * XybLowFreqToVals_inc,
-		7 * XybLowFreqToVals_inc,
-		8 * XybLowFreqToVals_inc,
-		9 * XybLowFreqToVals_inc,
-		10 * XybLowFreqToVals_inc,
-		11 * XybLowFreqToVals_inc,
-		12 * XybLowFreqToVals_inc,
-		13 * XybLowFreqToVals_inc,
-		14 * XybLowFreqToVals_inc,
-		15 * XybLowFreqToVals_inc,
-		16 * XybLowFreqToVals_inc,
-		17 * XybLowFreqToVals_inc,
-		18 * XybLowFreqToVals_inc,
-		19 * XybLowFreqToVals_inc,
-		20 * XybLowFreqToVals_inc,
-	};
 
 	z += y_to_z_mul * y;
 	*valz = z * zmul;
@@ -837,6 +837,33 @@ double RemoveRangeAroundZero(double v, double range) {
 	}
 }
 
+#define MakeHighFreqColorDiffDy_off  1.4103373714040413
+#define MakeHighFreqColorDiffDy_inc  0.7084088867024
+__constant double MakeHighFreqColorDiffDy_lut[21] = {
+	0.0,
+	MakeHighFreqColorDiffDy_off,
+	MakeHighFreqColorDiffDy_off + 1 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 2 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 3 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 4 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 5 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 6 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 7 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 8 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 9 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 10 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 11 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 12 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 13 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 14 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 15 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 16 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 17 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 18 * MakeHighFreqColorDiffDy_inc,
+	MakeHighFreqColorDiffDy_off + 19 * MakeHighFreqColorDiffDy_inc,
+};
+
+
 // Computes 8x8 FFT of each channel of xyb0 and xyb1 and adds the total squared
 // 3-dimensional xybdiff of the two blocks to diff_xyb_{dc,ac} and the average
 // diff on the edges to diff_xyb_edge_dc.
@@ -940,31 +967,6 @@ void ButteraugliBlockDiff(__private double xyb0[3 * kBlockSize],
 	const double ymul2 = 1.51983458269;
 	const double zmul = 2.4;
 
-	const double MakeHighFreqColorDiffDy_off = 1.4103373714040413;
-	const double MakeHighFreqColorDiffDy_inc = 0.7084088867024;
-	const double MakeHighFreqColorDiffDy_lut[21] = {
-		0.0,
-		MakeHighFreqColorDiffDy_off,
-		MakeHighFreqColorDiffDy_off + 1 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 2 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 3 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 4 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 5 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 6 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 7 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 8 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 9 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 10 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 11 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 12 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 13 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 14 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 15 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 16 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 17 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 18 * MakeHighFreqColorDiffDy_inc,
-		MakeHighFreqColorDiffDy_off + 19 * MakeHighFreqColorDiffDy_inc,
-	};
 
 
 	for (size_t i = kBlockEdgeHalf; i < kBlockHalf + kBlockEdgeHalf + 1; ++i) {
@@ -1106,6 +1108,32 @@ __kernel void MaskHighIntensityChange(
 }
 
 
+#define XybToVals_off 11.38708334481672
+#define XybToVals_inc 14.550189611520716
+__constant double XybToVals_lut[21] = {
+	0,
+	XybToVals_off,
+	XybToVals_off + 1 * XybToVals_inc,
+	XybToVals_off + 2 * XybToVals_inc,
+	XybToVals_off + 3 * XybToVals_inc,
+	XybToVals_off + 4 * XybToVals_inc,
+	XybToVals_off + 5 * XybToVals_inc,
+	XybToVals_off + 6 * XybToVals_inc,
+	XybToVals_off + 7 * XybToVals_inc,
+	XybToVals_off + 8 * XybToVals_inc,
+	XybToVals_off + 9 * XybToVals_inc,
+	XybToVals_off + 10 * XybToVals_inc,
+	XybToVals_off + 11 * XybToVals_inc,
+	XybToVals_off + 12 * XybToVals_inc,
+	XybToVals_off + 13 * XybToVals_inc,
+	XybToVals_off + 14 * XybToVals_inc,
+	XybToVals_off + 15 * XybToVals_inc,
+	XybToVals_off + 16 * XybToVals_inc,
+	XybToVals_off + 17 * XybToVals_inc,
+	XybToVals_off + 18 * XybToVals_inc,
+	XybToVals_off + 19 * XybToVals_inc,
+};
+
 void XybToVals(
 	double x, double y, double z,
 	double *valx, double *valy, double *valz)
@@ -1113,32 +1141,6 @@ void XybToVals(
 	const double xmul = 0.758304045695;
     const double ymul = 2.28148649801;
 	const double zmul = 1.87816926918;
-
-	const double XybToVals_off = 11.38708334481672;
-	const double XybToVals_inc = 14.550189611520716;
-	const double XybToVals_lut[21] = {
-		0,
-		XybToVals_off,
-		XybToVals_off + 1 * XybToVals_inc,
-		XybToVals_off + 2 * XybToVals_inc,
-		XybToVals_off + 3 * XybToVals_inc,
-		XybToVals_off + 4 * XybToVals_inc,
-		XybToVals_off + 5 * XybToVals_inc,
-		XybToVals_off + 6 * XybToVals_inc,
-		XybToVals_off + 7 * XybToVals_inc,
-		XybToVals_off + 8 * XybToVals_inc,
-		XybToVals_off + 9 * XybToVals_inc,
-		XybToVals_off + 10 * XybToVals_inc,
-		XybToVals_off + 11 * XybToVals_inc,
-		XybToVals_off + 12 * XybToVals_inc,
-		XybToVals_off + 13 * XybToVals_inc,
-		XybToVals_off + 14 * XybToVals_inc,
-		XybToVals_off + 15 * XybToVals_inc,
-		XybToVals_off + 16 * XybToVals_inc,
-		XybToVals_off + 17 * XybToVals_inc,
-		XybToVals_off + 18 * XybToVals_inc,
-		XybToVals_off + 19 * XybToVals_inc,
-	};
 
 	*valx = Interpolate(&XybToVals_lut[0], 21, x * xmul);
 	*valy = Interpolate(&XybToVals_lut[0], 21, y * ymul);
