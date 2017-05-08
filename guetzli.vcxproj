@@ -137,7 +137,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>.;$(INTELOCLSDKROOT)include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
