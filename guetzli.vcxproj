@@ -136,7 +136,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(INTELOCLSDKROOT)include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
@@ -151,6 +151,7 @@
       <AdditionalDependencies>shlwapi.lib;OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <ForceSymbolReferences>__tcmalloc</ForceSymbolReferences>
+      <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x86</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -177,7 +178,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(INTELOCLSDKROOT)include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>PERFTOOLS_DLL_DECL=;ENABLE_OPENCL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -188,6 +189,7 @@
       <AdditionalDependencies>shlwapi.lib;OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <ForceSymbolReferences>__tcmalloc</ForceSymbolReferences>
+      <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x86</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
