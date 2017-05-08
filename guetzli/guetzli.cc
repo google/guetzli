@@ -232,6 +232,9 @@ void Usage() {
 
 }  // namespace
 
+extern int g_switchBlock;
+extern int g_compareBlock;
+
 int main(int argc, char** argv) {
   std::set_terminate(TerminateHandler);
 
@@ -329,5 +332,7 @@ int main(int argc, char** argv) {
   }
 
   WriteFileOrDie(argv[opt_idx + 1], out_data);
+
+  fprintf(stderr, "%d %d", g_switchBlock, g_compareBlock);
   return 0;
 }

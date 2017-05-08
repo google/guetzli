@@ -25,9 +25,13 @@
 #include "guetzli/output_image.h"
 #include "guetzli/stats.h"
 
+extern int g_switchBlock;
+extern int g_compareBlock;
+
 namespace guetzli {
 
 constexpr int kButteraugliStep = 3;
+
 
 class ButteraugliComparator : public Comparator {
  public:

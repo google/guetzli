@@ -362,63 +362,82 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
 }
 
 
+void func(const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize], 
+	const uint8_t comp_mask, guetzli::Params &params_, std::vector<std::pair<int, float> > &input_order)
+{
+	static const uint8_t oldCsf[kDCTBlockSize] = {
+		10, 10, 20, 40, 60, 70, 80, 90,
+		10, 20, 30, 60, 70, 80, 90, 90,
+		20, 30, 60, 70, 80, 90, 90, 90,
+		40, 60, 70, 80, 90, 90, 90, 90,
+		60, 70, 80, 90, 90, 90, 90, 90,
+		70, 80, 90, 90, 90, 90, 90, 90,
+		80, 90, 90, 90, 90, 90, 90, 90,
+		90, 90, 90, 90, 90, 90, 90, 90,
+	};
+	static const double kWeight[3] = { 1.0, 0.22, 0.20 };
+#include "guetzli/order.inc"
+	
+	for (int c = 0; c < 3; ++c) { // TOBEREMOVE:计算输入block的input_order,非0的打分
+		if (!(comp_mask & (1 << c))) continue;
+		for (int k = 1; k < kDCTBlockSize; ++k) {
+			int idx = c * kDCTBlockSize + k; // TOBEREMOVE:每个分量依次
+			if (block[idx] != 0) {
+				float score;
+				if (params_.new_zeroing_model) {
+					score = std::abs(orig_block[idx]) * csf[idx] + bias[idx];
+				}
+				else {
+					score = static_cast<float>((std::abs(orig_block[idx]) - kJPEGZigZagOrder[k] / 64.0) * kWeight[c] / oldCsf[k]);
+				}
+				input_order.push_back(std::make_pair(idx, score));
+			}
+		}
+	}
+	std::sort(input_order.begin(), input_order.end(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second < b.second; });
+
+}
+
 // REQUIRES: block[c*64...(c*64+63)] is all zero if (comp_mask & (1<<c)) == 0.
 void Processor::ComputeBlockZeroingOrder(
     const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
     const int block_x, const int block_y, const int factor_x,
     const int factor_y, const uint8_t comp_mask, OutputImage* img,
     std::vector<CoeffData>* output_order) {
-  static const uint8_t oldCsf[kDCTBlockSize] = {
-      10, 10, 20, 40, 60, 70, 80, 90,
-      10, 20, 30, 60, 70, 80, 90, 90,
-      20, 30, 60, 70, 80, 90, 90, 90,
-      40, 60, 70, 80, 90, 90, 90, 90,
-      60, 70, 80, 90, 90, 90, 90, 90,
-      70, 80, 90, 90, 90, 90, 90, 90,
-      80, 90, 90, 90, 90, 90, 90, 90,
-      90, 90, 90, 90, 90, 90, 90, 90,
-  };
-  static const double kWeight[3] = { 1.0, 0.22, 0.20 };
-#include "guetzli/order.inc"
-  std::vector<std::pair<int, float> > input_order;
-  for (int c = 0; c < 3; ++c) { // TOBEREMOVE:计算输入block的input_order,非0的打分
-    if (!(comp_mask & (1 << c))) continue;
-    for (int k = 1; k < kDCTBlockSize; ++k) {
-      int idx = c * kDCTBlockSize + k; // TOBEREMOVE:每个分量依次
-      if (block[idx] != 0) {
-        float score;
-        if (params_.new_zeroing_model) {
-          score = std::abs(orig_block[idx]) * csf[idx] + bias[idx];
-        } else {
-          score = static_cast<float>((std::abs(orig_block[idx]) - kJPEGZigZagOrder[k] / 64.0) *
-                  kWeight[c] / oldCsf[k]);
-        }
-        input_order.push_back(std::make_pair(idx, score));
-      }
+ 
+	std::vector<std::pair<int, float> > input_order;
+	func(block, orig_block, comp_mask, params_, input_order);
+    if (input_order.size() > 10)
+    {
+        int i = 0;
+        i++;
     }
-  }
-  std::sort(input_order.begin(), input_order.end(),
-            [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
-              return a.second < b.second; });
-  coeff_t processed_block[kBlockSize];
-  memcpy(processed_block, block, sizeof(processed_block));
-  comparator_->SwitchBlock(block_x, block_y, factor_x, factor_y);
+
+
+	coeff_t processed_block[kBlockSize];
+	memcpy(processed_block, block, sizeof(processed_block));
+
+	comparator_->SwitchBlock(block_x, block_y, factor_x, factor_y);
+
+
   while (!input_order.empty()) {
     float best_err = 1e17f;
     int best_i = 0;
-    for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
-                                         input_order.size());
-         ++i) {
+    for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead, input_order.size()); ++i) 
+    {
       coeff_t candidate_block[kBlockSize];
       memcpy(candidate_block, processed_block, sizeof(candidate_block));
+
       const int idx = input_order[i].first;
+
       candidate_block[idx] = 0; // TOBEREMOVE:对比block的排序得分前i低的置0(i根据input_order数据变化而变化)，并先设置回对比图像的三个分量对应block中去，后续再做对比采用。
+      
       for (int c = 0; c < 3; ++c) {
         if (comp_mask & (1 << c)) {
-          img->component(c).SetCoeffBlock(
-              block_x, block_y, &candidate_block[c * kDCTBlockSize]);
+          img->component(c).SetCoeffBlock(block_x, block_y, &candidate_block[c * kDCTBlockSize]);
         }
       }
+
       float max_err = 0;
       for (int iy = 0; iy < factor_y; ++iy) {
         for (int ix = 0; ix < factor_x; ++ix) {
@@ -430,19 +449,21 @@ void Processor::ComputeBlockZeroingOrder(
           }
         }
       }
+
       if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
         best_err = max_err;
         best_i = i;
       }
     }
+
     int idx = input_order[best_i].first;
     processed_block[idx] = 0;
     input_order.erase(input_order.begin() + best_i);
+
     output_order->push_back({idx, best_err}); // TOBEREMOVE:将上面计算出来的最小错误的idx，对应到对比block中的对应位置真正的置为0,移除input_order项，即选取当前值，放入output_order,并正式的设置到对比图像中去。
     for (int c = 0; c < 3; ++c) {
       if (comp_mask & (1 << c)) {
-        img->component(c).SetCoeffBlock(
-            block_x, block_y, &processed_block[c * kDCTBlockSize]);
+        img->component(c).SetCoeffBlock(block_x, block_y, &processed_block[c * kDCTBlockSize]);
       }
     }
   }
@@ -464,8 +485,7 @@ void Processor::ComputeBlockZeroingOrder(
   // Restore *img to the same state as it was at the start of this function.
   for (int c = 0; c < 3; ++c) {
     if (comp_mask & (1 << c)) {
-      img->component(c).SetCoeffBlock(
-          block_x, block_y, &block[c * kDCTBlockSize]);
+      img->component(c).SetCoeffBlock(block_x, block_y, &block[c * kDCTBlockSize]);
     }
   }
 }
