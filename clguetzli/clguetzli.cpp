@@ -13,7 +13,7 @@ ocl_args_d_t& getOcl(void)
 	if (bInit == true) return ocl;
 
 	bInit = true;
-	cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
+	cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_CPU);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
@@ -883,8 +883,8 @@ void clCombineChannelsEx(
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
-	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (ysize + step - 1) / step;
+	const size_t res_xsize = ((xsize - 8 + step) + step - 1) / step;
+	const size_t res_ysize = ((ysize - 8 + step) + step - 1) / step;
 
 	cl_int clxsize = xsize;
 	cl_int clysize = ysize;

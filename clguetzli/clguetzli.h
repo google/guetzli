@@ -20,7 +20,7 @@ void clBlockDiffMapEx(ocl_channels rgb, ocl_channels rgb2,
 
 void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
 	size_t xsize, size_t ysize, size_t step,
-	cl_mem block_diff_ac/*out*/);
+	cl_mem block_diff_ac/*in,out*/);
 
 void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double border_ratio, cl_mem result = nullptr);
 
@@ -31,3 +31,13 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	size_t xsize, size_t ysize,
 	size_t step,
 	float* result);
+
+void clCombineChannelsEx(
+	ocl_channels mask,
+	ocl_channels mask_dc,
+	cl_mem block_diff_dc,
+	cl_mem block_diff_ac,
+	cl_mem edge_detector_map,
+	size_t xsize, size_t ysize,
+	size_t step,
+	cl_mem result/*out*/);
