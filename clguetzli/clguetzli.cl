@@ -1042,11 +1042,11 @@ __kernel void blockDiffMap(__global float* r, __global float* g, __global float*
 	int pos_x = res_x * step;
 	int pos_y = res_y * step;
 
-	if ((pos_x + kBlockEdge - step - 1) >= ysize) return;
-	if ((pos_y + kBlockEdge - step - 1) >= xsize) return;
+	if ((pos_x + kBlockEdge - step - 1) >= xsize) return;
+	if ((pos_y + kBlockEdge - step - 1) >= ysize) return;
 
 	size_t res_ix = res_y * res_xsize + res_x;
-	size_t offset = min(res_y * step, ysize - 8) * xsize + min(res_x * step, xsize - 8);
+	size_t offset = min(pos_y, ysize - 8) * xsize + min(pos_x, xsize - 8);
 
 	double block0[3 * kBlockEdge * kBlockEdge];
 	double block1[3 * kBlockEdge * kBlockEdge];
