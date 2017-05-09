@@ -98,6 +98,9 @@ static void Convolution(size_t xsize, size_t ysize,
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
           double border_ratio) {
 
+    std::vector<float> orignChannel(xsize * ysize);
+    memcpy(orignChannel.data(), channel, xsize * ysize * sizeof(float));
+
   PROFILER_FUNC;
   double m = 2.25;  // Accuracy increases when m is increased.
   const double scaler = -1.0 / (2 * sigma * sigma);
@@ -133,6 +136,8 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
       }
     }
   }
+
+  clBlur(orignChannel.data(), xsize, ysize, sigma, border_ratio, channel);
 }
 
 // To change this to n, add the relevant FFTn function and kFFTnMapIndexTable.
@@ -834,7 +839,7 @@ void MaskHighIntensityChange(
 	  c1[0].data(), c1[1].data(), c1[2].data(),
 	  xsize, ysize,
 	  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	  xyb0[0].data(), xyb1[1].data(), xyb1[2].data());
+	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data());
 }
 
 double SimpleGamma(double v) {
@@ -1238,15 +1243,18 @@ void ButteraugliComparator::EdgeDetectorMap(
   }
 
   clEdgeDetectorMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), 
-	  xsize_, ysize_, step_, 
-	  (*edge_detector_map).data());
+	                xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), 
+	                xsize_, ysize_, step_, 
+	                (*edge_detector_map).data());
 }
 
 void ButteraugliComparator::EdgeDetectorLowFreq(
     const std::vector<std::vector<float> > &xyb0,
     const std::vector<std::vector<float> > &xyb1,
     std::vector<float>* block_diff_ac) {
+
+    std::vector<float> orign_ac = *block_diff_ac;
+
   PROFILER_FUNC;
   static const double kSigma = 14;
   static const double kMul = 10;
@@ -1299,9 +1307,9 @@ void ButteraugliComparator::EdgeDetectorLowFreq(
   }
 
   clEdgeDetectorLowFreq(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-	  xsize_, ysize_, step_,
-	  (*block_diff_ac).data());
+	                    xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+	                    xsize_, ysize_, step_,
+                        orign_ac.data(), (*block_diff_ac).data());
 }
 
 void ButteraugliComparator::CombineChannels(

@@ -20,7 +20,7 @@ void clBlockDiffMapEx(ocl_channels rgb, ocl_channels rgb2,
 
 void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
 	size_t xsize, size_t ysize, size_t step,
-	cl_mem block_diff_ac/*out*/);
+	cl_mem block_diff_ac/*in,out*/);
 
 void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double border_ratio, cl_mem result = nullptr);
 

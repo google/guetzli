@@ -463,6 +463,62 @@ void XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
 	res[2] += factor * valz * valz;
 }
 
+void Butteraugli8x8CornerEdgeDetectorDiff(
+    int pos_x,
+    int pos_y,
+    int xsize,
+    int ysize,
+    __global float *r, __global float *g, __global float* b,
+    __global float *r2, __global float* g2, __global float *b2,
+    double* diff_xyb)
+{
+    int local_count = 0;
+    double local_xyb[3] = { 0 };
+    const double w = 0.711100840192;
+
+    int offset[4][2] = { { 0,0 },{ 0,7 },{ 7,0 },{ 7,7 } };
+    int edgeSize = 3;
+
+    for (int k = 0; k < 4; k++)
+    {
+        int x = pos_x + offset[k][0];
+        int y = pos_y + offset[k][1];
+
+        if (x >= edgeSize && x + edgeSize < xsize) {
+            size_t ix = y * xsize + (x - edgeSize);
+            size_t ix2 = ix + 2 * edgeSize;
+            XybDiffLowFreqSquaredAccumulate(
+                w * (r[ix] - r[ix2]),
+                w * (g[ix] - g[ix2]),
+                w * (b[ix] - b[ix2]),
+                w * (r2[ix] - r2[ix2]),
+                w * (g2[ix] - g2[ix2]),
+                w * (b2[ix] - b2[ix2]),
+                1.0, local_xyb);
+            ++local_count;
+        }
+        if (y >= edgeSize && y + edgeSize < ysize) {
+            size_t ix = (y - edgeSize) * xsize + x;
+            size_t ix2 = ix + 2 * edgeSize * xsize;
+            XybDiffLowFreqSquaredAccumulate(
+                w * (r[ix] - r[ix2]),
+                w * (g[ix] - g[ix2]),
+                w * (b[ix] - b[ix2]),
+                w * (r2[ix] - r2[ix2]),
+                w * (g2[ix] - g2[ix2]),
+                w * (b2[ix] - b2[ix2]),
+                1.0, local_xyb);
+            ++local_count;
+        }
+    }
+
+    const double weight = 0.01617112696;
+    const double mul = weight * 8.0 / local_count;
+    for (int i = 0; i < 3; ++i) {
+        diff_xyb[i] += mul * local_xyb[i];
+    }
+}
+
 __kernel void edgeDetectorMap(__global float *result,
 						      __global float *r, __global float *g, __global float* b, 
 						      __global float *r2, __global float* g2, __global float *b2, 
@@ -483,53 +539,16 @@ __kernel void edgeDetectorMap(__global float *result,
 	pos_x = min(pos_x, xsize - 8);
 	pos_y = min(pos_y, ysize - 8);
 
-	int local_count = 0;
-	double local_xyb[3] = { 0 };
-	const double w = 0.711100840192;
-
-	int offset[4][2] = {{0,0}, {0,7}, {7,0}, {7,7}};
-	int edgeSize = 3;
-	
-	for (int k = 0; k < 4; k++)
-	{ 
-		int x = pos_x + offset[k][0];
-		int y = pos_y + offset[k][1];
-
-		if (x >= edgeSize && x + edgeSize < xsize) {
-			size_t ix = y * xsize + (x - edgeSize);
-			size_t ix2 = ix + 2 * edgeSize;
-			XybDiffLowFreqSquaredAccumulate(
-				w * (r[ix] - r[ix2]),
-				w * (g[ix] - g[ix2]),
-				w * (b[ix] - b[ix2]),
-				w * (r2[ix] - r2[ix2]),
-				w * (g2[ix] - g2[ix2]),
-				w * (b2[ix] - b2[ix2]),
-				1.0, local_xyb);
-			++local_count;
-		}
-		if (y >= edgeSize && y + edgeSize < ysize) {
-			size_t ix = (y - edgeSize) * xsize + x;
-			size_t ix2 = ix + 2 * edgeSize * xsize;
-			XybDiffLowFreqSquaredAccumulate(
-				w * (r[ix] - r[ix2]),
-				w * (g[ix] - g[ix2]),
-				w * (b[ix] - b[ix2]),
-				w * (r2[ix] - r2[ix2]),
-				w * (g2[ix] - g2[ix2]),
-				w * (b2[ix] - b2[ix2]),
-				1.0, local_xyb);
-			++local_count;
-		}
-	}
-
-	const double weight = 0.01617112696;
-	const double mul = weight * 8.0 / local_count;
+    double diff_xyb[3] = { 0.0 };
+    Butteraugli8x8CornerEdgeDetectorDiff(pos_x, pos_y, xsize, ysize, 
+        r, g, b, 
+        r2, g2, b2, 
+        &diff_xyb[0]);
 
 	int idx = (res_y * res_xsize + res_x) * 3;
-	result[idx]     = local_xyb[0];
-	result[idx + 1] = local_xyb[1];
-	result[idx + 2] = local_xyb[2];
+	result[idx]     = diff_xyb[0];
+	result[idx + 1] = diff_xyb[1];
+	result[idx + 2] = diff_xyb[2];
 }
 
 __kernel void edgeDetectorLowFreq(__global float *result,
@@ -590,9 +609,9 @@ __kernel void edgeDetectorLowFreq(__global float *result,
 
 	const double kMul = 10;
 
-	result[res_ix * 3] = max_diff_xyb[0] * kMul;
-	result[res_ix * 3 + 1] = max_diff_xyb[1] * kMul;
-	result[res_ix * 3 + 2] = max_diff_xyb[2] * kMul;
+	result[res_ix * 3] += max_diff_xyb[0] * kMul;
+	result[res_ix * 3 + 1] += max_diff_xyb[1] * kMul;
+	result[res_ix * 3 + 2] += max_diff_xyb[2] * kMul;
 }
 
 #define kBlockEdge 8

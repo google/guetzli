@@ -30,7 +30,6 @@ void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	const float* result_r, const float* result_g, const float* result_b,
 	const float* result_r2, const float* result_g2, const float* result_b2)
 {
-	return;
 	if (xsize < 100 || ysize < 100) return;
 
 	size_t channel_size = xsize * ysize * sizeof(float);
@@ -82,7 +81,6 @@ void clEdgeDetectorMap(const float* r, const float* g, const float* b,
 	size_t xsize, size_t ysize, size_t step,
 	const float* result)
 {
-	return;
 	if (xsize < 100 || ysize < 100) return;
 
 	size_t channel_size = xsize * ysize * sizeof(float);
@@ -125,7 +123,6 @@ void clBlockDiffMap(const float* r, const float* g, const float* b,
 	size_t xsize, size_t ysize, size_t step,
 	const float* result_diff_dc, const float* result_diff_ac)
 {
-	return;
 	if (xsize < 100 || ysize < 100) return;
 
 	size_t channel_size = xsize * ysize * sizeof(float);
@@ -173,9 +170,9 @@ void clBlockDiffMap(const float* r, const float* g, const float* b,
 void clEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize, size_t step,
-	const float* result_diff_dc)
+    const float* orign_ac,
+	const float* result_diff_ac)
 {
-	return;
 	if (xsize < 100 || ysize < 100) return;
 
 	size_t channel_size = xsize * ysize * sizeof(float);
@@ -188,7 +185,7 @@ void clEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
 	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
 
-	cl_mem block_diff_dc = ocl.allocMem(reschannel_size);
+	cl_mem block_diff_ac = ocl.allocMem(reschannel_size);
 
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
@@ -196,22 +193,24 @@ void clEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+    clEnqueueWriteBuffer(ocl.commandQueue, block_diff_ac, CL_FALSE, 0, reschannel_size, orign_ac, 0, NULL, NULL);
+
 	err = clFinish(ocl.commandQueue);
 
-	clEdgeDetectorLowFreqEx(xyb0, xyb1, xsize, ysize, step, block_diff_dc);
+	clEdgeDetectorLowFreqEx(xyb0, xyb1, xsize, ysize, step, block_diff_ac);
 
-	cl_float *r_dc = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, block_diff_dc, true, CL_MAP_READ, 0, reschannel_size, 0, NULL, NULL, &err);
+	cl_float *r_ac = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, block_diff_ac, true, CL_MAP_READ, 0, reschannel_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
-	FLOAT_COMPARE(r_dc, result_diff_dc, res_xsize * res_ysize * 3);
+	FLOAT_COMPARE(r_ac, result_diff_ac, res_xsize * res_ysize * 3);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_dc, r_dc, reschannel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_ac, r_ac, reschannel_size, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb0);
 	ocl.releaseMemChannels(xyb1);
 
-	clReleaseMemObject(block_diff_dc);
+	clReleaseMemObject(block_diff_ac);
 }
 
 void clMask(const float* r, const float* g, const float* b,
@@ -284,9 +283,29 @@ void clCalculateDiffmapEx(void)
 }
 
 // chrisk todo
-void clBlur(void)
+void clBlur(float* channel, size_t xsize, size_t ysize, double sigma, double border_ratio, float* result)
 {
+    if (xsize < 100 || ysize < 100) return;
 
+    size_t channel_size = xsize * ysize * sizeof(float);
+    cl_int err = 0;
+    ocl_args_d_t &ocl = getOcl();
+    cl_mem r = ocl.allocMem(channel_size);
+
+    clEnqueueWriteBuffer(ocl.commandQueue, r, CL_FALSE, 0, channel_size, channel, 0, NULL, NULL);
+    err = clFinish(ocl.commandQueue);
+
+    clBlurEx(r, xsize, ysize, sigma, border_ratio, r);
+
+    cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+    err = clFinish(ocl.commandQueue);
+
+    FLOAT_COMPARE(result, r_r, xsize * ysize);
+
+    clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, channel_size, NULL, NULL);
+    err = clFinish(ocl.commandQueue);
+
+    clReleaseMemObject(r);
 }
 
 // chrisk todo
