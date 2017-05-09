@@ -45,6 +45,9 @@ ocl_args_d_t& getOcl(void)
 	}
 	ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "MinSquareVal", &err);
 	ocl.kernel[KERNEL_CONVOLUTION] = clCreateKernel(ocl.program, "Convolution", &err);
+	ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "ConvolutionX", &err);
+	ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "ConvolutionY", &err);
+	ocl.kernel[KERNEL_SQUARESAMPLE] = clCreateKernel(ocl.program, "SquareSample", &err);
 	ocl.kernel[KERNEL_DOWNSAMPLE] = clCreateKernel(ocl.program, "DownSample", &err);
 	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "OpsinDynamicsImage", &err);
 	ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "DoMask", &err);
@@ -102,6 +105,104 @@ void clConvolutionEx(cl_mem inp, size_t xsize, size_t ysize,
 	}
 }
 
+void clConvolutionX(cl_mem inp, size_t xsize, size_t ysize,
+	cl_mem multipliers, size_t len,
+	int xstep, int offset, double border_ratio,
+	cl_mem result/*out*/)
+{
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_int clxstep = xstep;
+	cl_int cllen = len;
+	cl_int cloffset = offset;
+	cl_float clborder_ratio = border_ratio;
+
+	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTIONX];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&multipliers);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&xstep);
+	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&cllen);
+	clSetKernelArg(kernel, 5, sizeof(cl_int), (void*)&cloffset);
+	clSetKernelArg(kernel, 6, sizeof(cl_float), (void*)&clborder_ratio);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clConvolutionEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clConvolutionEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
+void clConvolutionY(cl_mem inp, size_t xsize, size_t ysize,
+	cl_mem multipliers, size_t len,
+	int xstep, int offset, double border_ratio,
+	cl_mem result/*out*/)
+{
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_int clxstep = xstep;
+	cl_int cllen = len;
+	cl_int cloffset = offset;
+	cl_float clborder_ratio = border_ratio;
+
+	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTIONY];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&multipliers);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&xstep);
+	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&cllen);
+	clSetKernelArg(kernel, 5, sizeof(cl_int), (void*)&cloffset);
+	clSetKernelArg(kernel, 6, sizeof(cl_float), (void*)&clborder_ratio);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clConvolutionEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clConvolutionEx() clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
+void clUpsampleEx2(cl_mem image, size_t xsize, size_t ysize,
+	size_t xstep, size_t ystep,
+	cl_mem result/*out*/)
+{
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
+
+	cl_int clxstep = xstep;
+	cl_int clystep = ystep;
+	cl_kernel kernel = ocl.kernel[KERNEL_SQUARESAMPLE];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&image);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clxstep);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clystep);
+
+	size_t globalWorkSize[2] = { xsize, ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clUpsampleEx clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+	}
+	err = clFinish(ocl.commandQueue);
+	if (CL_SUCCESS != err)
+	{
+		LogError("Error: clUpsampleEx clFinish returned %s.\n", TranslateOpenCLError(err));
+	}
+}
+
 void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize, 
                   size_t xstep, size_t ystep, 
                   cl_mem result/*out*/)
@@ -130,10 +231,52 @@ void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize,
 	}
 }
 
+void clBlurEx2(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
+	double sigma, double border_ratio,
+	cl_mem result/*out, opt*/)
+{
+	double m = 2.25;  // Accuracy increases when m is increased.
+	const double scaler = -1.0 / (2 * sigma * sigma);
+	// For m = 9.0: exp(-scaler * diff * diff) < 2^ {-52}
+	const int diff = std::max<int>(1, m * fabs(sigma));
+	const int expn_size = 2 * diff + 1;
+	std::vector<float> expn(expn_size);
+	for (int i = -diff; i <= diff; ++i) {
+		expn[i + diff] = static_cast<float>(exp(scaler * i * i));
+	}
+
+	const int xstep = std::max<int>(1, int(sigma / 3));
+
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	cl_mem mem_expn = ocl.allocMem(sizeof(cl_float) * expn_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_expn, CL_FALSE, 0, sizeof(cl_float) * expn_size, expn.data(), 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	if (xstep > 1)
+	{
+		ocl.allocA(sizeof(cl_float) * xsize * ysize);
+		clConvolutionX(image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, ocl.srcA);
+		clConvolutionY(ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, result ? result : image);
+		clUpsampleEx2(result ? result : image, xsize, ysize, xstep, xstep, result ? result : image);
+	}
+	else
+	{
+		ocl.allocA(sizeof(cl_float) * xsize * ysize);
+		clConvolutionX(image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, ocl.srcA);
+		clConvolutionY(ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio, result ? result : image);
+	}
+
+	clReleaseMemObject(mem_expn);
+}
 void clBlurEx(cl_mem image/*out, opt*/, size_t xsize, size_t ysize, 
               double sigma, double border_ratio, 
               cl_mem result/*out, opt*/)
 {
+	clBlurEx2(image, xsize, ysize, sigma, border_ratio, result);
+
+	return;
 	double m = 2.25;  // Accuracy increases when m is increased.
 	const double scaler = -1.0 / (2 * sigma * sigma);
 	// For m = 9.0: exp(-scaler * diff * diff) < 2^ {-52}

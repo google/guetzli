@@ -33,6 +33,83 @@ __kernel void MinSquareVal(__global float* pA, __global float* pC, int square_si
 	pC[y * width + x] = minValue;
 }
 
+__kernel void ConvolutionX(__global float* multipliers, __global float* inp, __global float* result, 
+	int step, int len, int offset, float border_ratio)
+{ 
+	const int x = get_global_id(0);
+	const int y = get_global_id(1);
+
+	if (x % step != 0) return;
+
+	const int xsize = get_global_size(0);
+	const int ysize = get_global_size(1);
+
+	float weight_no_border = 0;
+	for (int j = 0; j <= 2 * offset; j++)
+	{
+		weight_no_border += multipliers[j];
+	}
+
+	int minx = x < offset ? 0 : x - offset;
+	int maxx = min(xsize, x + len - offset);
+
+	float weight = 0.0;
+	for (int j = minx; j < maxx; j++)
+	{
+		weight += multipliers[j - x + offset];
+	}
+
+	weight = (1.0 - border_ratio) * weight + border_ratio * weight_no_border;
+	float scale = 1.0 / weight;
+
+	float sum = 0.0;
+	for (int j = minx; j < maxx; j++)
+	{
+		sum += inp[y * xsize + j] * multipliers[j - x + offset];
+	}
+
+	result[y * xsize + x] = sum * scale;
+}
+
+__kernel void ConvolutionY(__global float* multipliers, __global float* inp, __global float* result,
+	int step, int len, int offset, float border_ratio)
+{
+	const int x = get_global_id(0);
+	const int y = get_global_id(1);
+
+	if (x % step != 0) return;
+	if (y % step != 0) return;
+
+	const int xsize = get_global_size(0);
+	const int ysize = get_global_size(1);
+
+	float weight_no_border = 0;
+	for (int j = 0; j <= 2 * offset; j++)
+	{
+		weight_no_border += multipliers[j];
+	}
+
+	int miny = y < offset ? 0 : y - offset;
+	int maxy = min(ysize, y + len - offset);
+
+	float weight = 0.0;
+	for (int j = miny; j < maxy; j++)
+	{
+		weight += multipliers[j - y + offset];
+	}
+
+	weight = (1.0 - border_ratio) * weight + border_ratio * weight_no_border;
+	float scale = 1.0 / weight;
+
+	float sum = 0.0;
+	for (int j = miny; j < maxy; j++)
+	{
+		sum += inp[j * xsize + x] * multipliers[j - y + offset];
+	}
+
+	result[y * xsize + x] = sum * scale;
+}
+
 __kernel void Convolution(__global float* multipliers, __global float* inp, __global float* result,
 							int xsize, int xstep, int len, int offset, float border_ratio)
 {
@@ -69,6 +146,22 @@ __kernel void Convolution(__global float* multipliers, __global float* inp, __gl
 	}
 
 	result[ox * ysize + y] = sum * scale;
+}
+
+__kernel void SquareSample(__global float* pA, __global float* pC, int xstep, int ystep)
+{
+	const int x = get_global_id(0);
+	const int y = get_global_id(1);
+
+	int x_sample = x - x % xstep;
+	int y_sample = y - y % ystep;
+	
+	if (x_sample == x && y_sample == y) return;
+
+	const int xsize = get_global_size(0);
+	const int ysize = get_global_size(1);
+
+	pC[y * xsize + x] = pA[y_sample * xsize + x_sample];
 }
 
 __kernel void DownSample(__global float* pA, __global float* pC, int xstep, int ystep)
