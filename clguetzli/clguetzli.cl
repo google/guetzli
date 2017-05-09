@@ -357,14 +357,14 @@ __kernel void CombineChannels(
 	int step, 
 	__global float *result)
 {
-	const int res_x = get_global_id(0);
-	const int res_y = get_global_id(1);
+	const int res_x = get_global_id(0) * step;
+	const int res_y = get_global_id(1) * step;
 
-	const int res_xsize = get_global_size(0);
-	const int res_ysize = get_global_size(1);
+	const int res_xsize = (xsize + step - 1) / step;
+	const int res_ysize = (ysize + step - 1) / step;
 
-	if (res_x * step >= xsize - (8 - step)) return;
-	if (res_y * step >= ysize - (8 - step)) return;
+	//if (res_x * step >= xsize - (8 - step)) return;
+	//if (res_y * step >= ysize - (8 - step)) return;
 
 	double mask[3];
 	double dc_mask[3];
@@ -374,8 +374,8 @@ __kernel void CombineChannels(
 	mask[1] = mask_y[(res_y + 3) * xsize + (res_x + 3)];
 	dc_mask[1] = mask_dc_y[(res_y + 3) * xsize + (res_x + 3)];
 
-	mask[1] = mask_b[(res_y + 3) * xsize + (res_x + 3)];
-	dc_mask[1] = mask_dc_b[(res_y + 3) * xsize + (res_x + 3)];
+	mask[2] = mask_b[(res_y + 3) * xsize + (res_x + 3)];
+	dc_mask[2] = mask_dc_b[(res_y + 3) * xsize + (res_x + 3)];
 
 	size_t res_ix = (res_y * res_xsize + res_x) / step;
 	result[res_ix] = (float)(

@@ -883,8 +883,8 @@ void clCombineChannelsEx(
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
-	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (ysize + step - 1) / step;
+	const size_t res_xsize = ((xsize - 8 + step) + step - 1) / step;
+	const size_t res_ysize = ((ysize - 8 + step) + step - 1) / step;
 
 	cl_int clxsize = xsize;
 	cl_int clysize = ysize;

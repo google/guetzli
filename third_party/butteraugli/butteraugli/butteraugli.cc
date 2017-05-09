@@ -1067,6 +1067,8 @@ static void ScaleImage(double scale, std::vector<float> *result) {
   for (size_t i = 0; i < result->size(); ++i) {
     (*result)[i] *= static_cast<float>(scale);
   }
+
+  clScaleImage(scale, (*result).data());
 }
 
 // Making a cluster of local errors to be more impactful than
@@ -1126,6 +1128,7 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
     }
     ScaleImage(scale, diffmap);
   }
+  clCalculateDiffmapEx(xsize, ysize, step, (*diffmap).data());
 }
 
 void ButteraugliComparator::DiffmapOpsinDynamicsImage(
@@ -1322,7 +1325,7 @@ void ButteraugliComparator::CombineChannels(
   PROFILER_FUNC;
   result->resize(res_xsize_ * res_ysize_);
   for (size_t res_y = 0; res_y + (8 - step_) < ysize_; res_y += step_) {
-    for (size_t res_x = 0; res_x + (8 - step_) < xsize_; res_x += step_) {
+    for (size_t res_x = 0, j = 0; res_x + (8 - step_) < xsize_; res_x += step_, j++) {
       size_t res_ix = (res_y * res_xsize_ + res_x) / step_;
       double mask[3];
       double dc_mask[3];
@@ -1336,6 +1339,10 @@ void ButteraugliComparator::CombineChannels(
            DotProduct(&edge_detector_map[3 * res_ix], mask));
     }
   }
+  clCombineChannels(mask_xyb[0].data(), mask_xyb[1].data(), mask_xyb[2].data(),
+	  mask_xyb_dc[0].data(), mask_xyb_dc[1].data(), mask_xyb_dc[2].data(), 
+	  block_diff_dc.data(),
+	  block_diff_ac.data(), edge_detector_map.data(), xsize_, ysize_, res_xsize_, res_ysize_, step_, (*result).data());
 }
 
 double ButteraugliScoreFromDiffmap(const std::vector<float>& diffmap) {
@@ -1530,6 +1537,8 @@ void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
   }
   *diffs = result;
   ScaleImage(scale, diffs);
+
+  clAverage5x5(xsize, ysize, (*diffs).data());
 }
 
 void DiffPrecompute(
@@ -1585,6 +1594,11 @@ void DiffPrecompute(
       }
     }
   }
+  clDiffPrecompute(
+	  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), 
+	  xsize, ysize,
+	  ((*mask)[0]).data(), ((*mask)[1]).data(), ((*mask)[2]).data());
 }
 
 void Mask(const std::vector<std::vector<float> > &xyb0,

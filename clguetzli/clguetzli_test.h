@@ -32,3 +32,29 @@ void clMask(const float* r, const float* g, const float* b,
 	size_t xsize, size_t ysize,
 	const float* mask_r, const float* mask_g, const float* mask_b,
 	const float* maskdc_r, const float* maskdc_g, const float* maskdc_b);
+
+void clCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const float *mask_xyb_b,
+	const float *mask_xyb_dc_x, const float *mask_xyb_dc_y, const float *mask_xyb_dc_b,
+	const float *block_diff_dc, const float *block_diff_ac,
+	const float *edge_detector_map,
+	size_t xsize, size_t ysize,
+	size_t res_xsize, size_t res_ysize,
+	size_t step,
+	float *result);
+
+void clCalculateDiffmapEx(const size_t xsize, const size_t ysize,
+	const size_t step,
+	float *diffmap);
+
+void clBlur(size_t xsize, size_t ysize, float* channel, double sigma,
+	double border_ratio);
+
+void clDiffPrecompute(
+	const float *xyb0_x, const float *xyb0_y, const float *xyb0_b,
+	const float *xyb1_x, const float *xyb1_y, const float *xyb1_b,
+	size_t xsize, size_t ysize,
+	float *mask_x, float *mask_y, float *mask_b);
+
+void clAverage5x5(int xsize, int ysize, float *diffs);
+
+void clScaleImage(double scale, float *result);
