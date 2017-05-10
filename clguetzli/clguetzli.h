@@ -25,6 +25,8 @@ void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
 
 void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double border_ratio, cl_mem result = nullptr);
 
+void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, size_t xsize, size_t ysize);
+
 void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b);
 
 void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
