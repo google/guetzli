@@ -357,7 +357,6 @@ void tclConvolution(float* result, size_t xsize, size_t ysize,
 	float border_ratio,
 	float* orign_result)
 {
-	return;
 	if (xsize < 100 || ysize < 100) return;
 
 	int dxsize = (xsize + xstep - 1) / xstep;
@@ -413,9 +412,31 @@ void tclAverage5x5(int xsize, int ysize, float *diffs)
 }
 
 // chrisk todo
-void tclMinSquareVal(void)
+void tclMinSquareVal(float *img, size_t square_size, size_t offset,
+	size_t xsize, size_t ysize,
+	float *values)
 {
+	if (xsize < 100 || ysize < 100) return;
 
+	size_t img_size = xsize * ysize * sizeof(float);
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	cl_mem r = ocl.allocMem(img_size);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, r, CL_FALSE, 0, img_size, img, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clMinSquareValEx(r, xsize, ysize, square_size, offset);
+
+	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, r, true, CL_MAP_READ, 0, img_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
+
+	FLOAT_COMPARE(values, r_r, xsize * ysize);
+
+	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, img_size, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clReleaseMemObject(r);
 }
 
 // ian todo
