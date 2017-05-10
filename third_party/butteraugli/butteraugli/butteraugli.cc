@@ -99,14 +99,18 @@ static void Convolution(size_t xsize, size_t ysize,
     }
   }
 
-  clConvolution(newResult.data(), xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
+  tclConvolution(newResult.data(), xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
 }
 
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
           double border_ratio) {
 
-    std::vector<float> orignChannel(xsize * ysize);
-    memcpy(orignChannel.data(), channel, xsize * ysize * sizeof(float));
+    std::vector<float> orignChannel;
+	if (g_checkOpenCL)
+	{
+		orignChannel.resize(xsize * ysize);
+		memcpy(orignChannel.data(), channel, xsize * ysize * sizeof(float));
+	}
 
   PROFILER_FUNC;
   double m = 2.25;  // Accuracy increases when m is increased.
@@ -144,7 +148,10 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
     }
   }
 
-  clBlur(orignChannel.data(), xsize, ysize, sigma, border_ratio, channel);
+  if (g_checkOpenCL)
+  {
+	  tclBlur(orignChannel.data(), xsize, ysize, sigma, border_ratio, channel);
+  }
 }
 
 // To change this to n, add the relevant FFTn function and kFFTnMapIndexTable.
@@ -842,11 +849,14 @@ void MaskHighIntensityChange(
     }
   }
 
-  clMaskHighIntensityChange(c0[0].data(), c0[1].data(), c0[2].data(),
-	  c1[0].data(), c1[1].data(), c1[2].data(),
-	  xsize, ysize,
-	  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data());
+  if (g_checkOpenCL)
+  {
+	  tclMaskHighIntensityChange(c0[0].data(), c0[1].data(), c0[2].data(),
+		  c1[0].data(), c1[1].data(), c1[2].data(),
+		  xsize, ysize,
+		  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data());
+  }
 }
 
 double SimpleGamma(double v) {
@@ -1028,6 +1038,12 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
         return;
     }
 
+	std::vector< std::vector<float>> orig_rgb;
+	if (g_checkOpenCL)
+	{
+		orig_rgb = rgb;
+	}
+
   PROFILER_FUNC;
   std::vector<std::vector<float> > blurred = rgb;
   static const double kSigma = 1.1;
@@ -1044,16 +1060,6 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
       sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
       sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
       sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
-
-#ifdef ENABLE_OPENCL_CHECK
-	  double sensitivity_new[3];
-	  sensitivity_new[0] = GammaNonRecursion(pre_mixed[0]) / pre_mixed[0];
-	  assert(fabs(sensitivity[0] - sensitivity_new[0]) < 0.01);
-	  sensitivity_new[1] = GammaNonRecursion(pre_mixed[1]) / pre_mixed[1];
-	  assert(fabs(sensitivity[1] - sensitivity_new[1]) < 0.01);
-	  sensitivity_new[2] = GammaNonRecursion(pre_mixed[2]) / pre_mixed[2];
-	  assert(fabs(sensitivity[2] - sensitivity_new[2]) < 0.01);
-#endif // ENABLE_OPENCL_CHECK
     }
     double cur_rgb[3] = { rgb[0][i],  rgb[1][i],  rgb[2][i] };
     double cur_mixed[3];
@@ -1067,6 +1073,12 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
     rgb[1][i] = static_cast<float>(y);
     rgb[2][i] = static_cast<float>(z);
   }
+
+  if (g_checkOpenCL)
+  {
+	  tclOpsinDynamicsImage(orig_rgb[0].data(), orig_rgb[1].data(), orig_rgb[2].data(), xsize, ysize, 
+		  rgb[0].data(), rgb[1].data(), rgb[2].data());
+  }
 }
 
 static void ScaleImage(double scale, std::vector<float> *result) {
@@ -1075,7 +1087,10 @@ static void ScaleImage(double scale, std::vector<float> *result) {
     (*result)[i] *= static_cast<float>(scale);
   }
 
-  clScaleImage(scale, (*result).data());
+  if (g_checkOpenCL)
+  {
+	  tclScaleImage(scale, (*result).data());
+  }
 }
 
 // Making a cluster of local errors to be more impactful than
@@ -1135,7 +1150,10 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
     }
     ScaleImage(scale, diffmap);
   }
-  clCalculateDiffmapEx(xsize, ysize, step, (*diffmap).data());
+  if (g_checkOpenCL)
+  {
+	  tclCalculateDiffmap(xsize, ysize, step, (*diffmap).data());
+  }
 }
 
 void ButteraugliComparator::DiffmapOpsinDynamicsImage(
@@ -1215,10 +1233,14 @@ void ButteraugliComparator::BlockDiffMap(
       }
     }
   }
-  clBlockDiffMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-	  xsize_, ysize_, step_,
-	  (*block_diff_dc).data(), (*block_diff_ac).data());
+
+  if (g_checkOpenCL)
+  {
+	  tclBlockDiffMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+		  xsize_, ysize_, step_,
+		  (*block_diff_dc).data(), (*block_diff_ac).data());
+  }
 }
 
 void ButteraugliComparator::EdgeDetectorMap(
@@ -1252,10 +1274,13 @@ void ButteraugliComparator::EdgeDetectorMap(
     }
   }
 
-  clEdgeDetectorMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	                xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), 
-	                xsize_, ysize_, step_, 
-	                (*edge_detector_map).data());
+  if (g_checkOpenCL)
+  {
+	  tclEdgeDetectorMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+		  xsize_, ysize_, step_,
+		  (*edge_detector_map).data());
+  }
 }
 
 void ButteraugliComparator::EdgeDetectorLowFreq(
@@ -1263,7 +1288,11 @@ void ButteraugliComparator::EdgeDetectorLowFreq(
     const std::vector<std::vector<float> > &xyb1,
     std::vector<float>* block_diff_ac) {
 
-    std::vector<float> orign_ac = *block_diff_ac;
+	std::vector<float> orign_ac;
+	if (g_checkOpenCL)
+	{
+		orign_ac = *block_diff_ac;
+	}
 
   PROFILER_FUNC;
   static const double kSigma = 14;
@@ -1316,10 +1345,13 @@ void ButteraugliComparator::EdgeDetectorLowFreq(
     }
   }
 
-  clEdgeDetectorLowFreq(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	                    xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-	                    xsize_, ysize_, step_,
-                        orign_ac.data(), (*block_diff_ac).data());
+  if (g_checkOpenCL)
+  {
+	  tclEdgeDetectorLowFreq(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+		  xsize_, ysize_, step_,
+		  orign_ac.data(), (*block_diff_ac).data());
+  }
 }
 
 void ButteraugliComparator::CombineChannels(
@@ -1346,10 +1378,14 @@ void ButteraugliComparator::CombineChannels(
            DotProduct(&edge_detector_map[3 * res_ix], mask));
     }
   }
-  clCombineChannels(mask_xyb[0].data(), mask_xyb[1].data(), mask_xyb[2].data(),
-	  mask_xyb_dc[0].data(), mask_xyb_dc[1].data(), mask_xyb_dc[2].data(), 
-	  block_diff_dc.data(),
-	  block_diff_ac.data(), edge_detector_map.data(), xsize_, ysize_, res_xsize_, res_ysize_, step_, (*result).data());
+
+  if (g_checkOpenCL)
+  {
+	  tclCombineChannels(mask_xyb[0].data(), mask_xyb[1].data(), mask_xyb[2].data(),
+		  mask_xyb_dc[0].data(), mask_xyb_dc[1].data(), mask_xyb_dc[2].data(),
+		  block_diff_dc.data(),
+		  block_diff_ac.data(), edge_detector_map.data(), xsize_, ysize_, res_xsize_, res_ysize_, step_, (*result).data());
+  }
 }
 
 double ButteraugliScoreFromDiffmap(const std::vector<float>& diffmap) {
@@ -1545,7 +1581,10 @@ void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
   *diffs = result;
   ScaleImage(scale, diffs);
 
-  clAverage5x5(xsize, ysize, (*diffs).data());
+  if (g_checkOpenCL)
+  {
+	  tclAverage5x5(xsize, ysize, (*diffs).data());
+  }
 }
 
 void DiffPrecompute(
@@ -1601,11 +1640,15 @@ void DiffPrecompute(
       }
     }
   }
-  clDiffPrecompute(
-	  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), 
-	  xsize, ysize,
-	  ((*mask)[0]).data(), ((*mask)[1]).data(), ((*mask)[2]).data());
+
+  if (g_checkOpenCL)
+  {
+	  tclDiffPrecompute(
+		  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+		  xsize, ysize,
+		  ((*mask)[0]).data(), ((*mask)[1]).data(), ((*mask)[2]).data());
+  }
 }
 
 void Mask(const std::vector<std::vector<float> > &xyb0,
@@ -1660,11 +1703,14 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask_dc)[i]);
   }
 
-  clMask(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-	  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-	  xsize, ysize,
-	  (*mask)[0].data(), (*mask)[1].data(), (*mask)[2].data(),
-	  (*mask_dc)[0].data(), (*mask_dc)[1].data(), (*mask_dc)[2].data());
+  if (g_checkOpenCL)
+  {
+	  tclMask(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+		  xsize, ysize,
+		  (*mask)[0].data(), (*mask)[1].data(), (*mask)[2].data(),
+		  (*mask_dc)[0].data(), (*mask_dc)[1].data(), (*mask_dc)[2].data());
+  }
 }
 
 }  // namespace butteraugli

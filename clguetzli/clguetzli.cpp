@@ -4,6 +4,7 @@
 #include "clguetzli.h"
 
 extern bool g_useOpenCL = false;
+extern bool g_checkOpenCL = false;
 
 ocl_args_d_t& getOcl(void)
 {
@@ -318,10 +319,21 @@ void clBlurEx(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
 	clReleaseMemObject(mem_expn);
 }
 
-void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, ocl_channels rgb_blurred, size_t size)
+void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, size_t xsize, size_t ysize)
 {
+	static const double kSigma = 1.1;
+
+	cl_int channel_size = xsize * ysize * sizeof(float);
+
+	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	cl_int clSize = size;
+	ocl_channels rgb_blurred = ocl.allocMemChannels(channel_size);
+
+	clBlurEx(rgb.r, xsize, ysize, kSigma, 0.0, rgb_blurred.r);
+	clBlurEx(rgb.g, xsize, ysize, kSigma, 0.0, rgb_blurred.g);
+	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0, rgb_blurred.b);
+
+	cl_int clSize = xsize * ysize;
 	cl_kernel kernel = ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&rgb.r);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&rgb.g);
@@ -331,8 +343,8 @@ void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, ocl_channels rgb_blurred
 	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&rgb_blurred.b);
 	clSetKernelArg(kernel, 6, sizeof(cl_int), (void*)&clSize);
 
-	size_t globalWorkSize[1] = { size };
-	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	size_t globalWorkSize[1] = { xsize * ysize };
+	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clOpsinDynamicsImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
@@ -342,29 +354,24 @@ void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, ocl_channels rgb_blurred
 	{
 		LogError("Error: clOpsinDynamicsImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
+
+	ocl.releaseMemChannels(rgb_blurred);
 }
 
 void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b)
 {
-	static const double kSigma = 1.1;
-
 	cl_int channel_size = xsize * ysize * sizeof(float);
 	
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
     ocl_channels rgb = ocl.allocMemChannels(channel_size);
-	ocl_channels rgb_blurred = ocl.allocMemChannels(channel_size);
-
+	
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, rgb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
-	clBlurEx(rgb.r, xsize, ysize, kSigma, 0.0, rgb_blurred.r);
-	clBlurEx(rgb.g, xsize, ysize, kSigma, 0.0, rgb_blurred.g);
-	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0, rgb_blurred.b);
-
-	clOpsinDynamicsImageEx(rgb, rgb_blurred, xsize * ysize);
+	clOpsinDynamicsImageEx(rgb, xsize, ysize);
 
 	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, rgb.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	cl_float *result_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, rgb.g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
@@ -382,7 +389,6 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	clFinish(ocl.commandQueue);
 
     ocl.releaseMemChannels(rgb);
-	ocl.releaseMemChannels(rgb_blurred);
 }
 
 void clMaskHighIntensityChangeEx(ocl_channels xyb0/*in,out*/,
