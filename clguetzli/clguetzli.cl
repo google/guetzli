@@ -354,17 +354,12 @@ __kernel void CombineChannels(
 	__global float *block_diff_ac,
 	__global float *edge_detector_map,
 	int xsize, int ysize,
+	int res_xsize,
 	int step,
 	__global float *result)
 {
 	const int res_x = get_global_id(0) * step;
 	const int res_y = get_global_id(1) * step;
-
-	const int res_xsize = (xsize + step - 1) / step;
-	const int res_ysize = (ysize + step - 1) / step;
-
-	//if (res_x * step >= xsize - (8 - step)) return;
-	//if (res_y * step >= ysize - (8 - step)) return;
 
 	double mask[3];
 	double dc_mask[3];
@@ -382,6 +377,7 @@ __kernel void CombineChannels(
 		DotProduct(&block_diff_dc[3 * res_ix], dc_mask) +
 		DotProduct(&block_diff_ac[3 * res_ix], mask) +
 		DotProduct(&edge_detector_map[3 * res_ix], mask));
+	//result[res_ix] = 1;
 }
 
 inline double Interpolate(__constant double *array, int size, double sx) {

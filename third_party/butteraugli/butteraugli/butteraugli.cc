@@ -1172,7 +1172,7 @@ void ButteraugliComparator::DiffmapOpsinDynamicsImage(
 	{
 		result.resize(xsize_ * ysize_);
 		clDiffmapOpsinDynamicsImage(xyb0_arg[0].data(), xyb0_arg[1].data(), xyb0_arg[2].data(),
-			xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_, result.data());
+			xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_, res_xsize_, res_ysize_, result.data(), result.size());
 		return;
 	}
 
@@ -1368,8 +1368,16 @@ void ButteraugliComparator::CombineChannels(
     const std::vector<float>& block_diff_ac,
     const std::vector<float>& edge_detector_map,
     std::vector<float>* result) {
+
   PROFILER_FUNC;
   result->resize(res_xsize_ * res_ysize_);
+
+  std::vector<float> temp;
+  if (g_checkOpenCL)
+  {
+	  temp = *result;
+  }
+
   for (size_t res_y = 0; res_y + (8 - step_) < ysize_; res_y += step_) {
     for (size_t res_x = 0, j = 0; res_x + (8 - step_) < xsize_; res_x += step_, j++) {
       size_t res_ix = (res_y * res_xsize_ + res_x) / step_;
@@ -1391,7 +1399,7 @@ void ButteraugliComparator::CombineChannels(
 	  tclCombineChannels(mask_xyb[0].data(), mask_xyb[1].data(), mask_xyb[2].data(),
 		  mask_xyb_dc[0].data(), mask_xyb_dc[1].data(), mask_xyb_dc[2].data(),
 		  block_diff_dc.data(),
-		  block_diff_ac.data(), edge_detector_map.data(), xsize_, ysize_, res_xsize_, res_ysize_, step_, (*result).data());
+		  block_diff_ac.data(), edge_detector_map.data(), xsize_, ysize_, res_xsize_, res_ysize_, step_, &temp[0], &(*result)[0]);
   }
 }
 

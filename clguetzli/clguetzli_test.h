@@ -40,6 +40,7 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 	size_t xsize, size_t ysize,
 	size_t res_xsize, size_t res_ysize,
 	size_t step,
+	float *init_result,
 	float *result);
 
 void tclCalculateDiffmap(const size_t xsize, const size_t ysize,

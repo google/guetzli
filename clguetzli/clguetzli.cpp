@@ -14,7 +14,7 @@ ocl_args_d_t& getOcl(void)
 	if (bInit == true) return ocl;
 
 	bInit = true;
-	cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_CPU);
+	cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
@@ -883,15 +883,17 @@ void clCombineChannelsEx(
 	cl_mem block_diff_ac,
 	cl_mem edge_detector_map,
 	size_t xsize, size_t ysize,
+	size_t res_xsize,
 	size_t step,
 	cl_mem result/*out*/)
 {
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
-	const size_t res_xsize = ((xsize - 8 + step) + step - 1) / step;
-	const size_t res_ysize = ((ysize - 8 + step) + step - 1) / step;
+	const size_t work_xsize = ((xsize - 8 + step) + step - 1) / step;
+	const size_t work_ysize = ((ysize - 8 + step) + step - 1) / step;
 
+	cl_int clres_size = res_xsize;
 	cl_int clxsize = xsize;
 	cl_int clysize = ysize;
 	cl_int clstep = step;
@@ -908,10 +910,11 @@ void clCombineChannelsEx(
 	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&edge_detector_map);
 	clSetKernelArg(kernel, 9, sizeof(cl_int), (void*)&clxsize);
 	clSetKernelArg(kernel, 10, sizeof(cl_int), (void*)&clysize);
-	clSetKernelArg(kernel, 11, sizeof(cl_int), (void*)&clstep);
-	clSetKernelArg(kernel, 12, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 11, sizeof(cl_int), (void*)&clres_size);
+	clSetKernelArg(kernel, 12, sizeof(cl_int), (void*)&clstep);
+	clSetKernelArg(kernel, 13, sizeof(cl_mem), (void*)&result);
 
-	size_t globalWorkSize[2] = { res_xsize, res_ysize};
+	size_t globalWorkSize[2] = { work_xsize, work_ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -1039,8 +1042,9 @@ void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, size_t xsize, size_t ysize, 
 void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 								 float* r2, float* g2, float* b2,
 								 size_t xsize, size_t ysize,
+								 size_t res_xsize, size_t res_ysize,
 								 size_t step,
-								 float* result)
+								 float* result, size_t result_len)
 {
 
 	cl_int channel_size = xsize * ysize * sizeof(float);
@@ -1059,12 +1063,13 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 
 	err = clFinish(ocl.commandQueue);
 
-	cl_mem mem_result = ocl.allocMem(channel_size);
+	cl_mem mem_result = ocl.allocMem(res_xsize * res_ysize * sizeof(float));
+	const float pattern = 0;
+	clEnqueueFillBuffer(ocl.commandQueue, mem_result, &pattern, sizeof(float), 0, res_xsize * res_ysize, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_result, CL_FALSE, 0, result_len, result, 0, NULL, NULL);
+
 	ocl_channels mask = ocl.allocMemChannels(channel_size);
 	ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
-
-	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (ysize + step - 1) / step;
 
 	cl_mem edge_detector_map = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
 	cl_mem block_diff_dc = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
@@ -1078,7 +1083,7 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 
 	clMaskEx(xyb0, xyb1, xsize, ysize, mask, mask_dc);
 
-	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, xsize, ysize, step, mem_result);
+	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, xsize, ysize, res_xsize, step, mem_result);
 
     clCalculateDiffmapEx(mem_result, xsize, ysize, step);
 
