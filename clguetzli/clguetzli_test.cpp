@@ -24,7 +24,7 @@ int floatCompare(const float* a, const float* b, size_t size, const char* szFunc
 	return count;
 }
 
-void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
+void tclMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize,
 	const float* result_r, const float* result_g, const float* result_b,
@@ -76,7 +76,7 @@ void clMaskHighIntensityChange(const float* r, const float* g, const float* b,
 }
 
 // strong to
-void clEdgeDetectorMap(const float* r, const float* g, const float* b,
+void tclEdgeDetectorMap(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize, size_t step,
 	const float* result)
@@ -118,7 +118,7 @@ void clEdgeDetectorMap(const float* r, const float* g, const float* b,
 }
 
 // strong todo
-void clBlockDiffMap(const float* r, const float* g, const float* b,
+void tclBlockDiffMap(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize, size_t step,
 	const float* result_diff_dc, const float* result_diff_ac)
@@ -167,7 +167,7 @@ void clBlockDiffMap(const float* r, const float* g, const float* b,
 }
 
 // strong to
-void clEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
+void tclEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize, size_t step,
     const float* orign_ac,
@@ -213,13 +213,12 @@ void clEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 	clReleaseMemObject(block_diff_ac);
 }
 
-void clMask(const float* r, const float* g, const float* b,
+void tclMask(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize,
 	const float* mask_r, const float* mask_g, const float* mask_b,
 	const float* maskdc_r, const float* maskdc_g, const float* maskdc_b)
 {
-	return;
 	if (xsize < 100 || ysize < 100) return;
 
 	size_t channel_size = xsize * ysize * sizeof(float);
@@ -271,7 +270,7 @@ void clMask(const float* r, const float* g, const float* b,
 }
 
 // ian todo
-void clCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const float *mask_xyb_b,
+void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const float *mask_xyb_b,
 	const float *mask_xyb_dc_x, const float *mask_xyb_dc_y, const float *mask_xyb_dc_b,
 	const float *block_diff_dc,	const float *block_diff_ac,
 	const float *edge_detector_map,
@@ -316,7 +315,7 @@ void clCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const f
 }
 
 // ian todo
-void clCalculateDiffmapEx(const size_t xsize, const size_t ysize,
+void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	const size_t step,
 	float *diffmap)
 {
@@ -324,7 +323,7 @@ void clCalculateDiffmapEx(const size_t xsize, const size_t ysize,
 }
 
 // chrisk todo
-void clBlur(float* channel, size_t xsize, size_t ysize, double sigma, double border_ratio, float* result)
+void tclBlur(float* channel, size_t xsize, size_t ysize, double sigma, double border_ratio, float* result)
 {
     if (xsize < 100 || ysize < 100) return;
 
@@ -350,19 +349,55 @@ void clBlur(float* channel, size_t xsize, size_t ysize, double sigma, double bor
 }
 
 // chrisk todo
-void clConvolution(void)
+void tclConvolution(float* result, size_t xsize, size_t ysize,
+	size_t xstep,
+	size_t len, size_t offset,
+	const float* multipliers,
+	const float* inp,
+	float border_ratio,
+	float* orign_result)
 {
+	return;
+	if (xsize < 100 || ysize < 100) return;
 
+	int dxsize = (xsize + xstep - 1) / xstep;
+	size_t result_size = dxsize * ysize * sizeof(float);
+	size_t inp_size = xsize * ysize * sizeof(float);
+	size_t multipliers_size = len * sizeof(float);
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	cl_mem r = ocl.allocMem(result_size);
+	cl_mem i = ocl.allocMem(inp_size);
+	cl_mem m = ocl.allocMem(len);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, r, CL_FALSE, 0, result_size, result, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, i, CL_FALSE, 0, inp_size, inp, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, m, CL_FALSE, 0, multipliers_size, multipliers, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clConvolutionEx(i, xsize, ysize, m, len, xstep, offset, border_ratio, r);
+
+	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, r, true, CL_MAP_READ, 0, result_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
+
+	FLOAT_COMPARE(orign_result, r_r, dxsize * ysize);
+
+	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, result_size, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clReleaseMemObject(r);
+	clReleaseMemObject(i);
+	clReleaseMemObject(m);
 }
 
 // chirsk todo
-void clUpsample(void)
+void tclUpsample(void)
 {
 
 }
 
 // ian todo
-void clDiffPrecompute(
+void tclDiffPrecompute(
 	const float *xyb0_x, const float *xyb0_y, const float *xyb0_b,
 	const float *xyb1_x, const float *xyb1_y, const float *xyb1_b,
 	size_t xsize, size_t ysize,
@@ -372,19 +407,26 @@ void clDiffPrecompute(
 }
 
 // ian todo
-void clAverage5x5(int xsize, int ysize, float *diffs)
+void tclAverage5x5(int xsize, int ysize, float *diffs)
 {
 
 }
 
 // chrisk todo
-void clMinSquareVal(void)
+void tclMinSquareVal(void)
 {
 
 }
 
 // ian todo
-void clScaleImage(double scale, float *result)
+void tclScaleImage(double scale, float *result)
+{
+
+}
+
+// strong todo
+void tclOpsinDynamicsImage(float* r, float* g, float* b, size_t xsize, size_t ysize,
+	float* result_r, float* result_g, float* result_b)
 {
 
 }

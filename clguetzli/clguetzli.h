@@ -3,6 +3,7 @@
 #include "ocl.h"
 
 extern bool g_useOpenCL;
+extern bool g_checkOpenCL;
 
 void clMaskHighIntensityChangeEx(ocl_channels xyb0/*in,out*/,
 	ocl_channels xyb1/*in,out*/,
@@ -40,4 +41,9 @@ void clCombineChannelsEx(
 	cl_mem edge_detector_map,
 	size_t xsize, size_t ysize,
 	size_t step,
+	cl_mem result/*out*/);
+
+void clConvolutionEx(cl_mem inp, size_t xsize, size_t ysize,
+	cl_mem multipliers, size_t len,
+	int xstep, int offset, double border_ratio,
 	cl_mem result/*out*/);
