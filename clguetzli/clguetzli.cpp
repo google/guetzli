@@ -4,6 +4,7 @@
 #include "clguetzli.h"
 
 extern bool g_useOpenCL = false;
+extern bool g_checkOpenCL = false;
 
 ocl_args_d_t& getOcl(void)
 {

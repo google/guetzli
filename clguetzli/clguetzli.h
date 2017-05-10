@@ -3,6 +3,7 @@
 #include "ocl.h"
 
 extern bool g_useOpenCL;
+extern bool g_checkOpenCL;
 
 void clMaskHighIntensityChangeEx(ocl_channels xyb0/*in,out*/,
 	ocl_channels xyb1/*in,out*/,

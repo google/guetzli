@@ -264,6 +264,9 @@ int main(int argc, char** argv) {
 	else if (!strcmp(argv[opt_idx], "--opencl")) {
 		g_useOpenCL = true;
 	}
+	else if (!strcmp(argv[opt_idx], "--checkcl")) {
+		g_checkOpenCL = true;
+	}
 	else if (!strcmp(argv[opt_idx], "--")) {
       opt_idx++;
       break;
