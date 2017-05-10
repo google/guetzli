@@ -1064,7 +1064,7 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
       double pre_rgb[3] = { blurred[0][i], blurred[1][i], blurred[2][i] };
       double pre_mixed[3];
       OpsinAbsorbance(pre_rgb, pre_mixed);
-      sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
+      sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];¡¡¡¡
       sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
       sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
     }

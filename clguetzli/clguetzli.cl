@@ -266,17 +266,19 @@ __kernel void OpsinDynamicsImage(
 	double pre[3] = { r_blurred[i], g_blurred[i],  b_blurred[i] };
 	double pre_mixed[3];
 	OpsinAbsorbance(pre, pre_mixed);
+
 	double sensitivity[3];
 	sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
 	sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
 	sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
 
-	double cur_rgb[3] = { r_blurred[i], g_blurred[i],  b_blurred[i] };
+	double cur_rgb[3] = { r[i], g[i],  b[i] };
 	double cur_mixed[3];
     OpsinAbsorbance(cur_rgb, cur_mixed);
     cur_mixed[0] *= sensitivity[0];
     cur_mixed[1] *= sensitivity[1];
     cur_mixed[2] *= sensitivity[2];
+
     double x, y, z;
 	RgbToXyb(cur_mixed[0], cur_mixed[1], cur_mixed[2], &x, &y, &z);
     r[i] = x;
