@@ -367,7 +367,7 @@ void tclConvolution(float* result, size_t xsize, size_t ysize,
 	ocl_args_d_t &ocl = getOcl();
 	cl_mem r = ocl.allocMem(result_size);
 	cl_mem i = ocl.allocMem(inp_size);
-	cl_mem m = ocl.allocMem(len);
+	cl_mem m = ocl.allocMem(multipliers_size);
 
 	clEnqueueWriteBuffer(ocl.commandQueue, r, CL_FALSE, 0, result_size, result, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, i, CL_FALSE, 0, inp_size, inp, 0, NULL, NULL);
