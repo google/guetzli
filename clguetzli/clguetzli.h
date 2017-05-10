@@ -30,8 +30,9 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	float* r2, float* g2, float* b2,
 	size_t xsize, size_t ysize,
+	size_t res_xsize, size_t res_ysize,
 	size_t step,
-	float* result);
+	float* result, size_t result_len);
 
 void clCombineChannelsEx(
 	ocl_channels mask,
@@ -40,6 +41,7 @@ void clCombineChannelsEx(
 	cl_mem block_diff_ac,
 	cl_mem edge_detector_map,
 	size_t xsize, size_t ysize,
+	size_t res_xsize,
 	size_t step,
 	cl_mem result/*out*/);
 
