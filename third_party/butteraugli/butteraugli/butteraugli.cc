@@ -70,9 +70,13 @@ static void Convolution(size_t xsize, size_t ysize,
 	float border_ratio,
 	float* __restrict__ result) {
 
-	int dxsize = (xsize + xstep - 1) / xstep;
-	std::vector<float> newResult(dxsize * ysize);
-	memcpy(newResult.data(), result, dxsize * ysize * sizeof(float));
+	std::vector<float> newResult;
+	if (g_checkOpenCL)
+	{
+		int dxsize = (xsize + xstep - 1) / xstep;
+		newResult.resize(dxsize * ysize);
+		memcpy(newResult.data(), result, dxsize * ysize * sizeof(float));
+	}
 
   PROFILER_FUNC;
   float weight_no_border = 0;
@@ -99,7 +103,10 @@ static void Convolution(size_t xsize, size_t ysize,
     }
   }
 
-  tclConvolution(newResult.data(), xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
+  if (g_checkOpenCL)
+  {
+	  tclConvolution(newResult.data(), xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
+  }
 }
 
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
@@ -1490,6 +1497,13 @@ void MinSquareVal(size_t square_size, size_t offset,
   assert(offset < square_size);
   std::vector<float> tmp(xsize * ysize);
 
+  std::vector<float> img;
+  if (g_checkOpenCL)
+  {
+	  img.resize(xsize * ysize);
+	  memcpy(img.data(), values, xsize * ysize * sizeof(float));
+  }
+
   for (size_t y = 0; y < ysize; ++y) {
     const size_t minh = offset > y ? 0 : y - offset;
     const size_t maxh = std::min<size_t>(ysize, y + square_size - offset);
@@ -1525,6 +1539,11 @@ void MinSquareVal(size_t square_size, size_t offset,
         }
         *pValuePoint = min; pValuePoint += xsize;
     }
+  }
+
+  if (g_checkOpenCL)
+  {
+	  tclMinSquareVal(img.data(), square_size, offset, xsize, ysize, values);
   }
 }
 

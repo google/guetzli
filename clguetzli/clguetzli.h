@@ -47,3 +47,5 @@ void clConvolutionEx(cl_mem inp, size_t xsize, size_t ysize,
 	cl_mem multipliers, size_t len,
 	int xstep, int offset, double border_ratio,
 	cl_mem result/*out*/);
+
+void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t square_size, size_t offset);

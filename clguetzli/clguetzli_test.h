@@ -69,3 +69,7 @@ void tclScaleImage(double scale, float *result);
 
 void tclOpsinDynamicsImage(float* r, float* g, float* b, size_t xsize, size_t ysize,
 	float* result_r, float* result_g, float* result_b);
+
+void tclMinSquareVal(float *img, size_t square_size, size_t offset,
+	size_t xsize, size_t ysize,
+	float *values);
