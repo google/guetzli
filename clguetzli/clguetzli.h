@@ -41,3 +41,8 @@ void clCombineChannelsEx(
 	size_t xsize, size_t ysize,
 	size_t step,
 	cl_mem result/*out*/);
+
+void clConvolutionEx(cl_mem inp, size_t xsize, size_t ysize,
+	cl_mem multipliers, size_t len,
+	int xstep, int offset, double border_ratio,
+	cl_mem result/*out*/);

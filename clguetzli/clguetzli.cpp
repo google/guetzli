@@ -74,7 +74,7 @@ void clConvolutionEx(cl_mem inp, size_t xsize, size_t ysize,
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
-	size_t oxsize = xsize / xstep;
+	size_t oxsize = (xsize + xstep - 1) / xstep;
 
 	cl_int clxsize = xsize;
 	cl_int clxstep = xstep;

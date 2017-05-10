@@ -46,8 +46,13 @@ void clCalculateDiffmapEx(const size_t xsize, const size_t ysize,
 	const size_t step,
 	float *diffmap);
 
-void clBlur(size_t xsize, size_t ysize, float* channel, double sigma,
-	double border_ratio);
+void clConvolution(float* result, size_t xsize, size_t ysize,
+	size_t xstep,
+	size_t len, size_t offset,
+	const float* multipliers,
+	const float* inp,
+	float border_ratio,
+	float* orign_result);
 
 void clDiffPrecompute(
 	const float *xyb0_x, const float *xyb0_y, const float *xyb0_b,

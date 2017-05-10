@@ -350,9 +350,45 @@ void clBlur(float* channel, size_t xsize, size_t ysize, double sigma, double bor
 }
 
 // chrisk todo
-void clConvolution(void)
+void clConvolution(float* result, size_t xsize, size_t ysize,
+	size_t xstep,
+	size_t len, size_t offset,
+	const float* multipliers,
+	const float* inp,
+	float border_ratio,
+	float* orign_result)
 {
+	return;
+	if (xsize < 100 || ysize < 100) return;
 
+	int dxsize = (xsize + xstep - 1) / xstep;
+	size_t result_size = dxsize * ysize * sizeof(float);
+	size_t inp_size = xsize * ysize * sizeof(float);
+	size_t multipliers_size = len * sizeof(float);
+	cl_int err = 0;
+	ocl_args_d_t &ocl = getOcl();
+	cl_mem r = ocl.allocMem(result_size);
+	cl_mem i = ocl.allocMem(inp_size);
+	cl_mem m = ocl.allocMem(len);
+
+	clEnqueueWriteBuffer(ocl.commandQueue, r, CL_FALSE, 0, result_size, result, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, i, CL_FALSE, 0, inp_size, inp, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, m, CL_FALSE, 0, multipliers_size, multipliers, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clConvolutionEx(i, xsize, ysize, m, len, xstep, offset, border_ratio, r);
+
+	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, r, true, CL_MAP_READ, 0, result_size, 0, NULL, NULL, &err);
+	err = clFinish(ocl.commandQueue);
+
+	FLOAT_COMPARE(orign_result, r_r, dxsize * ysize);
+
+	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, result_size, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
+	clReleaseMemObject(r);
+	clReleaseMemObject(i);
+	clReleaseMemObject(m);
 }
 
 // chirsk todo

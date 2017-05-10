@@ -69,6 +69,11 @@ static void Convolution(size_t xsize, size_t ysize,
 	const float* __restrict__ inp,
 	float border_ratio,
 	float* __restrict__ result) {
+
+	int dxsize = (xsize + xstep - 1) / xstep;
+	std::vector<float> newResult(dxsize * ysize);
+	memcpy(newResult.data(), result, dxsize * ysize * sizeof(float));
+
   PROFILER_FUNC;
   float weight_no_border = 0;
 
@@ -93,6 +98,8 @@ static void Convolution(size_t xsize, size_t ysize,
       result[ox * ysize + y] = static_cast<float>(sum * scale);
     }
   }
+
+  clConvolution(newResult.data(), xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
 }
 
 void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
