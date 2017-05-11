@@ -463,9 +463,19 @@ void tclDiffPrecompute(
 }
 
 // ian todo
-void tclAverage5x5(int xsize, int ysize, float *diffs)
+void tclAverage5x5(int xsize, int ysize, std::vector<float> &diffs_org, std::vector<float> &diffs_cmp)
 {
+  cl_int err = 0;
+  ocl_args_d_t &ocl = getOcl();
+  cl_mem mem_diff = ocl.allocMem(xsize * ysize * sizeof(float));
+  clEnqueueWriteBuffer(ocl.commandQueue, mem_diff, CL_FALSE, 0, xsize * ysize * sizeof(float), diffs_org.data(), 0, NULL, NULL);
+  clAverage5x5Ex(mem_diff, xsize, ysize);
+  cl_float *r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_diff, true, CL_MAP_READ, 0, xsize * ysize * sizeof(float), 0, NULL, NULL, &err);
+  err = clFinish(ocl.commandQueue);
+  FLOAT_COMPARE(r, diffs_cmp.data(), xsize * ysize);
 
+  clEnqueueUnmapMemObject(ocl.commandQueue, mem_diff, r, xsize * ysize * sizeof(float), NULL, NULL);
+  clReleaseMemObject(mem_diff);
 }
 
 // chrisk todo

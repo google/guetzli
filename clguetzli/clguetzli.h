@@ -63,3 +63,5 @@ void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, size_t xsize, size_t ysize, 
 void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w);
 
 void clDiffPrecomputeEx(ocl_channels xyb0, ocl_channels xyb1, size_t xsize, size_t ysize, ocl_channels mask/*out*/);
+
+void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize);

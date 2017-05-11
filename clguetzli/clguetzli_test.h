@@ -65,7 +65,7 @@ void tclDiffPrecompute(
 	size_t xsize, size_t ysize,
   std::vector<std::vector<float> > *mask_cmp);
 
-void tclAverage5x5(int xsize, int ysize, float *diffs);
+void tclAverage5x5(int xsize, int ysize, std::vector<float> &diffs_org, std::vector<float> &diffs_cmp);
 
 void tclScaleImage(double scale, float *result_org, float *result_cmp, size_t length);
 

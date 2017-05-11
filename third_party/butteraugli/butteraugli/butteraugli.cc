@@ -1562,6 +1562,12 @@ void MinSquareVal(size_t square_size, size_t offset,
 
 // ===== Functions used by Mask only =====
 void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
+  std::vector<float> diffs_org;
+  if (g_checkOpenCL)
+  {
+    diffs_org = *diffs;
+  }
+
   PROFILER_FUNC;
   if (xsize < 4 || ysize < 4) {
     // TODO: Make this work for small dimensions as well.
@@ -1615,7 +1621,7 @@ void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
 
   if (g_checkOpenCL)
   {
-	  tclAverage5x5(xsize, ysize, (*diffs).data());
+	  tclAverage5x5(xsize, ysize, diffs_org, *diffs);
   }
 }
 
