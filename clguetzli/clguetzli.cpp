@@ -594,14 +594,14 @@ void clDiffPrecomputeEx(ocl_channels xyb0, ocl_channels xyb1, size_t xsize, size
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_DIFFPRECOMPUTE];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.r);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0.g);
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.x);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0.y);
 	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&xyb0.b);
-	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb1.r);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb1.g);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb1.x);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb1.y);
 	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&xyb1.b);
-	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&mask.r);
-	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&mask.g);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&mask.x);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&mask.y);
 	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&mask.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
@@ -935,14 +935,15 @@ void clUpsampleSquareRootEx(cl_mem diffmap, size_t xsize, size_t ysize, int step
 	cl_int clxsize = xsize;
 	cl_int clysize = ysize;
 	cl_int clstep = step;
-	ocl.allocC(xsize * ysize * sizeof(float));
+
+  cl_mem mem_diffmap = ocl.allocMem(xsize * ysize * sizeof(float));
 
 	cl_kernel kernel = ocl.kernel[KERNEL_UPSAMPLESQUAREROOT];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&diffmap);
 	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&xsize);
 	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&ysize);
 	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&step);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&ocl.dstMem);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&mem_diffmap);
 
 	const size_t res_xsize = (xsize + step - 1) / step;
 	const size_t res_ysize = (ysize + step - 1) / step;
@@ -954,7 +955,7 @@ void clUpsampleSquareRootEx(cl_mem diffmap, size_t xsize, size_t ysize, int step
 		LogError("Error: clUpsampleSquareRootEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
 	}
 	err = clFinish(ocl.commandQueue);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, ocl.dstMem, diffmap, 0, 0, xsize * ysize * sizeof(float), 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, mem_diffmap, diffmap, 0, 0, xsize * ysize * sizeof(float), 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clUpsampleSquareRootEx() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
@@ -964,6 +965,7 @@ void clUpsampleSquareRootEx(cl_mem diffmap, size_t xsize, size_t ysize, int step
 	{
 		LogError("Error: clUpsampleSquareRootEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
+  clReleaseMemObject(mem_diffmap);
 }
 
 void clCalculateDiffmapGetBlurredEx(cl_mem diffmap, size_t xsize, size_t ysize, int s, int s2, cl_mem blurred)
@@ -1029,14 +1031,14 @@ void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, size_t xsize, size_t ysize, 
 	int s2 = (8 - step) / 2;
 
 	ocl_args_d_t &ocl = getOcl();
-	ocl.allocA((xsize - s) * (ysize - s) * sizeof(float));
-	cl_mem blurred = ocl.srcA;
+  cl_mem blurred = ocl.allocMem((xsize - s) * (ysize - s) * sizeof(float));
 	clCalculateDiffmapGetBlurredEx(diffmap, (xsize - s), (ysize - s), s, s2, blurred);
 
 	static const double border_ratio = 0.03027655136;
 	clBlurEx(blurred, xsize - s, ysize - s, kSigma, border_ratio);
 	clGetDiffmapFromBlurredEx(diffmap, (xsize - s), (ysize - s), s, s2, blurred);
 	clScaleImageEx(diffmap, xsize * ysize, scale);
+  clReleaseMemObject(blurred);
 }
 
 void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,

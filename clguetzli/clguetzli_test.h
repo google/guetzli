@@ -45,7 +45,8 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 
 void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	const size_t step,
-	float *diffmap);
+	float *diffmap, size_t org_len,
+	float *diffmap_cmp);
 
 void tclConvolution(size_t xsize, size_t ysize,
 	size_t xstep,
@@ -59,14 +60,14 @@ void tclBlur(size_t xsize, size_t ysize, float* channel, double sigma,
 	double border_ratio);
 
 void tclDiffPrecompute(
-	const float *xyb0_x, const float *xyb0_y, const float *xyb0_b,
-	const float *xyb1_x, const float *xyb1_y, const float *xyb1_b,
+  const std::vector<std::vector<float> > &xyb0,
+  const std::vector<std::vector<float> > &xyb1,
 	size_t xsize, size_t ysize,
-	float *mask_x, float *mask_y, float *mask_b);
+  std::vector<std::vector<float> > *mask_cmp);
 
 void tclAverage5x5(int xsize, int ysize, float *diffs);
 
-void tclScaleImage(double scale, float *result);
+void tclScaleImage(double scale, float *result_org, float *result_cmp, size_t length);
 
 void tclOpsinDynamicsImage(float* r, float* g, float* b, size_t xsize, size_t ysize,
 	float* result_r, float* result_g, float* result_b);
@@ -74,3 +75,7 @@ void tclOpsinDynamicsImage(float* r, float* g, float* b, size_t xsize, size_t ys
 void tclMinSquareVal(float *img, size_t square_size, size_t offset,
 	size_t xsize, size_t ysize,
 	float *values);
+
+void tclUpsample(float* image, size_t xsize, size_t ysize,
+	size_t xstep, size_t ystep,
+	float* result);
