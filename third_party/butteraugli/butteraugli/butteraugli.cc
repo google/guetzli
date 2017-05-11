@@ -69,15 +69,6 @@ static void Convolution(size_t xsize, size_t ysize,
 	const float* __restrict__ inp,
 	float border_ratio,
 	float* __restrict__ result) {
-
-	std::vector<float> newResult;
-	if (g_checkOpenCL)
-	{
-		int dxsize = (xsize + xstep - 1) / xstep;
-		newResult.resize(dxsize * ysize);
-		memcpy(newResult.data(), result, dxsize * ysize * sizeof(float));
-	}
-
   PROFILER_FUNC;
   float weight_no_border = 0;
 
@@ -105,7 +96,7 @@ static void Convolution(size_t xsize, size_t ysize,
 
   if (g_checkOpenCL)
   {
-	  tclConvolution(newResult.data(), xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
+	  tclConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
   }
 }
 
@@ -1064,7 +1055,7 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
       double pre_rgb[3] = { blurred[0][i], blurred[1][i], blurred[2][i] };
       double pre_mixed[3];
       OpsinAbsorbance(pre_rgb, pre_mixed);
-      sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];¡¡¡¡
+      sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
       sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
       sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
     }

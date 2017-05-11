@@ -339,13 +339,13 @@ void tclBlur(float* channel, size_t xsize, size_t ysize, double sigma, double bo
 }
 
 // chrisk todo
-void tclConvolution(float* result, size_t xsize, size_t ysize,
+void tclConvolution(size_t xsize, size_t ysize,
 	size_t xstep,
 	size_t len, size_t offset,
 	const float* multipliers,
 	const float* inp,
 	float border_ratio,
-	float* orign_result)
+	float* result)
 {
 	int dxsize = (xsize + xstep - 1) / xstep;
 	size_t result_size = dxsize * ysize * sizeof(float);
@@ -353,11 +353,11 @@ void tclConvolution(float* result, size_t xsize, size_t ysize,
 	size_t multipliers_size = len * sizeof(float);
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	cl_mem r = ocl.allocMem(result_size);
+	ocl.allocA(result_size);
+	cl_mem r = ocl.srcA;
 	cl_mem i = ocl.allocMem(inp_size);
 	cl_mem m = ocl.allocMem(multipliers_size);
 
-	clEnqueueWriteBuffer(ocl.commandQueue, r, CL_FALSE, 0, result_size, result, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, i, CL_FALSE, 0, inp_size, inp, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, m, CL_FALSE, 0, multipliers_size, multipliers, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
@@ -367,12 +367,11 @@ void tclConvolution(float* result, size_t xsize, size_t ysize,
 	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, r, true, CL_MAP_READ, 0, result_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
-	FLOAT_COMPARE(orign_result, r_r, dxsize * ysize);
+	FLOAT_COMPARE(result, r_r, dxsize * ysize);
 
 	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, result_size, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
-	clReleaseMemObject(r);
 	clReleaseMemObject(i);
 	clReleaseMemObject(m);
 }
