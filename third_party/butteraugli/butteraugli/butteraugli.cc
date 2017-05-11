@@ -144,6 +144,10 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
             downsampled_output[(y / ystep) * dxsize + (x / xstep)];
       }
     }
+	if (g_checkOpenCL)
+	{
+		tclUpsample(downsampled_output.data(), xsize, ysize, xstep, ystep, channel);
+	}
   }
 
   if (g_checkOpenCL)
