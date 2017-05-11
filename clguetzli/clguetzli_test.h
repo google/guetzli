@@ -47,13 +47,13 @@ void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	const size_t step,
 	float *diffmap);
 
-void tclConvolution(float* result, size_t xsize, size_t ysize,
+void tclConvolution(size_t xsize, size_t ysize,
 	size_t xstep,
 	size_t len, size_t offset,
 	const float* multipliers,
 	const float* inp,
 	float border_ratio,
-	float* orign_result);
+	float* result);
 
 void tclBlur(size_t xsize, size_t ysize, float* channel, double sigma,
 	double border_ratio);
