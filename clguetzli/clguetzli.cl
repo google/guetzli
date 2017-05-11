@@ -172,7 +172,7 @@ __kernel void DownSample(__global float* pA, __global float* pC, int xstep, int 
 	const int xsize = get_global_size(0);
 	const int ysize = get_global_size(1);
 
-	const int oxsize = xsize / xstep;
+	const int oxsize = (xsize + xstep - 1) / xstep;
 
 	const int sample_x = x / xstep;
 	const int sample_y = y / ystep;
