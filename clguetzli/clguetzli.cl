@@ -1140,30 +1140,56 @@ __kernel void MaskHighIntensityChange(
 }
 
 
-#define XybToVals_off 11.38708334481672
-#define XybToVals_inc 14.550189611520716
-__constant double XybToVals_lut[21] = {
+#define XybToVals_off_x 11.38708334481672
+#define XybToVals_inc_x 14.550189611520716
+__constant double XybToVals_lut_x[21] = {
 	0,
-	XybToVals_off,
-	XybToVals_off + 1 * XybToVals_inc,
-	XybToVals_off + 2 * XybToVals_inc,
-	XybToVals_off + 3 * XybToVals_inc,
-	XybToVals_off + 4 * XybToVals_inc,
-	XybToVals_off + 5 * XybToVals_inc,
-	XybToVals_off + 6 * XybToVals_inc,
-	XybToVals_off + 7 * XybToVals_inc,
-	XybToVals_off + 8 * XybToVals_inc,
-	XybToVals_off + 9 * XybToVals_inc,
-	XybToVals_off + 10 * XybToVals_inc,
-	XybToVals_off + 11 * XybToVals_inc,
-	XybToVals_off + 12 * XybToVals_inc,
-	XybToVals_off + 13 * XybToVals_inc,
-	XybToVals_off + 14 * XybToVals_inc,
-	XybToVals_off + 15 * XybToVals_inc,
-	XybToVals_off + 16 * XybToVals_inc,
-	XybToVals_off + 17 * XybToVals_inc,
-	XybToVals_off + 18 * XybToVals_inc,
-	XybToVals_off + 19 * XybToVals_inc,
+	XybToVals_off_x,
+	XybToVals_off_x + 1 * XybToVals_inc_x,
+	XybToVals_off_x + 2 * XybToVals_inc_x,
+	XybToVals_off_x + 3 * XybToVals_inc_x,
+	XybToVals_off_x + 4 * XybToVals_inc_x,
+	XybToVals_off_x + 5 * XybToVals_inc_x,
+	XybToVals_off_x + 6 * XybToVals_inc_x,
+	XybToVals_off_x + 7 * XybToVals_inc_x,
+	XybToVals_off_x + 8 * XybToVals_inc_x,
+	XybToVals_off_x + 9 * XybToVals_inc_x,
+	XybToVals_off_x + 10 * XybToVals_inc_x,
+	XybToVals_off_x + 11 * XybToVals_inc_x,
+	XybToVals_off_x + 12 * XybToVals_inc_x,
+	XybToVals_off_x + 13 * XybToVals_inc_x,
+	XybToVals_off_x + 14 * XybToVals_inc_x,
+	XybToVals_off_x + 15 * XybToVals_inc_x,
+	XybToVals_off_x + 16 * XybToVals_inc_x,
+	XybToVals_off_x + 17 * XybToVals_inc_x,
+	XybToVals_off_x + 18 * XybToVals_inc_x,
+	XybToVals_off_x + 19 * XybToVals_inc_x,
+};
+
+#define XybToVals_off_y 1.4103373714040413
+#define XybToVals_inc_y 0.7084088867024
+__constant double XybToVals_lut_y[21] = {
+	0,
+	XybToVals_off_y,
+	XybToVals_off_y + 1 * XybToVals_inc_y,
+	XybToVals_off_y + 2 * XybToVals_inc_y,
+	XybToVals_off_y + 3 * XybToVals_inc_y,
+	XybToVals_off_y + 4 * XybToVals_inc_y,
+	XybToVals_off_y + 5 * XybToVals_inc_y,
+	XybToVals_off_y + 6 * XybToVals_inc_y,
+	XybToVals_off_y + 7 * XybToVals_inc_y,
+	XybToVals_off_y + 8 * XybToVals_inc_y,
+	XybToVals_off_y + 9 * XybToVals_inc_y,
+	XybToVals_off_y + 10 * XybToVals_inc_y,
+	XybToVals_off_y + 11 * XybToVals_inc_y,
+	XybToVals_off_y + 12 * XybToVals_inc_y,
+	XybToVals_off_y + 13 * XybToVals_inc_y,
+	XybToVals_off_y + 14 * XybToVals_inc_y,
+	XybToVals_off_y + 15 * XybToVals_inc_y,
+	XybToVals_off_y + 16 * XybToVals_inc_y,
+	XybToVals_off_y + 17 * XybToVals_inc_y,
+	XybToVals_off_y + 18 * XybToVals_inc_y,
+	XybToVals_off_y + 19 * XybToVals_inc_y,
 };
 
 void XybToVals(
@@ -1174,8 +1200,8 @@ void XybToVals(
     const double ymul = 2.28148649801;
 	const double zmul = 1.87816926918;
 
-	*valx = Interpolate(&XybToVals_lut[0], 21, x * xmul);
-	*valy = Interpolate(&XybToVals_lut[0], 21, y * ymul);
+	*valx = Interpolate(&XybToVals_lut_x[0], 21, x * xmul);
+	*valy = Interpolate(&XybToVals_lut_y[0], 21, y * ymul);
 	*valz = zmul * z;
 }
 
@@ -1195,7 +1221,7 @@ __kernel void DiffPrecompute(
 	double valsv1[3] = { 0.0 };
 	int ix2;
 
-	size_t ix = x + xsize * y;
+	int ix = x + xsize * y;
 	if (x + 1 < xsize) {
 		ix2 = ix + 1;
 	}

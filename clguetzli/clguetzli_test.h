@@ -60,10 +60,10 @@ void tclBlur(size_t xsize, size_t ysize, float* channel, double sigma,
 	double border_ratio);
 
 void tclDiffPrecompute(
-	const float *xyb0_x, const float *xyb0_y, const float *xyb0_b,
-	const float *xyb1_x, const float *xyb1_y, const float *xyb1_b,
+  const std::vector<std::vector<float> > &xyb0,
+  const std::vector<std::vector<float> > &xyb1,
 	size_t xsize, size_t ysize,
-	float *mask_x, float *mask_y, float *mask_b);
+  std::vector<std::vector<float> > *mask_cmp);
 
 void tclAverage5x5(int xsize, int ysize, float *diffs);
 

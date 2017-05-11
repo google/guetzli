@@ -1,6 +1,7 @@
 #include <CL/cl.h>
 #include <math.h>
 #include <assert.h>
+#include <vector>
 #include "clguetzli_test.h"
 #include "clguetzli.h"
 #include "ocl.h"
@@ -397,12 +398,43 @@ void tclUpsample(void)
 
 // ian todo
 void tclDiffPrecompute(
-	const float *xyb0_x, const float *xyb0_y, const float *xyb0_b,
-	const float *xyb1_x, const float *xyb1_y, const float *xyb1_b,
+  const std::vector<std::vector<float> > &xyb0,
+  const std::vector<std::vector<float> > &xyb1,
 	size_t xsize, size_t ysize,
-	float *mask_x, float *mask_y, float *mask_b)
+  std::vector<std::vector<float> > *mask_cmp)
 {
+  cl_int err = 0;
+  ocl_args_d_t &ocl = getOcl();
+  size_t channel_size = xsize * ysize * sizeof(float);
+  ocl_channels cl_xyb0 = ocl.allocMemChannels(channel_size);
+  ocl_channels cl_xyb1 = ocl.allocMemChannels(channel_size);
+  ocl_channels cl_mask = ocl.allocMemChannels(channel_size);
 
+  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb0.x, CL_FALSE, 0, channel_size, xyb0[0].data(), 0, NULL, NULL);
+  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb0.y, CL_FALSE, 0, channel_size, xyb0[1].data(), 0, NULL, NULL);
+  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb0.b, CL_FALSE, 0, channel_size, xyb0[2].data(), 0, NULL, NULL);
+  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb1.x, CL_FALSE, 0, channel_size, xyb1[0].data(), 0, NULL, NULL);
+  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb1.y, CL_FALSE, 0, channel_size, xyb1[1].data(), 0, NULL, NULL);
+  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb1.b, CL_FALSE, 0, channel_size, xyb1[2].data(), 0, NULL, NULL);
+
+
+  clDiffPrecomputeEx(cl_xyb0, cl_xyb1, xsize, ysize, cl_mask);
+
+  cl_float *r_x = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, cl_mask.x, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+  cl_float *r_y = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, cl_mask.y, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+  cl_float *r_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, cl_mask.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+  err = clFinish(ocl.commandQueue);
+
+  FLOAT_COMPARE(r_x, (*mask_cmp)[0].data(), xsize * ysize);
+  FLOAT_COMPARE(r_y, (*mask_cmp)[1].data(), xsize * ysize);
+  FLOAT_COMPARE(r_b, (*mask_cmp)[2].data(), xsize * ysize);
+
+  ocl.releaseMemChannels(cl_xyb0);
+  ocl.releaseMemChannels(cl_xyb1);
+  ocl.releaseMemChannels(cl_mask);
+  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.x, r_x, channel_size, NULL, NULL);
+  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.y, r_y, channel_size, NULL, NULL);
+  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.b, r_b, channel_size, NULL, NULL);
 }
 
 // ian todo

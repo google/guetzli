@@ -1671,11 +1671,7 @@ void DiffPrecompute(
 
   if (g_checkOpenCL)
   {
-	  tclDiffPrecompute(
-		  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-		  xsize, ysize,
-		  ((*mask)[0]).data(), ((*mask)[1]).data(), ((*mask)[2]).data());
+	  tclDiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
   }
 }
 

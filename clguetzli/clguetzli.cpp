@@ -594,14 +594,14 @@ void clDiffPrecomputeEx(ocl_channels xyb0, ocl_channels xyb1, size_t xsize, size
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_DIFFPRECOMPUTE];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.r);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0.g);
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.x);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0.y);
 	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&xyb0.b);
-	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb1.r);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb1.g);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb1.x);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb1.y);
 	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&xyb1.b);
-	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&mask.r);
-	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&mask.g);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&mask.x);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&mask.y);
 	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&mask.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
