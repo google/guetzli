@@ -298,6 +298,7 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 
 	FLOAT_COMPARE(result_tmp, result, res_xsize * res_ysize);
 
+  clEnqueueUnmapMemObject(ocl.commandQueue, cl_result, result_tmp, res_xsize * res_ysize * sizeof(float), NULL, NULL);
 	ocl.releaseMemChannels(mask);
 	ocl.releaseMemChannels(mask_dc);
 	clReleaseMemObject(cl_block_diff_dc);
@@ -309,9 +310,21 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 // ian todo
 void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	const size_t step,
-	float *diffmap)
+	float *diffmap, size_t org_len,
+	float *diffmap_cmp)
 {
+	cl_int err = CL_SUCCESS;
+	ocl_args_d_t &ocl = getOcl();
 
+	size_t length = xsize * ysize * sizeof(float);
+	cl_mem mem_diffmap = ocl.allocMem(length);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_diffmap, CL_FALSE, 0, org_len * sizeof(float), diffmap, 0, NULL, NULL);
+	clCalculateDiffmapEx(mem_diffmap, xsize, ysize, step);
+	//cl_float *result_tmp = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_diffmap, true, CL_MAP_READ, 0, length, 0, NULL, NULL, &err);
+  //err = clFinish(ocl.commandQueue);
+	//FLOAT_COMPARE(result_tmp, diffmap_cmp, xsize * ysize);
+  //clEnqueueUnmapMemObject(ocl.commandQueue, mem_diffmap, result_tmp, length, NULL, NULL);
+	clReleaseMemObject(mem_diffmap);
 }
 
 // chrisk todo
@@ -449,10 +462,21 @@ void tclMinSquareVal(float *img, size_t square_size, size_t offset,
 	clReleaseMemObject(r);
 }
 
-// ian todo
-void tclScaleImage(double scale, float *result)
+void tclScaleImage(double scale, float *result_org, float *result_cmp, size_t length)
 {
+  cl_int err = 0;
+  ocl_args_d_t &ocl = getOcl();
+  cl_mem mem_result_org = ocl.allocMem(length * sizeof(float));
+  clEnqueueWriteBuffer(ocl.commandQueue, mem_result_org, CL_FALSE, 0, length * sizeof(float), result_org, 0, NULL, NULL);
+  clScaleImageEx(mem_result_org, length, scale);
 
+  cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result_org, true, CL_MAP_READ, 0, length * sizeof(float), 0, NULL, NULL, &err);
+  err = clFinish(ocl.commandQueue);
+
+  FLOAT_COMPARE(r_r, result_cmp, length);
+
+  clEnqueueUnmapMemObject(ocl.commandQueue, mem_result_org, r_r, length * sizeof(float), NULL, NULL);
+  clReleaseMemObject(mem_result_org);
 }
 
 // strong todo

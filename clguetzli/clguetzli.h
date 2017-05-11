@@ -57,3 +57,7 @@ void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t s
 void clUpsampleEx(cl_mem image, size_t xsize, size_t ysize,
 	size_t xstep, size_t ystep,
 	cl_mem result/*out*/);
+
+void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, size_t xsize, size_t ysize, int step);
+
+void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w);

@@ -1084,6 +1084,11 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
 }
 
 static void ScaleImage(double scale, std::vector<float> *result) {
+  std::vector<float> result_org;
+	if (g_checkOpenCL)
+	{
+    result_org = *result;
+	}
   PROFILER_FUNC;
   for (size_t i = 0; i < result->size(); ++i) {
     (*result)[i] *= static_cast<float>(scale);
@@ -1091,7 +1096,7 @@ static void ScaleImage(double scale, std::vector<float> *result) {
 
   if (g_checkOpenCL)
   {
-	  tclScaleImage(scale, (*result).data());
+    tclScaleImage(scale, result_org.data(), (*result).data(), (*result).size());
   }
 }
 
@@ -1100,6 +1105,11 @@ static void ScaleImage(double scale, std::vector<float> *result) {
 void CalculateDiffmap(const size_t xsize, const size_t ysize,
                       const size_t step,
                       std::vector<float>* diffmap) {
+  std::vector<float> diffmap_org;
+  if (g_checkOpenCL)
+  {
+	  diffmap_org = *diffmap;
+  }
   PROFILER_FUNC;
   // Shift the diffmap more correctly above the pixels, from 2.5 pixels to 0.5
   // pixels distance over the original image. The border of 2 pixels on top and
@@ -1154,7 +1164,7 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
   }
   if (g_checkOpenCL)
   {
-	  tclCalculateDiffmap(xsize, ysize, step, (*diffmap).data());
+	  tclCalculateDiffmap(xsize, ysize, step, diffmap_org.data(), diffmap_org.size(), (*diffmap).data());
   }
 }
 
