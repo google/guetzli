@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "guetzli/butteraugli_comparator.h"
-#include "clguetzli\clBlock.h"
+#include "clguetzli\clguetzli_comparator.h"
 #include "guetzli/comparator.h"
 #include "guetzli/debug_print.h"
 #include "guetzli/fast_log.h"

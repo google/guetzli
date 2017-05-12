@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "butteraugli/butteraugli.h"
+#include "clguetzli\clbutter_comparator.h"
 #include "guetzli/comparator.h"
 #include "guetzli/jpeg_data.h"
 #include "guetzli/output_image.h"
@@ -78,7 +79,7 @@ class ButteraugliComparator : public Comparator {
   std::vector<std::vector<float>> rgb_linear_pregamma_;
   std::vector<std::vector<float>> mask_xyz_;
   std::vector<std::vector<std::vector<float>>> per_block_pregamma_;
-  ::butteraugli::ButteraugliComparator comparator_;
+  ::butteraugli::clButteraugliComparator comparator_;
   float distance_;
   std::vector<float> distmap_;
   ProcessStats* stats_;

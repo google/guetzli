@@ -30,6 +30,7 @@
 //   * Blur - to hold the smoothing code
 
 #include "butteraugli/butteraugli.h"
+#include "clguetzli\clbutter_comparator.h"
 
 #include <assert.h>
 #include <math.h>
@@ -62,7 +63,7 @@ inline double DotProduct(const float u[3], const double v[3]) {
 }
 
 // Computes a horizontal convolution and transposes the result.
-static void Convolution(size_t xsize, size_t ysize,
+void _Convolution(size_t xsize, size_t ysize,
 	size_t xstep,
 	size_t len, size_t offset,
 	const float* __restrict__ multipliers,
@@ -93,23 +94,10 @@ static void Convolution(size_t xsize, size_t ysize,
       result[ox * ysize + y] = static_cast<float>(sum * scale);
     }
   }
-
-  if (g_checkOpenCL)
-  {
-	  tclConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
-  }
 }
 
-void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
+void _Blur(size_t xsize, size_t ysize, float* channel, double sigma,
           double border_ratio) {
-
-    std::vector<float> orignChannel;
-	if (g_checkOpenCL)
-	{
-		orignChannel.resize(xsize * ysize);
-		memcpy(orignChannel.data(), channel, xsize * ysize * sizeof(float));
-	}
-
   PROFILER_FUNC;
   double m = 2.25;  // Accuracy increases when m is increased.
   const double scaler = -1.0 / (2 * sigma * sigma);
@@ -144,15 +132,6 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
             downsampled_output[(y / ystep) * dxsize + (x / xstep)];
       }
     }
-	if (g_checkOpenCL)
-	{
-		tclUpsample(downsampled_output.data(), xsize, ysize, xstep, ystep, channel);
-	}
-  }
-
-  if (g_checkOpenCL)
-  {
-	  tclBlur(orignChannel.data(), xsize, ysize, sigma, border_ratio, channel);
   }
 }
 
@@ -798,7 +777,7 @@ ButteraugliComparator::ButteraugliComparator(
   assert(step <= 4);
 }
 
-void MaskHighIntensityChange(
+void _MaskHighIntensityChange(
     size_t xsize, size_t ysize,
     const std::vector<std::vector<float> > &c0,
     const std::vector<std::vector<float> > &c1,
@@ -849,15 +828,6 @@ void MaskHighIntensityChange(
         xyb1[i][ix] = static_cast<float>(mix[i] * c1[i][ix] + (1 - mix[i]) * ave[i]);
       }
     }
-  }
-
-  if (g_checkOpenCL)
-  {
-	  tclMaskHighIntensityChange(c0[0].data(), c0[1].data(), c0[2].data(),
-		  c1[0].data(), c1[1].data(), c1[2].data(),
-		  xsize, ysize,
-		  xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data());
   }
 }
 
@@ -936,28 +906,6 @@ struct RationalPolynomial {
     return b1;
   }
 
-#ifdef ENABLE_OPENCL_CHECK
-  static double EvaluatePolynomialNonRecursion(const double x, const double *coefficients, int n) {
-	double b1 = 0.0;
-	double b2 = 0.0;
-
-	for (int i = n - 1; i >= 0; i--)
-	{
-		if (i == 0) {
-			const double x_b1 = x * b1;
-			b1 = x_b1 - b2 + coefficients[0];
-			break;
-		}
-		const double x_b1 = x * b1;
-		const double t = (x_b1 + x_b1) - b2 + coefficients[i];
-		b2 = b1;
-		b1 = t;
-	}
-
-	return b1;
-  }
-#endif // ENABLE_OPENCL_CHECK
-
   // Evaluates the polynomial at x (in [min_value, max_value]).
   inline double operator()(const float x) const {
     // First normalize to [0, 1].
@@ -996,56 +944,13 @@ static inline float GammaPolynomial(float value) {
   return static_cast<float>(r(value));
 }
 
-#ifdef ENABLE_OPENCL_CHECK
-static double GammaNonRecursion(double v) {
-	double min_value = 0.770000000000000;
-	double max_value = 274.579999999999984;
-
-	double p[5 + 1] = {
-		881.979476556478289, 1496.058452015812463, 908.662212739659481,
-		373.566100223287378, 85.840860336314364, 6.683258861509244,
-	};
-	double q[5 + 1] = {
-		12.262350348616792, 20.557285797683576, 12.161463238367844,
-		4.711532733641639, 0.899112889751053, 0.035662329617191, 
-	};
-
-	// First normalize to [0, 1].
-	const double x01 = (v - min_value) / (max_value - min_value);
-	// And then to [-1, 1] domain of Chebyshev polynomials.
-	const double xc = 2.0 * x01 - 1.0;
-
-	const double yp = RationalPolynomial::EvaluatePolynomialNonRecursion(xc, p, 6);
-	const double yq = RationalPolynomial::EvaluatePolynomialNonRecursion(xc, q, 6);
-	if (yq == 0.0) return 0.0;
-	return static_cast<float>(yp / yq);
-}
-#endif // ENABLE_OPENCL_CHECK
-
 static inline double Gamma(double v) {
   // return SimpleGamma(v);
   return GammaPolynomial(static_cast<float>(v));
 }
 
-void OpsinDynamicsImage(size_t xsize, size_t ysize,
+void _OpsinDynamicsImage(size_t xsize, size_t ysize,
                         std::vector<std::vector<float> > &rgb) {
-
-    if (g_useOpenCL && xsize > 100 && ysize > 100)
-    {
-        float * r = rgb[0].data();
-        float * g = rgb[1].data();
-        float * b = rgb[2].data();
-
-        clOpsinDynamicsImage(xsize, ysize, r, g, b);
-        return;
-    }
-
-	std::vector< std::vector<float>> orig_rgb;
-	if (g_checkOpenCL)
-	{
-		orig_rgb = rgb;
-	}
-
   PROFILER_FUNC;
   std::vector<std::vector<float> > blurred = rgb;
   static const double kSigma = 1.1;
@@ -1075,41 +980,20 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
     rgb[1][i] = static_cast<float>(y);
     rgb[2][i] = static_cast<float>(z);
   }
-
-  if (g_checkOpenCL)
-  {
-	  tclOpsinDynamicsImage(orig_rgb[0].data(), orig_rgb[1].data(), orig_rgb[2].data(), xsize, ysize, 
-		  rgb[0].data(), rgb[1].data(), rgb[2].data());
-  }
 }
 
-static void ScaleImage(double scale, std::vector<float> *result) {
-  std::vector<float> result_org;
-	if (g_checkOpenCL)
-	{
-    result_org = *result;
-	}
+void _ScaleImage(double scale, std::vector<float> *result) {
   PROFILER_FUNC;
   for (size_t i = 0; i < result->size(); ++i) {
     (*result)[i] *= static_cast<float>(scale);
-  }
-
-  if (g_checkOpenCL)
-  {
-    tclScaleImage(scale, result_org.data(), (*result).data(), (*result).size());
   }
 }
 
 // Making a cluster of local errors to be more impactful than
 // just a single error.
-void CalculateDiffmap(const size_t xsize, const size_t ysize,
+void _CalculateDiffmap(const size_t xsize, const size_t ysize,
                       const size_t step,
                       std::vector<float>* diffmap) {
-  std::vector<float> diffmap_org;
-  if (g_checkOpenCL)
-  {
-	  diffmap_org = *diffmap;
-  }
   PROFILER_FUNC;
   // Shift the diffmap more correctly above the pixels, from 2.5 pixels to 0.5
   // pixels distance over the original image. The border of 2 pixels on top and
@@ -1162,24 +1046,12 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
     }
     ScaleImage(scale, diffmap);
   }
-  if (g_checkOpenCL)
-  {
-	  tclCalculateDiffmap(xsize, ysize, step, diffmap_org.data(), diffmap_org.size(), (*diffmap).data());
-  }
 }
 
 void ButteraugliComparator::DiffmapOpsinDynamicsImage(
     const std::vector<std::vector<float>> &xyb0_arg,
     std::vector<std::vector<float>> &xyb1,
     std::vector<float> &result) {
-
-	if (g_useOpenCL && xsize_ > 100 && ysize_ > 100)
-	{
-		result.resize(xsize_ * ysize_);
-		clDiffmapOpsinDynamicsImage(xyb0_arg[0].data(), xyb0_arg[1].data(), xyb0_arg[2].data(),
-			xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_, result.data());
-		return;
-	}
 
   if (xsize_ < 8 || ysize_ < 8) return;
   auto xyb0 = xyb0_arg;
@@ -1244,14 +1116,6 @@ void ButteraugliComparator::BlockDiffMap(
       }
     }
   }
-
-  if (g_checkOpenCL)
-  {
-	  tclBlockDiffMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-		  xsize_, ysize_, step_,
-		  (*block_diff_dc).data(), (*block_diff_ac).data());
-  }
 }
 
 void ButteraugliComparator::EdgeDetectorMap(
@@ -1284,26 +1148,12 @@ void ButteraugliComparator::EdgeDetectorMap(
       }
     }
   }
-
-  if (g_checkOpenCL)
-  {
-	  tclEdgeDetectorMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-		  xsize_, ysize_, step_,
-		  (*edge_detector_map).data());
-  }
 }
 
 void ButteraugliComparator::EdgeDetectorLowFreq(
     const std::vector<std::vector<float> > &xyb0,
     const std::vector<std::vector<float> > &xyb1,
     std::vector<float>* block_diff_ac) {
-
-	std::vector<float> orign_ac;
-	if (g_checkOpenCL)
-	{
-		orign_ac = *block_diff_ac;
-	}
 
   PROFILER_FUNC;
   static const double kSigma = 14;
@@ -1355,14 +1205,6 @@ void ButteraugliComparator::EdgeDetectorLowFreq(
       }
     }
   }
-
-  if (g_checkOpenCL)
-  {
-	  tclEdgeDetectorLowFreq(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-		  xsize_, ysize_, step_,
-		  orign_ac.data(), (*block_diff_ac).data());
-  }
 }
 
 void ButteraugliComparator::CombineChannels(
@@ -1375,12 +1217,6 @@ void ButteraugliComparator::CombineChannels(
 
   PROFILER_FUNC;
   result->resize(res_xsize_ * res_ysize_);
-
-  std::vector<float> temp;
-  if (g_checkOpenCL)
-  {
-	  temp = *result;
-  }
 
   for (size_t res_y = 0; res_y + (8 - step_) < ysize_; res_y += step_) {
     for (size_t res_x = 0, j = 0; res_x + (8 - step_) < xsize_; res_x += step_, j++) {
@@ -1396,14 +1232,6 @@ void ButteraugliComparator::CombineChannels(
            DotProduct(&block_diff_ac[3 * res_ix], mask) +
            DotProduct(&edge_detector_map[3 * res_ix], mask));
     }
-  }
-
-  if (g_checkOpenCL)
-  {
-	  tclCombineChannels(mask_xyb[0].data(), mask_xyb[1].data(), mask_xyb[2].data(),
-		  mask_xyb_dc[0].data(), mask_xyb_dc[1].data(), mask_xyb_dc[2].data(),
-		  block_diff_dc.data(),
-		  block_diff_ac.data(), edge_detector_map.data(), xsize_, ysize_, res_xsize_, res_ysize_, step_, &temp[0], &(*result)[0]);
   }
 }
 
@@ -1502,19 +1330,12 @@ double MaskDcB(double delta) {
   return InterpolateClampNegative(lut.data(), lut.size(), delta);
 }
 
-void MinSquareVal(size_t square_size, size_t offset,
+void _MinSquareVal(size_t square_size, size_t offset,
 				  size_t xsize, size_t ysize,
                   float *values) {
   // offset is not negative and smaller than square_size.
   assert(offset < square_size);
   std::vector<float> tmp(xsize * ysize);
-
-  std::vector<float> img;
-  if (g_checkOpenCL)
-  {
-	  img.resize(xsize * ysize);
-	  memcpy(img.data(), values, xsize * ysize * sizeof(float));
-  }
 
   for (size_t y = 0; y < ysize; ++y) {
     const size_t minh = offset > y ? 0 : y - offset;
@@ -1552,21 +1373,10 @@ void MinSquareVal(size_t square_size, size_t offset,
         *pValuePoint = min; pValuePoint += xsize;
     }
   }
-
-  if (g_checkOpenCL)
-  {
-	  tclMinSquareVal(img.data(), square_size, offset, xsize, ysize, values);
-  }
 }
 
 // ===== Functions used by Mask only =====
-void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
-  std::vector<float> diffs_org;
-  if (g_checkOpenCL)
-  {
-    diffs_org = *diffs;
-  }
-
+void _Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
   PROFILER_FUNC;
   if (xsize < 4 || ysize < 4) {
     // TODO: Make this work for small dimensions as well.
@@ -1617,14 +1427,9 @@ void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
   }
   *diffs = result;
   ScaleImage(scale, diffs);
-
-  if (g_checkOpenCL)
-  {
-	  tclAverage5x5(xsize, ysize, diffs_org, *diffs);
-  }
 }
 
-void DiffPrecompute(
+void _DiffPrecompute(
     const std::vector<std::vector<float> > &xyb0,
     const std::vector<std::vector<float> > &xyb1,
     size_t xsize, size_t ysize,
@@ -1677,14 +1482,9 @@ void DiffPrecompute(
       }
     }
   }
-
-  if (g_checkOpenCL)
-  {
-	  tclDiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
-  }
 }
 
-void Mask(const std::vector<std::vector<float> > &xyb0,
+void _Mask(const std::vector<std::vector<float> > &xyb0,
           const std::vector<std::vector<float> > &xyb1,
           size_t xsize, size_t ysize,
           std::vector<std::vector<float> > *mask,
@@ -1734,15 +1534,6 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
   for (int i = 0; i < 3; ++i) {
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask)[i]);
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask_dc)[i]);
-  }
-
-  if (g_checkOpenCL)
-  {
-	  tclMask(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-		  xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-		  xsize, ysize,
-		  (*mask)[0].data(), (*mask)[1].data(), (*mask)[2].data(),
-		  (*mask_dc)[0].data(), (*mask_dc)[1].data(), (*mask_dc)[2].data());
   }
 }
 

@@ -46,26 +46,26 @@ class ButteraugliComparator {
   // Computes the butteraugli map between xyb0 and xyb1 and updates result.
   // Both xyb0 and xyb1 are in opsin-dynamics space.
   // NOTE: The xyb1 image is mutated by this function in-place.
-  void DiffmapOpsinDynamicsImage(const std::vector<std::vector<float>> &xyb0,
+  virtual void DiffmapOpsinDynamicsImage(const std::vector<std::vector<float>> &xyb0,
                                  std::vector<std::vector<float>> &xyb1,
                                  std::vector<float> &result);
 
- private:
-  void BlockDiffMap(const std::vector<std::vector<float> > &rgb0,
+ protected:
+  virtual void BlockDiffMap(const std::vector<std::vector<float> > &rgb0,
                     const std::vector<std::vector<float> > &rgb1,
                     std::vector<float>* block_diff_dc,
                     std::vector<float>* block_diff_ac);
 
 
-  void EdgeDetectorMap(const std::vector<std::vector<float> > &rgb0,
+  virtual void EdgeDetectorMap(const std::vector<std::vector<float> > &rgb0,
                        const std::vector<std::vector<float> > &rgb1,
                        std::vector<float>* edge_detector_map);
 
-  void EdgeDetectorLowFreq(const std::vector<std::vector<float> > &rgb0,
+  virtual void EdgeDetectorLowFreq(const std::vector<std::vector<float> > &rgb0,
                            const std::vector<std::vector<float> > &rgb1,
                            std::vector<float>* block_diff_ac);
 
-  void CombineChannels(const std::vector<std::vector<float> >& scale_xyb,
+  virtual void CombineChannels(const std::vector<std::vector<float> >& scale_xyb,
                        const std::vector<std::vector<float> >& scale_xyb_dc,
                        const std::vector<float>& block_diff_dc,
                        const std::vector<float>& block_diff_ac,
