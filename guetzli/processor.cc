@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "guetzli/butteraugli_comparator.h"
+#include "clguetzli\clBlock.h"
 #include "guetzli/comparator.h"
 #include "guetzli/debug_print.h"
 #include "guetzli/fast_log.h"
@@ -407,12 +408,6 @@ void Processor::ComputeBlockZeroingOrder(
  
 	std::vector<std::pair<int, float> > input_order;
 	func(block, orig_block, comp_mask, params_, input_order);
-    if (input_order.size() > 10)
-    {
-        int i = 0;
-        i++;
-    }
-
 
 	coeff_t processed_block[kBlockSize];
 	memcpy(processed_block, block, sizeof(processed_block));
@@ -431,7 +426,7 @@ void Processor::ComputeBlockZeroingOrder(
       const int idx = input_order[i].first;
 
       candidate_block[idx] = 0; // TOBEREMOVE:对比block的排序得分前i低的置0(i根据input_order数据变化而变化)，并先设置回对比图像的三个分量对应block中去，后续再做对比采用。
-      
+ 
       for (int c = 0; c < 3; ++c) {
         if (comp_mask & (1 << c)) {
           img->component(c).SetCoeffBlock(block_x, block_y, &candidate_block[c * kDCTBlockSize]);
@@ -439,6 +434,7 @@ void Processor::ComputeBlockZeroingOrder(
       }
 
       float max_err = 0;
+
       for (int iy = 0; iy < factor_y; ++iy) {
         for (int ix = 0; ix < factor_x; ++ix) {
           int block_xx = block_x * factor_x + ix;
@@ -449,6 +445,8 @@ void Processor::ComputeBlockZeroingOrder(
           }
         }
       }
+
+	  /*max_err = */((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(*img, 0, 0, candidate_block);
 
       if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
         best_err = max_err;
@@ -928,10 +926,10 @@ bool Process(const Params& params, ProcessStats* stats,
   if (stats == nullptr) {
     stats = &dummy_stats;
   }
-  std::unique_ptr<ButteraugliComparator> comparator;
+  std::unique_ptr<ButteraugliComparatorEx> comparator;
   if (jpg.width >= 32 && jpg.height >= 32) {
     comparator.reset(
-        new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+        new ButteraugliComparatorEx(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);

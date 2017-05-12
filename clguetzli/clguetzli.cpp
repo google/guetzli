@@ -57,8 +57,8 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "MaskHighIntensityChange", &err);
 	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "DiffPrecompute", &err);
 	ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "UpsampleSquareRoot", &err);
-	ocl.kernel[KERNEL_CALCULATEDIFFMAPGETBLURRED] = clCreateKernel(ocl.program, "CalculateDiffmapGetBlurred", &err);
-	ocl.kernel[KERNEL_GETDIFFMAPFROMBLURRED] = clCreateKernel(ocl.program, "GetDiffmapFromBlurred", &err);
+	ocl.kernel[KERNEL_ADDBORDER] = clCreateKernel(ocl.program, "addBorder", &err);
+	ocl.kernel[KERNEL_REMOVEBORDER] = clCreateKernel(ocl.program, "removeBorder", &err);
 	ocl.kernel[KERNEL_AVERAGEADDIMAGE] = clCreateKernel(ocl.program, "AverageAddImage", &err);
 	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "edgeDetectorMap", &err);
 	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "blockDiffMap", &err);
@@ -936,7 +936,7 @@ void clUpsampleSquareRootEx(cl_mem diffmap, size_t xsize, size_t ysize, int step
 	cl_int clysize = ysize;
 	cl_int clstep = step;
 
-  cl_mem mem_diffmap = ocl.allocMem(xsize * ysize * sizeof(float));
+    cl_mem mem_diffmap = ocl.allocMem(xsize * ysize * sizeof(float));
 
 	cl_kernel kernel = ocl.kernel[KERNEL_UPSAMPLESQUAREROOT];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&diffmap);
@@ -965,23 +965,26 @@ void clUpsampleSquareRootEx(cl_mem diffmap, size_t xsize, size_t ysize, int step
 	{
 		LogError("Error: clUpsampleSquareRootEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
-  clReleaseMemObject(mem_diffmap);
+
+    clReleaseMemObject(mem_diffmap);
 }
 
-void clCalculateDiffmapGetBlurredEx(cl_mem diffmap, size_t xsize, size_t ysize, int s, int s2, cl_mem blurred)
+void clRemoveBorderEx(cl_mem in, size_t xsize, size_t ysize, int step, cl_mem out)
 {
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
 
-	cl_int cls = s;
-	cl_int cls2 = s2;
-	cl_kernel kernel = ocl.kernel[KERNEL_CALCULATEDIFFMAPGETBLURRED];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&diffmap);
-	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&s);
-	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&s2);
-	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&blurred);
+	cl_int cls = 8 - step;
+	cl_int cls2 = (8 - step) / 2;
+    cl_int clxsize = xsize;
+	cl_kernel kernel = ocl.kernel[KERNEL_REMOVEBORDER];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), &in);
+    clSetKernelArg(kernel, 1, sizeof(cl_int), &clxsize);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), &cls);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), &cls2);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), &out);
 
-	size_t globalWorkSize[2] = { xsize, ysize };
+	size_t globalWorkSize[2] = { xsize - cls, ysize - cls};
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -994,20 +997,20 @@ void clCalculateDiffmapGetBlurredEx(cl_mem diffmap, size_t xsize, size_t ysize, 
 	}
 }
 
-void clGetDiffmapFromBlurredEx(cl_mem diffmap, size_t xsize, size_t ysize, int s, int s2, cl_mem blurred)
+void clAddBorderEx(cl_mem out, size_t xsize, size_t ysize, int step, cl_mem in)
 {
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
 
-	cl_int cls = s;
-	cl_int cls2 = s2;
-	cl_kernel kernel = ocl.kernel[KERNEL_CALCULATEDIFFMAPGETBLURRED];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&blurred);
-	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&s);
-	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&s2);
-	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&diffmap);
+    cl_int cls = 8 - step;
+    cl_int cls2 = (8 - step) / 2;
+	cl_kernel kernel = ocl.kernel[KERNEL_ADDBORDER];
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&out);
+	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&cls);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&cls2);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&in);
 
-	size_t globalWorkSize[2] = { xsize, ysize };
+	size_t globalWorkSize[2] = { xsize - cls, ysize - cls };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
@@ -1027,29 +1030,35 @@ void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, size_t xsize, size_t ysize, 
 	static const double kSigma = 8.8510880283;
 	static const double mul1 = 24.8235314874;
 	static const double scale = 1.0 / (1.0 + mul1);
+
 	const int s = 8 - step;
 	int s2 = (8 - step) / 2;
 
 	ocl_args_d_t &ocl = getOcl();
-  cl_mem blurred = ocl.allocMem((xsize - s) * (ysize - s) * sizeof(float));
-	clCalculateDiffmapGetBlurredEx(diffmap, (xsize - s), (ysize - s), s, s2, blurred);
+	cl_mem blurred = ocl.allocMem((xsize - s) * (ysize - s) * sizeof(float));
+	clRemoveBorderEx(diffmap, xsize, ysize, step, blurred);
 
 	static const double border_ratio = 0.03027655136;
 	clBlurEx(blurred, xsize - s, ysize - s, kSigma, border_ratio);
-	clGetDiffmapFromBlurredEx(diffmap, (xsize - s), (ysize - s), s, s2, blurred);
+
+	clAddBorderEx(diffmap, xsize, ysize, step, blurred);
 	clScaleImageEx(diffmap, xsize * ysize, scale);
-  clReleaseMemObject(blurred);
+
+	clReleaseMemObject(blurred);
 }
 
 void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b, 
 								 float* r2, float* g2, float* b2, 
 								 size_t xsize, size_t ysize,
-								 size_t res_xsize, size_t res_ysize,
 								 size_t step,
-								 float* result, size_t result_len)
+								 float* result)
 {
 
-	cl_int channel_size = xsize * ysize * sizeof(float);
+	const size_t res_xsize = (xsize + step - 1) / step;
+	const size_t res_ysize = (ysize + step - 1) / step;
+
+	cl_int channel_size      = xsize * ysize * sizeof(float);
+	cl_int channel_step_size = res_xsize * res_ysize * sizeof(float);
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
@@ -1062,34 +1071,35 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
 	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-
 	err = clFinish(ocl.commandQueue);
 
-	cl_mem mem_result = ocl.allocMem(res_xsize * res_ysize * sizeof(float));
+	cl_mem mem_result = ocl.allocMem(channel_size);
 	const float pattern = 0;
 	clEnqueueFillBuffer(ocl.commandQueue, mem_result, &pattern, sizeof(float), 0, res_xsize * res_ysize, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_result, CL_FALSE, 0, result_len, result, 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_result, CL_FALSE, 0, channel_step_size, result, 0, NULL, NULL);
 
-	ocl_channels mask = ocl.allocMemChannels(channel_size);
-	ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
-		
-	cl_mem edge_detector_map = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
-	cl_mem block_diff_dc = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
-	cl_mem block_diff_ac = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
+	cl_mem edge_detector_map = ocl.allocMem(3 * channel_step_size);
+	cl_mem block_diff_dc	 = ocl.allocMem(3 * channel_step_size);
+	cl_mem block_diff_ac	 = ocl.allocMem(3 * channel_step_size);
 
 	clMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
 	
 	clEdgeDetectorMapEx(xyb0, xyb1, xsize, ysize, step, edge_detector_map);
 	clBlockDiffMapEx(xyb0, xyb1, xsize, ysize, step, block_diff_dc, block_diff_ac);
 	clEdgeDetectorLowFreqEx(xyb0, xyb1, xsize, ysize, step, block_diff_ac);
-	
-	clMaskEx(xyb0, xyb1, xsize, ysize, mask, mask_dc);
+    {
+        ocl_channels mask = ocl.allocMemChannels(channel_size);
+        ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
+        clMaskEx(xyb0, xyb1, xsize, ysize, mask, mask_dc);
+        clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, xsize, ysize, res_xsize, step, mem_result);
 
-	clCombineChannelsEx(mask, mask_dc, block_diff_dc, block_diff_ac, edge_detector_map, xsize, ysize, res_xsize, step, mem_result);
+        ocl.releaseMemChannels(mask);
+        ocl.releaseMemChannels(mask_dc);
+    }
 
     clCalculateDiffmapEx(mem_result, xsize, ysize, step);
 
-	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result, true, CL_MAP_READ, 0, res_xsize * res_ysize * sizeof(float), 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 	memcpy(result, result_r, channel_size);
 
@@ -1102,9 +1112,6 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	clReleaseMemObject(edge_detector_map);
 	clReleaseMemObject(block_diff_dc);
 	clReleaseMemObject(block_diff_ac);
-
-	ocl.releaseMemChannels(mask);
-	ocl.releaseMemChannels(mask_dc);
 
 	clReleaseMemObject(mem_result);
 }
