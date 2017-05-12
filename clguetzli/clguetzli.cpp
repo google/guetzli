@@ -44,25 +44,25 @@ ocl_args_d_t& getOcl(void)
             LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
         }
 	}
-	ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "MinSquareVal", &err);
-	ocl.kernel[KERNEL_CONVOLUTION] = clCreateKernel(ocl.program, "Convolution", &err);
-	ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "ConvolutionX", &err);
-	ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "ConvolutionY", &err);
-	ocl.kernel[KERNEL_SQUARESAMPLE] = clCreateKernel(ocl.program, "SquareSample", &err);
-	ocl.kernel[KERNEL_DOWNSAMPLE] = clCreateKernel(ocl.program, "DownSample", &err);
-	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "OpsinDynamicsImage", &err);
-	ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "DoMask", &err);
-	ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "ScaleImage", &err);
-	ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "CombineChannels", &err);
-	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "MaskHighIntensityChange", &err);
-	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "DiffPrecompute", &err);
-	ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "UpsampleSquareRoot", &err);
-	ocl.kernel[KERNEL_ADDBORDER] = clCreateKernel(ocl.program, "addBorder", &err);
-	ocl.kernel[KERNEL_REMOVEBORDER] = clCreateKernel(ocl.program, "removeBorder", &err);
-	ocl.kernel[KERNEL_AVERAGEADDIMAGE] = clCreateKernel(ocl.program, "AverageAddImage", &err);
-	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "edgeDetectorMap", &err);
-	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "blockDiffMap", &err);
-	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "edgeDetectorLowFreq", &err);
+	ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "clMinSquareVal", &err);
+	ocl.kernel[KERNEL_CONVOLUTION] =  clCreateKernel(ocl.program, "clConvolution", &err);
+	ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "clConvolutionX", &err);
+	ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "clConvolutionY", &err);
+	ocl.kernel[KERNEL_SQUARESAMPLE] = clCreateKernel(ocl.program, "clSquareSample", &err);
+	ocl.kernel[KERNEL_DOWNSAMPLE] =   clCreateKernel(ocl.program, "clDownSample", &err);
+	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "clOpsinDynamicsImage", &err);
+	ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "clDoMask", &err);
+	ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "clScaleImage", &err);
+	ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "clCombineChannels", &err);
+	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "clMaskHighIntensityChange", &err);
+	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "clDiffPrecompute", &err);
+	ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "clUpsampleSquareRoot", &err);
+	ocl.kernel[KERNEL_ADDBORDER] = clCreateKernel(ocl.program, "clAddBorder", &err);
+	ocl.kernel[KERNEL_REMOVEBORDER] = clCreateKernel(ocl.program, "clRemoveBorder", &err);
+	ocl.kernel[KERNEL_AVERAGEADDIMAGE] = clCreateKernel(ocl.program, "clAverageAddImage", &err);
+	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMap", &err);
+	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMap", &err);
+	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreq", &err);
 
 	return ocl;
 }

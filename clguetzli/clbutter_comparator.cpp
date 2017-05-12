@@ -53,7 +53,7 @@ namespace butteraugli
         {
             tclEdgeDetectorMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
                 xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-                xsize_, ysize_, step_,
+                xsize_, ysize_, step_, 
                 (*edge_detector_map).data());
         }
     }
