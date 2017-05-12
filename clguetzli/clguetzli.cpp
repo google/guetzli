@@ -1099,7 +1099,7 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 
     clCalculateDiffmapEx(mem_result, xsize, ysize, step);
 
-	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result, true, CL_MAP_READ, 0, res_xsize * res_ysize * sizeof(float), 0, NULL, NULL, &err);
+	cl_float *result_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 	memcpy(result, result_r, channel_size);
 
