@@ -66,7 +66,7 @@ class ButteraugliComparator : public Comparator {
       int factor_y, const std::vector<float>& distmap,
       std::vector<float>* block_weight) override;
 
- private:
+ protected:
   const int width_;
   const int height_;
   const float target_distance_;

@@ -1276,39 +1276,46 @@ __kernel void UpsampleSquareRoot(__global float *diffmap, int xsize, int ysize, 
 	const int res_x = get_global_id(0);
 	const int res_y = get_global_id(1);
 
-	if (res_y + 8 - step >= ysize) return;
-	if (res_x + 8 - step >= xsize) return;
+    const int res_xsize = get_global_size(0);
+    const int res_ysize = get_global_size(1);
+
+    const int pos_x = res_x * step;
+    const int pos_y = res_y * step;
+
+	if (pos_y + 8 - step >= ysize) return;
+	if (pos_x + 8 - step >= xsize) return;
 
 	int s2 = (8 - step) / 2;
+
 	// Upsample and take square root.
-	const size_t res_xsize = (xsize + step - 1) / step;
-	size_t res_ix = (res_y * res_xsize + res_x) / step;
-	float orig_val = diffmap[res_ix];
+	float orig_val = diffmap[res_y * res_xsize + res_x];
+
 	const float kInitialSlope = 100;
 	// TODO(b/29974893): Until that is fixed do not call sqrt on very small
 	// numbers.
 	double val = orig_val < (1.0 / (kInitialSlope * kInitialSlope))
 		? kInitialSlope * orig_val
 		: sqrt(orig_val);
+
 	for (size_t off_y = 0; off_y < step; ++off_y) {
 		for (size_t off_x = 0; off_x < step; ++off_x) {
-			diffmap_out[(res_y + off_y + s2) * xsize +
-				res_x + off_x + s2] = val;
+			diffmap_out[(pos_y + off_y + s2) * xsize + pos_x + off_x + s2] = val;
 		}
 	}
 }
 
-kernel void CalculateDiffmapGetBlurred(__global float *diffmap, int s, int s2, __global float *blurred)
+kernel void removeBorder(__global float *in, int in_xsize, int s, int s2, __global float *out)
 {
 	const int x = get_global_id(0);
 	const int y = get_global_id(1);
+
 	const int xsize = get_global_size(0);
 	const int ysize = get_global_size(1);
 
-	blurred[y * xsize + x] = diffmap[(y + s2) * xsize + s + x + s2];
+	out[y * xsize + x] = in[(y + s2) * (xsize + s) + x + s2];
 }
 
-kernel void GetDiffmapFromBlurred(__global float *blurred, int s, int s2, __global float *diffmap)
+kernel void addBorder(__global float *out, int s, int s2, __global float *in)
 {
 	const int x = get_global_id(0);
 	const int y = get_global_id(1);
@@ -1316,7 +1323,7 @@ kernel void GetDiffmapFromBlurred(__global float *blurred, int s, int s2, __glob
 	const int ysize = get_global_size(1);
 
 	const double mul1 = 24.8235314874;
-	diffmap[(y + s2) * xsize + x + s2]	+= (float)(mul1) * blurred[y * (xsize - s) + x];
+	out[(y + s2) * xsize + x + s2]	+= (float)(mul1) * in[y * (xsize - s) + x];
 
 }
 

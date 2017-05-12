@@ -193,6 +193,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="clguetzli\clBlock.h" />
     <ClInclude Include="clguetzli\clguetzli.h" />
     <ClInclude Include="clguetzli\clguetzli_test.h" />
     <ClInclude Include="clguetzli\ocl.h" />
@@ -288,6 +289,7 @@
     <ClInclude Include="third_party\zlib\zutil.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="clguetzli\clBlock.cpp" />
     <ClCompile Include="clguetzli\clguetzli.cpp" />
     <ClCompile Include="clguetzli\clguetzli_test.cpp" />
     <ClCompile Include="clguetzli\ocl.cpp" />
