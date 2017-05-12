@@ -306,7 +306,10 @@
     <ClInclude Include="clguetzli\clguetzli_test.h">
       <Filter>clguetzli</Filter>
     </ClInclude>
-    <ClInclude Include="clguetzli\clBlock.h">
+    <ClInclude Include="clguetzli\clbutter_comparator.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\clguetzli_comparator.h">
       <Filter>clguetzli</Filter>
     </ClInclude>
   </ItemGroup>
@@ -572,7 +575,10 @@
     <ClCompile Include="clguetzli\clguetzli_test.cpp">
       <Filter>clguetzli</Filter>
     </ClCompile>
-    <ClCompile Include="clguetzli\clBlock.cpp">
+    <ClCompile Include="clguetzli\clbutter_comparator.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\clguetzli_comparator.cpp">
       <Filter>clguetzli</Filter>
     </ClCompile>
   </ItemGroup>

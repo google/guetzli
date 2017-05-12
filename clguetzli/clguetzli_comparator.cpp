@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <algorithm>
-#include "clBlock.h"
+#include "clguetzli_comparator.h"
 #include "guetzli\idct.h"
 
 
