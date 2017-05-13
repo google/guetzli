@@ -55,16 +55,30 @@ class Processor {
                        ProcessStats* stats);
 
  private:
-     void CompareBlockZeroingOrderBatch(const JPEGData& jpg, OutputImage* img);
+
+     void SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* img, const double target_mul, bool stop_early);
 
   void SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                               const uint8_t comp_mask, const double target_mul,
                               bool stop_early);
+
+  void SelectFrequencyBackEnd(const JPEGData& jpg, OutputImage* img,
+      const uint8_t comp_mask,
+      const double target_mul,
+      bool stop_early,
+      std::vector<int> &candidate_coeff_offsets,
+      std::vector<uint8_t>& candidate_coeffs,
+      std::vector<float> &candidate_coeff_errors);
+
   void ComputeBlockZeroingOrder(
       const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
       const int block_x, const int block_y, const int factor_x,
       const int factor_y, const uint8_t comp_mask, OutputImage* img,
       std::vector<CoeffData>* output_order);
+
+  void ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
+      const int block_x, const int block_y, std::vector<CoeffData>* output_order);
+
   bool SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
                          int best_q[3][kDCTBlockSize],
                          OutputImage* img);
@@ -365,41 +379,6 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
 }
 
 
-void func(const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize], 
-	const uint8_t comp_mask, guetzli::Params &params_, std::vector<std::pair<int, float> > &input_order)
-{
-	static const uint8_t oldCsf[kDCTBlockSize] = {
-		10, 10, 20, 40, 60, 70, 80, 90,
-		10, 20, 30, 60, 70, 80, 90, 90,
-		20, 30, 60, 70, 80, 90, 90, 90,
-		40, 60, 70, 80, 90, 90, 90, 90,
-		60, 70, 80, 90, 90, 90, 90, 90,
-		70, 80, 90, 90, 90, 90, 90, 90,
-		80, 90, 90, 90, 90, 90, 90, 90,
-		90, 90, 90, 90, 90, 90, 90, 90,
-	};
-	static const double kWeight[3] = { 1.0, 0.22, 0.20 };
-#include "guetzli/order.inc"
-	
-	for (int c = 0; c < 3; ++c) { // TOBEREMOVE:计算输入block的input_order,非0的打分
-		if (!(comp_mask & (1 << c))) continue;
-		for (int k = 1; k < kDCTBlockSize; ++k) {
-			int idx = c * kDCTBlockSize + k; // TOBEREMOVE:每个分量依次
-			if (block[idx] != 0) {
-				float score;
-				if (params_.new_zeroing_model) {
-					score = std::abs(orig_block[idx]) * csf[idx] + bias[idx];
-				}
-				else {
-					score = static_cast<float>((std::abs(orig_block[idx]) - kJPEGZigZagOrder[k] / 64.0) * kWeight[c] / oldCsf[k]);
-				}
-				input_order.push_back(std::make_pair(idx, score));
-			}
-		}
-	}
-	std::sort(input_order.begin(), input_order.end(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second < b.second; });
-
-}
 
 // REQUIRES: block[c*64...(c*64+63)] is all zero if (comp_mask & (1<<c)) == 0.
 void Processor::ComputeBlockZeroingOrder(
@@ -408,8 +387,39 @@ void Processor::ComputeBlockZeroingOrder(
     const int factor_y, const uint8_t comp_mask, OutputImage* img,
     std::vector<CoeffData>* output_order) {
  
-	std::vector<std::pair<int, float> > input_order;
-	func(block, orig_block, comp_mask, params_, input_order);
+  static const uint8_t oldCsf[kDCTBlockSize] = {
+      10, 10, 20, 40, 60, 70, 80, 90,
+      10, 20, 30, 60, 70, 80, 90, 90,
+      20, 30, 60, 70, 80, 90, 90, 90,
+      40, 60, 70, 80, 90, 90, 90, 90,
+      60, 70, 80, 90, 90, 90, 90, 90,
+      70, 80, 90, 90, 90, 90, 90, 90,
+      80, 90, 90, 90, 90, 90, 90, 90,
+      90, 90, 90, 90, 90, 90, 90, 90,
+  };
+  static const double kWeight[3] = { 1.0, 0.22, 0.20 };
+#include "guetzli/order.inc"
+  std::vector<std::pair<int, float> > input_order;
+  for (int c = 0; c < 3; ++c) {
+    if (!(comp_mask & (1 << c))) continue;
+    for (int k = 1; k < kDCTBlockSize; ++k) {
+      int idx = c * kDCTBlockSize + k;
+      if (block[idx] != 0) {
+        float score;
+        if (params_.new_zeroing_model) {
+          score = std::abs(orig_block[idx]) * csf[idx] + bias[idx];
+        } else {
+          score = static_cast<float>((std::abs(orig_block[idx]) - kJPEGZigZagOrder[k] / 64.0) *
+                  kWeight[c] / oldCsf[k]);
+        }
+        input_order.push_back(std::make_pair(idx, score));
+      }
+    }
+  }
+  std::sort(input_order.begin(), input_order.end(),
+            [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
+              return a.second < b.second; });
+
 
 	coeff_t processed_block[kBlockSize];
 	memcpy(processed_block, block, sizeof(processed_block));
@@ -436,7 +446,7 @@ void Processor::ComputeBlockZeroingOrder(
       }
 
       float max_err = 0;
-/*
+
       for (int iy = 0; iy < factor_y; ++iy) {
         for (int ix = 0; ix < factor_x; ++ix) {
           int block_xx = block_x * factor_x + ix;
@@ -447,8 +457,6 @@ void Processor::ComputeBlockZeroingOrder(
           }
         }
       }
-*/
-	  max_err = ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(*img, 0, 0, candidate_block);
 
       if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
         best_err = max_err;
@@ -560,7 +568,7 @@ size_t EstimateDCSize(const JPEGData& jpg) {
 
 }  // namespace
 
-void Processor::CompareBlockZeroingOrderBatch(const JPEGData& jpg, OutputImage* img)
+void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* img, const double target_mul, bool stop_early)
 {
     // we only support factor_x == factor_y == 1
     const int width = img->width();
@@ -576,6 +584,7 @@ void Processor::CompareBlockZeroingOrderBatch(const JPEGData& jpg, OutputImage* 
     std::vector<coeff_t> orig_block_batch(num_blocks * kBlockSize);   // [block_r block_g block_b]
     std::vector<coeff_t> block_batch(num_blocks * kBlockSize);        // [block_r block_g block_b]
 
+    // step 1 获取所有block list
     for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
         for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
             coeff_t *orig_block = &orig_block_batch[block_ix * kBlockSize];
@@ -583,27 +592,124 @@ void Processor::CompareBlockZeroingOrderBatch(const JPEGData& jpg, OutputImage* 
             
             for (int c = 0; c < 3; ++c) 
             {
-                img->component(c).GetCoeffBlock(block_x, block_y, &block[c * kDCTBlockSize]); // TOBEREMOVE:取出对比图像block系数
+                img->component(c).GetCoeffBlock(block_x, block_y, &block[c * kDCTBlockSize]);
 
                 const JPEGComponent& comp = jpg.components[c];
                 int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
                 memcpy(&orig_block[c * kDCTBlockSize], &comp.coeffs[jpg_block_ix * kDCTBlockSize], kDCTBlockSize * sizeof(orig_block[0])); // TOBEREMOVE:取出原始图像block系数
             }
-
-/*
-            std::vector<CoeffData> block_order;
-            block_order.clear();
-            ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x, factor_y, comp_mask, img, &block_order); // TOBEREMOVE:传入原始block和对比图像block计算zeroing order放入block_order
-            candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
-            for (size_t i = 0; i < block_order.size(); ++i) { // TOBEREMOVE:把结果赋值到候选系数
-                candidate_coeffs.push_back(block_order[i].idx);
-                candidate_coeff_errors.push_back(block_order[i].block_err);
-            }
-*/
         }
     }
 
+    std::vector<int> candidate_coeff_offsets(num_blocks + 1);
+    std::vector<uint8_t> candidate_coeffs;
+    std::vector<float> candidate_coeff_errors;
+
+    // step 2 对比每个block结果
+    for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
+        for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
+            coeff_t *orig_block = &orig_block_batch[block_ix * kBlockSize];
+            coeff_t *block = &block_batch[block_ix * kBlockSize];
+
+            std::vector<CoeffData> block_order;
+
+            ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, &block_order);
+
+            // 以下处理依然没有batch化，用于先鉴定其他计算结果
+            candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
+            for (size_t i = 0; i < block_order.size(); ++i) {
+                candidate_coeffs.push_back(block_order[i].idx);
+                candidate_coeff_errors.push_back(block_order[i].block_err);
+            }
+        }
+    }
+
+    //
     comparator_->FinishBlockComparisons(); // TOBEREMOVE:清除参数
+
+    SelectFrequencyBackEnd(jpg, img, 7, target_mul, stop_early, 
+        candidate_coeff_offsets, candidate_coeffs, candidate_coeff_errors);
+
+}
+
+void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
+    const int block_x, const int block_y, std::vector<CoeffData>* output_order)
+{
+    static const uint8_t oldCsf[kDCTBlockSize] = {
+        10, 10, 20, 40, 60, 70, 80, 90,
+        10, 20, 30, 60, 70, 80, 90, 90,
+        20, 30, 60, 70, 80, 90, 90, 90,
+        40, 60, 70, 80, 90, 90, 90, 90,
+        60, 70, 80, 90, 90, 90, 90, 90,
+        70, 80, 90, 90, 90, 90, 90, 90,
+        80, 90, 90, 90, 90, 90, 90, 90,
+        90, 90, 90, 90, 90, 90, 90, 90,
+    };
+    static const double kWeight[3] = { 1.0, 0.22, 0.20 };
+#include "guetzli/order.inc"
+    std::vector<std::pair<int, float> > input_order;
+    for (int c = 0; c < 3; ++c) {
+        for (int k = 1; k < kDCTBlockSize; ++k) {
+            int idx = c * kDCTBlockSize + k;
+            if (block[idx] != 0) {
+                float score;
+                if (params_.new_zeroing_model) {
+                    score = std::abs(orig_block[idx]) * csf[idx] + bias[idx];
+                }
+                else {
+                    score = static_cast<float>((std::abs(orig_block[idx]) - kJPEGZigZagOrder[k] / 64.0) * kWeight[c] / oldCsf[k]);
+                }
+                input_order.push_back(std::make_pair(idx, score));
+            }
+        }
+    }
+    std::sort(input_order.begin(), input_order.end(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second < b.second; });
+
+    coeff_t processed_block[kBlockSize];
+    memcpy(processed_block, block, sizeof(processed_block));
+
+    comparator_->SwitchBlock(block_x, block_y, 1, 1);
+
+    while (!input_order.empty()) {
+        float best_err = 1e17f;
+        int best_i = 0;
+        for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead, input_order.size()); ++i)
+        {
+            coeff_t candidate_block[kBlockSize];
+            memcpy(candidate_block, processed_block, sizeof(candidate_block));
+
+            const int idx = input_order[i].first;
+
+            candidate_block[idx] = 0; // TOBEREMOVE:对比block的排序得分前i低的置0(i根据input_order数据变化而变化)，并先设置回对比图像的三个分量对应block中去，后续再做对比采用。
+
+            float max_err = ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(candidate_block);
+            if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
+                best_err = max_err;
+                best_i = i;
+            }
+        }
+
+        int idx = input_order[best_i].first;
+        processed_block[idx] = 0;
+        input_order.erase(input_order.begin() + best_i);
+
+        output_order->push_back({ idx, best_err }); // TOBEREMOVE:将上面计算出来的最小错误的idx，对应到对比block中的对应位置真正的置为0,移除input_order项，即选取当前值，放入output_order,并正式的设置到对比图像中去。
+    }
+
+    // TOBEREMOVE:最终移除err数大于error限制的项返回，并还原对比图像到原始值。
+    // Make the block error values monotonic.
+    float min_err = 1e10;
+    for (int i = output_order->size() - 1; i >= 0; --i) {
+        min_err = std::min(min_err, (*output_order)[i].block_err);
+        (*output_order)[i].block_err = min_err;
+    }
+    // Cut off at the block error limit.
+    size_t num = 0;
+    while (num < output_order->size() &&
+        (*output_order)[num].block_err <= comparator_->BlockErrorLimit()) {
+        ++num;
+    }
+    output_order->resize(num);
 }
 
 void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
@@ -612,7 +718,6 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                                        bool stop_early) {
   const int width = img->width();
   const int height = img->height();
-  const int ncomp = jpg.components.size();
   const int last_c = Log2FloorNonZero(comp_mask);
   if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
   const int factor_x = img->component(last_c).factor_x();
@@ -659,183 +764,207 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
   comparator_->FinishBlockComparisons(); // TOBEREMOVE:清除参数
   candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
 
-  std::vector<JpegHistogram> ac_histograms(ncomp);
-  int jpg_header_size, dc_size;
-  {
-    JPEGData jpg_out = jpg;
-    img->SaveToJpegData(&jpg_out);
-    jpg_header_size = JpegHeaderSize(jpg_out, params_.clear_metadata);
-    dc_size = EstimateDCSize(jpg_out);
-    BuildACHistograms(jpg_out, &ac_histograms[0]);
-  }
-  std::vector<uint8_t> ac_depths;
-  int ac_histogram_size = ComputeEntropyCodes(ac_histograms, &ac_depths);
-  int base_size = jpg_header_size + dc_size + ac_histogram_size +
-      EntropyCodedDataSize(ac_histograms, ac_depths);
-  int prev_size = base_size;
+  SelectFrequencyBackEnd(jpg, img, comp_mask, target_mul, stop_early, 
+      candidate_coeff_offsets, candidate_coeffs, candidate_coeff_errors);
+}
 
-  std::vector<float> max_block_error(num_blocks);
-  std::vector<int> last_indexes(num_blocks);
+void Processor::SelectFrequencyBackEnd(const JPEGData& jpg, OutputImage* img, 
+                                        const uint8_t comp_mask,
+                                        const double target_mul, 
+                                        bool stop_early,
+                                        std::vector<int> &candidate_coeff_offsets,
+                                        std::vector<uint8_t>& candidate_coeffs,
+                                        std::vector<float> &candidate_coeff_errors)
+{
+    const int ncomp = jpg.components.size();
+    const int width = img->width();
+    const int height = img->height();
+    const int last_c = Log2FloorNonZero(comp_mask);
+    if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
+    const int factor_x = img->component(last_c).factor_x();
+    const int factor_y = img->component(last_c).factor_y();
+    const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
+    const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
+    const int num_blocks = block_width * block_height;
 
-  bool first_up_iter = true;
-  for (int direction : {1, -1}) {
-    for (;;) {
-      if (stop_early && direction == -1) {
-        if (prev_size > 1.01 * final_output_->jpeg_data.size()) {
-          // If we are down-adjusting the error, the output size will only keep
-          // increasing.
-          // TODO(user): Do this check always by comparing only the size
-          // of the currently processed components.
-          break;
-        }
-      }
-      std::vector<std::pair<int, float> > global_order;
-      int blocks_to_change;
-      std::vector<float> block_weight;
-      for (int rblock = 1; rblock <= 4; ++rblock) {
-        block_weight = std::vector<float>(num_blocks);
-        std::vector<float> distmap(width * height);
-        if (!first_up_iter) {
-          distmap = comparator_->distmap();
-        }
-        comparator_->ComputeBlockErrorAdjustmentWeights(
-            direction, rblock, target_mul, factor_x, factor_y, distmap,
-            &block_weight);
-        global_order.clear();
-        blocks_to_change = 0;
-        for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
-          for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
-            const int last_index = last_indexes[block_ix];
-            const int offset = candidate_coeff_offsets[block_ix];
-            const int num_candidates =
-                candidate_coeff_offsets[block_ix + 1] - offset;
-            const float* candidate_errors = &candidate_coeff_errors[offset];
-            const float max_err = max_block_error[block_ix];
-            if (block_weight[block_ix] == 0) {
-              continue;
-            }
-            if (direction > 0) {
-              for (size_t i = last_index; i < num_candidates; ++i) {
-                float val = ((candidate_errors[i] - max_err) /
-                             block_weight[block_ix]);
-                global_order.push_back(std::make_pair(block_ix, val));
-              }
-              blocks_to_change += (last_index < num_candidates ? 1 : 0);
-            } else {
-              for (int i = last_index - 1; i >= 0; --i) {
-                float val = ((max_err - candidate_errors[i]) /
-                             block_weight[block_ix]);
-                global_order.push_back(std::make_pair(block_ix, val));
-              }
-              blocks_to_change += (last_index > 0 ? 1 : 0);
-            }
-          }
-        }
-        if (!global_order.empty()) {
-          // If we found something to adjust with the current block adjustment
-          // radius, we can stop and adjust the blocks we have.
-          break;
-        }
-      }
-
-      if (global_order.empty()) {
-        break;
-      }
-
-      std::sort(global_order.begin(), global_order.end(),
-                [](const std::pair<int, float>& a,
-                   const std::pair<int, float>& b) {
-                  return a.second < b.second; });
-
-      double rel_size_delta = direction > 0 ? 0.01 : 0.0005;
-      if (direction > 0 && comparator_->DistanceOK(1.0)) {
-        rel_size_delta = 0.05;
-      }
-      double min_size_delta = base_size * rel_size_delta;
-
-      float coeffs_to_change_per_block =
-          direction > 0 ? 2.0f : factor_x * factor_y * 0.2f;
-      int min_coeffs_to_change = coeffs_to_change_per_block * blocks_to_change;
-
-      if (first_up_iter) {
-        const float limit = 0.75f * comparator_->BlockErrorLimit();
-        auto it = std::partition_point(global_order.begin(), global_order.end(),
-                                       [=](const std::pair<int, float>& a) {
-                                         return a.second < limit; });
-        min_coeffs_to_change = std::max<int>(min_coeffs_to_change,
-                                             it - global_order.begin());
-        first_up_iter = false;
-      }
-
-      std::set<int> changed_blocks;
-      float val_threshold = 0.0;
-      int changed_coeffs = 0;
-      int est_jpg_size = prev_size;
-      for (size_t i = 0; i < global_order.size(); ++i) {
-        const int block_ix = global_order[i].first;
-        const int block_x = block_ix % block_width;
-        const int block_y = block_ix / block_width;
-        const int last_idx = last_indexes[block_ix];
-        const int offset = candidate_coeff_offsets[block_ix];
-        const uint8_t* candidates = &candidate_coeffs[offset];
-        const int idx = candidates[last_idx + std::min(direction, 0)];
-        const int c = idx / kDCTBlockSize;
-        const int k = idx % kDCTBlockSize;
-        const int* quant = img->component(c).quant();
-        const JPEGComponent& comp = jpg.components[c];
-        const int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
-        const int newval = direction > 0 ? 0 : Quantize(
-            comp.coeffs[jpg_block_ix * kDCTBlockSize + k], quant[k]);
-        coeff_t block[kDCTBlockSize] = { 0 };
-        img->component(c).GetCoeffBlock(block_x, block_y, block);
-        UpdateACHistogram(-1, block, quant, &ac_histograms[c]);
-        block[k] = newval;
-        UpdateACHistogram(1, block, quant, &ac_histograms[c]);
-        img->component(c).SetCoeffBlock(block_x, block_y, block);
-        last_indexes[block_ix] += direction;
-        changed_blocks.insert(block_ix);
-        val_threshold = global_order[i].second;
-        ++changed_coeffs;
-        static const int kEntropyCodeUpdateFreq = 10;
-        if (i % kEntropyCodeUpdateFreq == 0) {
-          ac_histogram_size = ComputeEntropyCodes(ac_histograms, &ac_depths);
-        }
-        est_jpg_size = jpg_header_size + dc_size + ac_histogram_size +
-            EntropyCodedDataSize(ac_histograms, ac_depths);
-        if (changed_coeffs > min_coeffs_to_change &&
-            std::abs(est_jpg_size - prev_size) > min_size_delta) {
-          break;
-        }
-      }
-      size_t global_order_size = global_order.size();
-      std::vector<std::pair<int, float>>().swap(global_order);
-
-      for (int i = 0; i < num_blocks; ++i) {
-        max_block_error[i] += block_weight[i] * val_threshold * direction;
-      }
-
-      ++stats_->counters[kNumItersCnt];
-      ++stats_->counters[direction > 0 ? kNumItersUpCnt : kNumItersDownCnt];
-      std::string encoded_jpg;
-      {
+    std::vector<JpegHistogram> ac_histograms(ncomp);
+    int jpg_header_size, dc_size;
+    {
         JPEGData jpg_out = jpg;
         img->SaveToJpegData(&jpg_out);
-        OutputJpeg(jpg_out, &encoded_jpg);
-      }
-      GUETZLI_LOG(stats_,
-                  "Iter %2d: %s(%d) %s Coeffs[%d/%zd] "
-                  "Blocks[%zd/%d/%d] ValThres[%.4f] Out[%7zd] EstErr[%.2f%%]",
-                  stats_->counters[kNumItersCnt], img->FrameTypeStr().c_str(),
-                  comp_mask, direction > 0 ? "up" : "down", changed_coeffs,
-                  global_order_size, changed_blocks.size(),
-                  blocks_to_change, num_blocks, val_threshold,
-                  encoded_jpg.size(),
-                  100.0 - (100.0 * est_jpg_size) / encoded_jpg.size());
-      comparator_->Compare(*img);
-      MaybeOutput(encoded_jpg);
-      prev_size = est_jpg_size;
+        jpg_header_size = JpegHeaderSize(jpg_out, params_.clear_metadata);
+        dc_size = EstimateDCSize(jpg_out);
+        BuildACHistograms(jpg_out, &ac_histograms[0]);
     }
-  }
+    std::vector<uint8_t> ac_depths;
+    int ac_histogram_size = ComputeEntropyCodes(ac_histograms, &ac_depths);
+    int base_size = jpg_header_size + dc_size + ac_histogram_size +
+        EntropyCodedDataSize(ac_histograms, ac_depths);
+    int prev_size = base_size;
+
+    std::vector<float> max_block_error(num_blocks);
+    std::vector<int> last_indexes(num_blocks);
+
+    bool first_up_iter = true;
+    for (int direction : {1, -1}) {
+        for (;;) {
+            if (stop_early && direction == -1) {
+                if (prev_size > 1.01 * final_output_->jpeg_data.size()) {
+                    // If we are down-adjusting the error, the output size will only keep
+                    // increasing.
+                    // TODO(user): Do this check always by comparing only the size
+                    // of the currently processed components.
+                    break;
+                }
+            }
+            std::vector<std::pair<int, float> > global_order;
+            int blocks_to_change;
+            std::vector<float> block_weight;
+            for (int rblock = 1; rblock <= 4; ++rblock) {
+                block_weight = std::vector<float>(num_blocks);
+                std::vector<float> distmap(width * height);
+                if (!first_up_iter) {
+                    distmap = comparator_->distmap();
+                }
+                comparator_->ComputeBlockErrorAdjustmentWeights(
+                    direction, rblock, target_mul, factor_x, factor_y, distmap,
+                    &block_weight);
+                global_order.clear();
+                blocks_to_change = 0;
+                for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
+                    for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
+                        const int last_index = last_indexes[block_ix];
+                        const int offset = candidate_coeff_offsets[block_ix];
+                        const int num_candidates =
+                            candidate_coeff_offsets[block_ix + 1] - offset;
+                        const float* candidate_errors = &candidate_coeff_errors[offset];
+                        const float max_err = max_block_error[block_ix];
+                        if (block_weight[block_ix] == 0) {
+                            continue;
+                        }
+                        if (direction > 0) {
+                            for (size_t i = last_index; i < num_candidates; ++i) {
+                                float val = ((candidate_errors[i] - max_err) /
+                                    block_weight[block_ix]);
+                                global_order.push_back(std::make_pair(block_ix, val));
+                            }
+                            blocks_to_change += (last_index < num_candidates ? 1 : 0);
+                        }
+                        else {
+                            for (int i = last_index - 1; i >= 0; --i) {
+                                float val = ((max_err - candidate_errors[i]) /
+                                    block_weight[block_ix]);
+                                global_order.push_back(std::make_pair(block_ix, val));
+                            }
+                            blocks_to_change += (last_index > 0 ? 1 : 0);
+                        }
+                    }
+                }
+                if (!global_order.empty()) {
+                    // If we found something to adjust with the current block adjustment
+                    // radius, we can stop and adjust the blocks we have.
+                    break;
+                }
+            }
+
+            if (global_order.empty()) {
+                break;
+            }
+
+            std::sort(global_order.begin(), global_order.end(),
+                [](const std::pair<int, float>& a,
+                    const std::pair<int, float>& b) {
+                return a.second < b.second; });
+
+            double rel_size_delta = direction > 0 ? 0.01 : 0.0005;
+            if (direction > 0 && comparator_->DistanceOK(1.0)) {
+                rel_size_delta = 0.05;
+            }
+            double min_size_delta = base_size * rel_size_delta;
+
+            float coeffs_to_change_per_block =
+                direction > 0 ? 2.0f : factor_x * factor_y * 0.2f;
+            int min_coeffs_to_change = coeffs_to_change_per_block * blocks_to_change;
+
+            if (first_up_iter) {
+                const float limit = 0.75f * comparator_->BlockErrorLimit();
+                auto it = std::partition_point(global_order.begin(), global_order.end(),
+                    [=](const std::pair<int, float>& a) {
+                    return a.second < limit; });
+                min_coeffs_to_change = std::max<int>(min_coeffs_to_change,
+                    it - global_order.begin());
+                first_up_iter = false;
+            }
+
+            std::set<int> changed_blocks;
+            float val_threshold = 0.0;
+            int changed_coeffs = 0;
+            int est_jpg_size = prev_size;
+            for (size_t i = 0; i < global_order.size(); ++i) {
+                const int block_ix = global_order[i].first;
+                const int block_x = block_ix % block_width;
+                const int block_y = block_ix / block_width;
+                const int last_idx = last_indexes[block_ix];
+                const int offset = candidate_coeff_offsets[block_ix];
+                const uint8_t* candidates = &candidate_coeffs[offset];
+                const int idx = candidates[last_idx + std::min(direction, 0)];
+                const int c = idx / kDCTBlockSize;
+                const int k = idx % kDCTBlockSize;
+                const int* quant = img->component(c).quant();
+                const JPEGComponent& comp = jpg.components[c];
+                const int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
+                const int newval = direction > 0 ? 0 : Quantize(
+                    comp.coeffs[jpg_block_ix * kDCTBlockSize + k], quant[k]);
+                coeff_t block[kDCTBlockSize] = { 0 };
+                img->component(c).GetCoeffBlock(block_x, block_y, block);
+                UpdateACHistogram(-1, block, quant, &ac_histograms[c]);
+                block[k] = newval;
+                UpdateACHistogram(1, block, quant, &ac_histograms[c]);
+                img->component(c).SetCoeffBlock(block_x, block_y, block);
+                last_indexes[block_ix] += direction;
+                changed_blocks.insert(block_ix);
+                val_threshold = global_order[i].second;
+                ++changed_coeffs;
+                static const int kEntropyCodeUpdateFreq = 10;
+                if (i % kEntropyCodeUpdateFreq == 0) {
+                    ac_histogram_size = ComputeEntropyCodes(ac_histograms, &ac_depths);
+                }
+                est_jpg_size = jpg_header_size + dc_size + ac_histogram_size +
+                    EntropyCodedDataSize(ac_histograms, ac_depths);
+                if (changed_coeffs > min_coeffs_to_change &&
+                    std::abs(est_jpg_size - prev_size) > min_size_delta) {
+                    break;
+                }
+            }
+            size_t global_order_size = global_order.size();
+            std::vector<std::pair<int, float>>().swap(global_order);
+
+            for (int i = 0; i < num_blocks; ++i) {
+                max_block_error[i] += block_weight[i] * val_threshold * direction;
+            }
+
+            ++stats_->counters[kNumItersCnt];
+            ++stats_->counters[direction > 0 ? kNumItersUpCnt : kNumItersDownCnt];
+            std::string encoded_jpg;
+            {
+                JPEGData jpg_out = jpg;
+                img->SaveToJpegData(&jpg_out);
+                OutputJpeg(jpg_out, &encoded_jpg);
+            }
+            GUETZLI_LOG(stats_,
+                "Iter %2d: %s(%d) %s Coeffs[%d/%zd] "
+                "Blocks[%zd/%d/%d] ValThres[%.4f] Out[%7zd] EstErr[%.2f%%]",
+                stats_->counters[kNumItersCnt], img->FrameTypeStr().c_str(),
+                comp_mask, direction > 0 ? "up" : "down", changed_coeffs,
+                global_order_size, changed_blocks.size(),
+                blocks_to_change, num_blocks, val_threshold,
+                encoded_jpg.size(),
+                100.0 - (100.0 * est_jpg_size) / encoded_jpg.size());
+            comparator_->Compare(*img);
+            MaybeOutput(encoded_jpg);
+            prev_size = est_jpg_size;
+        }
+    }
 }
 
 bool IsGrayscale(const JPEGData& jpg) {
