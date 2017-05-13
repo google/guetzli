@@ -153,6 +153,23 @@ namespace butteraugli
         std::vector<std::vector<float> > *mask,
         std::vector<std::vector<float> > *mask_dc)
     {
+        if (g_useOpenCL)
+        {
+            mask->resize(3);
+            mask_dc->resize(3);
+            for (int i = 0; i < 3; i++)
+            {
+                (*mask)[i].resize(xsize * ysize);
+                (*mask_dc)[i].resize(xsize * ysize);
+            }
+            clMask(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+                xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+                xsize, ysize,
+                (*mask)[0].data(), (*mask)[1].data(), (*mask)[2].data(),
+                (*mask_dc)[0].data(), (*mask_dc)[1].data(), (*mask_dc)[2].data());
+            return;
+        }
+
         _Mask(xyb0, xyb1, xsize, ysize, mask, mask_dc);
 
         if (g_checkOpenCL)

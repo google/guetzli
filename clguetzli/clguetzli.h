@@ -13,6 +13,12 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
     size_t step,
     float* result);
 
+void clMask(const float* r, const float* g, const float* b,
+    const float* r2, const float* g2, const float* b2,
+    size_t xsize, size_t ysize,
+    float* mask_r, float* mask_g, float* mask_b,
+    float* maskdc_r, float* maskdc_g, float* maskdc_b);
+
 void clMaskHighIntensityChangeEx(ocl_channels xyb0/*in,out*/,
 	ocl_channels xyb1/*in,out*/,
 	size_t xsize, size_t ysize);
