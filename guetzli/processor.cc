@@ -55,6 +55,8 @@ class Processor {
                        ProcessStats* stats);
 
  private:
+     void CompareBlockZeroingOrderBatch(const JPEGData& jpg, OutputImage* img);
+
   void SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                               const uint8_t comp_mask, const double target_mul,
                               bool stop_early);
@@ -557,6 +559,52 @@ size_t EstimateDCSize(const JPEGData& jpg) {
 }
 
 }  // namespace
+
+void Processor::CompareBlockZeroingOrderBatch(const JPEGData& jpg, OutputImage* img)
+{
+    // we only support factor_x == factor_y == 1
+    const int width = img->width();
+    const int height = img->height();
+    const int factor_x = 1;
+    const int factor_y = 1;
+
+    const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
+    const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
+    const int num_blocks = block_width * block_height;
+
+    comparator_->StartBlockComparisons(); // TOBEREMOVE:初始化一些参数
+    std::vector<coeff_t> orig_block_batch(num_blocks * kBlockSize);   // [block_r block_g block_b]
+    std::vector<coeff_t> block_batch(num_blocks * kBlockSize);        // [block_r block_g block_b]
+
+    for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
+        for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
+            coeff_t *orig_block = &orig_block_batch[block_ix * kBlockSize];
+            coeff_t *block = &block_batch[block_ix * kBlockSize];
+            
+            for (int c = 0; c < 3; ++c) 
+            {
+                img->component(c).GetCoeffBlock(block_x, block_y, &block[c * kDCTBlockSize]); // TOBEREMOVE:取出对比图像block系数
+
+                const JPEGComponent& comp = jpg.components[c];
+                int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
+                memcpy(&orig_block[c * kDCTBlockSize], &comp.coeffs[jpg_block_ix * kDCTBlockSize], kDCTBlockSize * sizeof(orig_block[0])); // TOBEREMOVE:取出原始图像block系数
+            }
+
+/*
+            std::vector<CoeffData> block_order;
+            block_order.clear();
+            ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x, factor_y, comp_mask, img, &block_order); // TOBEREMOVE:传入原始block和对比图像block计算zeroing order放入block_order
+            candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
+            for (size_t i = 0; i < block_order.size(); ++i) { // TOBEREMOVE:把结果赋值到候选系数
+                candidate_coeffs.push_back(block_order[i].idx);
+                candidate_coeff_errors.push_back(block_order[i].block_err);
+            }
+*/
+        }
+    }
+
+    comparator_->FinishBlockComparisons(); // TOBEREMOVE:清除参数
+}
 
 void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                                        const uint8_t comp_mask,
