@@ -316,13 +316,13 @@ namespace guetzli
 		ButteraugliComparator::SwitchBlock(block_x, block_y, factor_x, factor_y);
 	}
 
-	double ButteraugliComparatorEx::CompareBlockEx(const OutputImage& img, int off_x, int off_y, coeff_t* candidate_block)
+	double ButteraugliComparatorEx::CompareBlockEx(coeff_t* candidate_block)
 	{
-	int block_x = block_x_ * factor_x_ + off_x;
-		int block_y = block_y_ * factor_y_ + off_y;
+	int block_x = block_x_ * factor_x_;
+		int block_y = block_y_ * factor_y_;
 		int xmin = 8 * block_x;
 		int ymin = 8 * block_y;
-		int block_ix = off_y * factor_x_ + off_x;
+		int block_ix = 0;
 		const std::vector<std::vector<float> >& rgb0_c = per_block_pregamma_[block_ix];
 
         //

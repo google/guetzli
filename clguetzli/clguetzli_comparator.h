@@ -16,7 +16,7 @@ namespace guetzli {
 		void StartBlockComparisons();
 		void SwitchBlock(int block_x, int block_y, int factor_x, int factor_y);
 
-		double CompareBlockEx(const OutputImage& img, int off_x, int off_y, coeff_t* candidate_block);
+		double CompareBlockEx(coeff_t* candidate_block);
 
 	protected:
 		std::vector<float> imgOpsinDynamicsBlockList;
