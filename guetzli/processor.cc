@@ -436,7 +436,7 @@ void Processor::ComputeBlockZeroingOrder(
       }
 
       float max_err = 0;
-
+/*
       for (int iy = 0; iy < factor_y; ++iy) {
         for (int ix = 0; ix < factor_x; ++ix) {
           int block_xx = block_x * factor_x + ix;
@@ -447,8 +447,8 @@ void Processor::ComputeBlockZeroingOrder(
           }
         }
       }
-
-	  /*max_err = */((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(*img, 0, 0, candidate_block);
+*/
+	  max_err = ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(*img, 0, 0, candidate_block);
 
       if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
         best_err = max_err;
