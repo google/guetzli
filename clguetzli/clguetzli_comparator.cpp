@@ -238,36 +238,13 @@ void IDCTToImage(const uint8_t idct[8 * 8], uint16_t *pixels_)
 // out = [YUVYUV....YUVYUV]
 void ImageToYUV(uint16_t *pixels_, uint8_t *out)
 {
-	const int ymin = 0;
-	const int xmin = 0;
-	const int ysize = 8;
-	const int xsize = 8;
-	const int width_ = 8;
-	const int height_ = 8;
 	const int stride = 3;
 
-	const int yend1 = ymin + ysize;
-	const int yend0 = std::min(yend1, height_);
-	int y = ymin;
-	for (; y < yend0; ++y) {
-		const int xend1 = xmin + xsize;
-		const int xend0 = std::min(xend1, width_);
-		int x = xmin;
-		int px = y * width_ + xmin;
-		for (; x < xend0; ++x, ++px, out += stride) {
+	for (int y = 0; y < 8; ++y) {
+		for (int x = 0; x < 8; ++x) {
+            int px = y * 8 + x;
 			*out = static_cast<uint8_t>((pixels_[px] + 8 - (x & 1)) >> 4);
-		}
-		const int offset = -stride;
-		for (; x < xend1; ++x) {
-			*out = out[offset];
-			out += stride;
-		}
-	}
-	for (; y < yend1; ++y) {
-		const int offset = -stride * xsize;
-		for (int x = 0; x < xsize; ++x) {
-			*out = out[offset];
-			out += stride;
+            out += stride;
 		}
 	}
 }
@@ -305,10 +282,10 @@ void BlockToImage(coeff_t *block, float* r, float* g, float* b)
 	uint8_t yuv[8 * 8 * 3];
 
 	ImageToYUV(&pixels[0], &yuv[0]);
-	ImageToYUV(&pixels[8*8], &yuv[8*8]);
-	ImageToYUV(&pixels[8*8*2], &yuv[8*8*2]);
+	ImageToYUV(&pixels[8*8], &yuv[1]);
+	ImageToYUV(&pixels[8*8*2], &yuv[2]);
 
-	YUVToRGB(yuv);
+    YUVToRGB(yuv);
 
 	const double* lut = Srgb8ToLinearTable();
 	for (int i = 0; i < 8 * 8; i++)
@@ -341,17 +318,14 @@ namespace guetzli
 
 	double ButteraugliComparatorEx::CompareBlockEx(const OutputImage& img, int off_x, int off_y, coeff_t* candidate_block)
 	{
-        return 0;
-		int block_x = block_x_ * factor_x_ + off_x;
+	int block_x = block_x_ * factor_x_ + off_x;
 		int block_y = block_y_ * factor_y_ + off_y;
 		int xmin = 8 * block_x;
 		int ymin = 8 * block_y;
 		int block_ix = off_y * factor_x_ + off_x;
 		const std::vector<std::vector<float> >& rgb0_c = per_block_pregamma_[block_ix];
 
-		std::vector<std::vector<float> > rgb1_c2(3, std::vector<float>(kDCTBlockSize));
-		img.ToLinearRGB(xmin, ymin, 8, 8, &rgb1_c2);
-
+        //
 		std::vector<std::vector<float> > rgb1_c(3, std::vector<float>(kDCTBlockSize));
 		BlockToImage(candidate_block, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data());
 

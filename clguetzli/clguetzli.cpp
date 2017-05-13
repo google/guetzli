@@ -765,7 +765,12 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	double scaler = 0.0738288224836;
 	double mul = 20.8029176447;
 	static double lut_x[512];
-	MakeMask(extmul, extoff, mul, offset, scaler, lut_x);
+    static bool lutx_init = false;
+    if (!lutx_init)
+    {
+        lutx_init = true;
+        MakeMask(extmul, extoff, mul, offset, scaler, lut_x);
+    }
 
 	extmul = 0.373995618954;
 	extoff = 1.5307267433;
@@ -773,7 +778,12 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	scaler = 1.1731667845;
 	mul = 16.2447033988;
 	static double lut_y[512];
-	MakeMask(extmul, extoff, mul, offset, scaler, lut_y);
+    static bool luty_init = false;
+    if (!luty_init)
+    {
+        luty_init = true;
+        MakeMask(extmul, extoff, mul, offset, scaler, lut_y);
+    }
 
 	extmul = 0.61582234137;
 	extoff = -4.25376118646;
@@ -781,7 +791,12 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	scaler = 0.47434643535;
 	mul = 31.1444967089;
 	static double lut_b[512];
-	MakeMask(extmul, extoff, mul, offset, scaler, lut_b);
+    static bool lutb_init = false;
+    if (!lutb_init)
+    {
+        lutb_init = true;
+        MakeMask(extmul, extoff, mul, offset, scaler, lut_b);
+    }
 
 	extmul = 1.79116943438;
 	extoff = -3.86797479189;
@@ -789,7 +804,12 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	scaler = 0.486575865525;
 	mul = 20.4563479139;
 	static double lut_dcx[512];
-	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcx);
+    static bool lutdcx_init = false;
+    if (!lutdcx_init)
+    {
+        lutdcx_init = true;
+        MakeMask(extmul, extoff, mul, offset, scaler, lut_dcx);
+    }
 
 	extmul = 0.212223514236;
 	extoff = -3.65647120524;
@@ -797,7 +817,12 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	scaler = 0.170392660501;
 	mul = 21.6566724788;
 	static double lut_dcy[512];
-	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcy);
+    static bool lutdcy_init = false;
+    if (!lutdcy_init)
+    {
+        lutdcy_init = true;
+        MakeMask(extmul, extoff, mul, offset, scaler, lut_dcy);
+    }
 
 	extmul = 0.349376011816;
 	extoff = -0.894711072781;
@@ -805,7 +830,12 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	scaler = 0.380086095024;
 	mul = 18.0373825149;
 	static double lut_dcb[512];
-	MakeMask(extmul, extoff, mul, offset, scaler, lut_dcb);
+    static bool lutdcb_init = false;
+    if (!lutdcb_init)
+    {
+        lutdcb_init = true;
+        MakeMask(extmul, extoff, mul, offset, scaler, lut_dcb);
+    }
 
 	size_t channel_size = 512 * 3 * sizeof(double);
 	ocl_channels xyb = ocl.allocMemChannels(channel_size);
@@ -874,6 +904,53 @@ void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
         clScaleImageEx(mask.ch[i], xsize * ysize, kGlobalScale * kGlobalScale);
         clScaleImageEx(mask_dc.ch[i], xsize * ysize, kGlobalScale * kGlobalScale);
     }
+}
+
+void clMask(const float* r, const float* g, const float* b,
+    const float* r2, const float* g2, const float* b2,
+    size_t xsize, size_t ysize,
+    float* mask_r, float* mask_g, float* mask_b,
+    float* maskdc_r, float* maskdc_g, float* maskdc_b)
+{
+    cl_int err = CL_SUCCESS;
+    ocl_args_d_t &ocl = getOcl();
+
+    cl_int channel_size = xsize * ysize * sizeof(float);
+
+    ocl_channels rgb = ocl.allocMemChannels(channel_size);
+    ocl_channels rgb2 = ocl.allocMemChannels(channel_size);
+    ocl_channels mask = ocl.allocMemChannels(channel_size);
+    ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
+
+    clEnqueueWriteBuffer(ocl.commandQueue, rgb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
+    clEnqueueWriteBuffer(ocl.commandQueue, rgb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
+    clEnqueueWriteBuffer(ocl.commandQueue, rgb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
+    clEnqueueWriteBuffer(ocl.commandQueue, rgb2.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
+    clEnqueueWriteBuffer(ocl.commandQueue, rgb2.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
+    clEnqueueWriteBuffer(ocl.commandQueue, rgb2.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
+    err = clFinish(ocl.commandQueue);
+
+    clMaskEx(rgb, rgb2, xsize, ysize, mask, mask_dc);
+
+    cl_float *r0_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+    cl_float *r0_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask.g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+    cl_float *r0_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+    cl_float *r1_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask_dc.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+    cl_float *r1_g = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask_dc.g, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+    cl_float *r1_b = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask_dc.b, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
+    err = clFinish(ocl.commandQueue);
+
+    memcpy(mask_r, r0_r, channel_size);
+    memcpy(mask_g, r0_g, channel_size);
+    memcpy(mask_b, r0_b, channel_size);
+    memcpy(maskdc_r, r1_r, channel_size);
+    memcpy(maskdc_g, r1_g, channel_size);
+    memcpy(maskdc_b, r1_b, channel_size);
+
+    ocl.releaseMemChannels(rgb);
+    ocl.releaseMemChannels(rgb2);
+    ocl.releaseMemChannels(mask);
+    ocl.releaseMemChannels(mask_dc);
 }
 
 void clCombineChannelsEx(
