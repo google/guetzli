@@ -11,15 +11,16 @@ namespace guetzli {
 			const std::vector<uint8_t>* rgb,
 			const float target_distance, ProcessStats* stats);
 
-        //void Compare(const OutputImage& img) override;
-
-		void StartBlockComparisons();
-		void SwitchBlock(int block_x, int block_y, int factor_x, int factor_y);
+		void StartBlockComparisons() override;
+        void FinishBlockComparisons() override;
+		void SwitchBlock(int block_x, int block_y, int factor_x, int factor_y) override;
 
 		double CompareBlockEx(coeff_t* candidate_block);
-
+    private:
+        int getCurrentBlockIdx(void);
 	protected:
-		std::vector<float> imgOpsinDynamicsBlockList;
+		std::vector<float> imgOpsinDynamicsBlockList;   // [RR..RRGG..GGBB..BB]:blockCount
+        std::vector<float> imgMaskXyzScaleBlockList;    // [RGBRGB..RGBRGB]:blockCount
 	};
 
 }
