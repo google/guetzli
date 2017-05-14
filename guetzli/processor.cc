@@ -613,7 +613,7 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
 
             std::vector<CoeffData> block_order;
 
-            ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, &block_order);
+           ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, &block_order);
 
             // 以下处理依然没有batch化，用于先鉴定其他计算结果
             candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
@@ -626,6 +626,7 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
 
     //
     comparator_->FinishBlockComparisons(); // TOBEREMOVE:清除参数
+    candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
 
     SelectFrequencyBackEnd(jpg, img, 7, target_mul, stop_early, 
         candidate_coeff_offsets, candidate_coeffs, candidate_coeff_errors);
@@ -665,6 +666,10 @@ void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const 
     }
     std::sort(input_order.begin(), input_order.end(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second < b.second; });
 
+    if (input_order.size() > 10)
+    {
+        int i = 0;
+    }
     coeff_t processed_block[kBlockSize];
     memcpy(processed_block, block, sizeof(processed_block));
 
@@ -1060,7 +1065,8 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     img.ApplyGlobalQuantization(best_q);
 
     if (!downsample) {
-      SelectFrequencyMasking(jpg, &img, 7, 1.0, false);
+      //SelectFrequencyMasking(jpg, &img, 7, 1.0, false);
+        SelectFrequencyMaskingBatch(jpg, &img, 1.0, false);
     } else {
       const float ymul = jpg.components.size() == 1 ? 1.0f : 0.97f;
       SelectFrequencyMasking(jpg, &img, 1, ymul, false);
