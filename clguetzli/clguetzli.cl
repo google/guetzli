@@ -1493,6 +1493,7 @@ void BlockToImage(coeff_t *candidate_block, float *r, float *g, float *b)
 // ian todo
 void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio)
 {
+    // 参考clBlurEx2的实现，sigma = 1.1，这时step、diff都将特化为固定值
 }
 
 
@@ -1504,7 +1505,7 @@ void OpsinDynamicsImageBlock(float *r, float *g, float *b,
     
 }
 
-// strong todo
+// chrisk todo
 void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
     float *xyb1_x, float *xyb1_y, float *xyb1_b,
     float *c0_x, float *c0_y, float *c0_b,
