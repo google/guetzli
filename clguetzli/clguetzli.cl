@@ -1439,18 +1439,20 @@ typedef struct __IntFloatPairList
 // return size
 int list_push_back(IntFloatPairList* list, int i, float f)
 { 
-
+    return 0;
 }
 
 // chrisk todo
 // remove idx and return size
 int list_erase(IntFloatPairList* list, int idx)
 {
+    return 0;
 }
 
 // chrisk todo
 int SortInputOrder(DCTScoreData* input_order, int size)
 {
+    return 0;
 /*
     std::sort(input_order.begin(), input_order.end(),
         [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
@@ -1518,11 +1520,6 @@ void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
 {
 }
 
-void func(float *r, float *g, float *b, float *r_blurred, float *g_blurred, float *b_blurred)
-{
-    //BlurEx(r, g, b, r_blurred, g_blurred, 
-}
-
 typedef union ocl_channels_t
 {
     struct
@@ -1560,14 +1557,20 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
     float rgb1[3][kDCTBlockSize];
     {
         float rgb0_data[3*kDCTBlockSize];
-        ocl_channels rgb0_c = { rgb0_data, &rgb0_data[kDCTBlockSize], &rgb0_data[2 * kDCTBlockSize] };
+        ocl_channels rgb0_c;
+        rgb0_c.r = &rgb0_data[0];
+        rgb0_c.g = &rgb0_data[kDCTBlockSize];
+        rgb0_c.b = &rgb0_data[2 * kDCTBlockSize];
         for (int i = 0; i < 3*kDCTBlockSize; i++)
         { 
             rgb0_data[i] = orig_image_block[i];
         }
 
         float image_block[3 * kDCTBlockSize];
-        ocl_channels rgb1_c = { image_block, &image_block[kDCTBlockSize], &image_block[2 * kDCTBlockSize] };
+        ocl_channels rgb1_c;
+        rgb1_c.r = &image_block[0];
+        rgb1_c.g = &image_block[kDCTBlockSize];
+        rgb1_c.b = &image_block[2 * kDCTBlockSize];
         BlockToImage(candidate_block, rgb1_c.r, rgb1_c.g, rgb1_c.b);
 
         CalcOpsinDynamicsImage(rgb0_c);
