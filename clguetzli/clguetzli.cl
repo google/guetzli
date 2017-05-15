@@ -1418,6 +1418,9 @@ void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *
 
 
 ///==================================================
+// 各位，以下这些函数就是为了实现ButteraugliComparatorEx::CompareBlockEx
+
+// IntFloatPair是为了模拟output_order input_order的vector，但是大小固定为8x8
 typedef struct __IntFloatPair
 {
     int   idx;
@@ -1487,7 +1490,7 @@ int MakeInputOrder(__global coeff_t *orig_block, DCTScoreData *input_order, int 
 // chrisk todo
 void BlockToImage(coeff_t *candidate_block, float *r, float *g, float *b)
 {
-
+    // 参考clguetzli_comparator.cpp : BlockToImage
 }
 
 // ian todo
