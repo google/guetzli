@@ -1473,7 +1473,7 @@ int SortInputOrder(DCTScoreData* input_order, int size)
 		input_order[i + 1].idx = tmp.idx;
 		input_order[i + 1].err = tmp.err;
 	}
-    return 0;
+    return size;
 /*
     std::sort(input_order.begin(), input_order.end(),
         [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
@@ -1918,8 +1918,12 @@ void BlockToImage(coeff_t *candidate_block, float *r, float *g, float *b)
     // ²Î¿¼clguetzli_comparator.cpp : BlockToImage
 }
 
-void Convolution(__global float* multipliers, __global float* inp, __global float* result,
-    size_t xsize, size_t ysize, int xstep, int len, int offset, float border_ratio)
+void Convolution(size_t xsize, size_t ysize, 
+                 int xstep, int len, int offset, 
+                 float* multipliers, 
+                 float* inp, 
+                 float border_ratio,
+                 float* result)
 { 
 	float weight_no_border = 0;
 
@@ -1962,13 +1966,15 @@ void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, 
 							  exp(scaler * (-diff + 3) * (-diff + 3)),
 							  exp(scaler * (-diff + 4) * (-diff + 4))};				  
 	const int xstep = 1; // when sigma=1.1, xstep is 1.
-	/*
-	Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
-              border_ratio,
-              tmp.data());
-	Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
+  const int ystep = xstep;
+
+  int dxsize = (xsize + xstep - 1) / xstep;
+  int dysize = (ysize + ystep - 1) / ystep;
+
+  float *tmp = 0; // TODO:need a tmp and 
+	Convolution(xsize, ysize, xstep, expn_size, diff, expn, r, border_ratio, tmp);
+	Convolution(ysize, dxsize, ystep, expn_size, diff, expn, tmp,
               border_ratio, output);
-			  */
 }
 
 
@@ -1977,7 +1983,29 @@ void OpsinDynamicsImageBlock(float *r, float *g, float *b,
                             float *r_blurred, float *g_blurred, float *b_blurred,
                             int size)
 {
-    
+  for (size_t i = 0; i < size; ++i) {
+    double sensitivity[3];
+    {
+      // Calculate sensitivity[3] based on the smoothed image gamma derivative.
+      double pre_rgb[3] = { r_blurred[i], g_blurred[i], b_blurred[i] };
+      double pre_mixed[3];
+      OpsinAbsorbance(pre_rgb, pre_mixed);
+      sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
+      sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
+      sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
+    }
+    double cur_rgb[3] = { r[i],  g[i],  b[i] };
+    double cur_mixed[3];
+    OpsinAbsorbance(cur_rgb, cur_mixed);
+    cur_mixed[0] *= sensitivity[0];
+    cur_mixed[1] *= sensitivity[1];
+    cur_mixed[2] *= sensitivity[2];
+    double x, y, z;
+    RgbToXyb(cur_mixed[0], cur_mixed[1], cur_mixed[2], &x, &y, &z);
+    r[i] = (float)(x);
+    g[i] = (float)(y);
+    b[i] = (float)(z);
+  }
 }
 
 // chrisk todo
@@ -2020,6 +2048,9 @@ void CalcOpsinDynamicsImage(ocl_channels rgb)
 }
 
 // strong todo
+// candidate_block [R....R][G....G][B....B]
+// orig_image_block [RR..RRGG..GGBB..BB]
+// mask_scale[RGB]
 float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block, __global float* mask_scale_block)
 {
     float rgb0[3][kDCTBlockSize];
@@ -2084,6 +2115,12 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
 }
 
 // strong todo
+// orig_block_list [R....R][G....G][B....B]
+// block_list [R....R][G....G][B....B]
+// orig_image [RR..RRGG..GGBB..BB]
+// mask_scale[RGB]
+// output_orlder_list [3 * kBlockSize]
+
 __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/,
                                          __global coeff_t *block_list/*in*/,
                                          __global float *orig_image/*in*/,
@@ -2091,20 +2128,21 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
                                          __global CoeffData *output_order_list/*out*/)
 {
     int block_idx = get_global_id(0);
+#define kComputeBlockSize (kBlockSize * 3)
 
-    __global coeff_t *orig_block = orig_block_list + block_idx * kBlockSize;
-    __global coeff_t *block      = block_list + block_idx * kBlockSize;
-    __global float* orig_image_block = orig_image + block_idx * kBlockSize;
+    __global coeff_t *orig_block     = orig_block_list + block_idx * kComputeBlockSize;
+    __global coeff_t *block          = block_list + block_idx * kComputeBlockSize;
+    __global float* orig_image_block = orig_image + block_idx * kComputeBlockSize;
 
-    DCTScoreData input_order_data[kBlockSize];
-    CoeffData    output_order_data[kBlockSize];
+    DCTScoreData input_order_data[kComputeBlockSize];
+    CoeffData    output_order_data[kComputeBlockSize];
 
-    MakeInputOrder(block, orig_block, input_order_data, kBlockSize);
-    IntFloatPairList input_order = { kBlockSize, input_order_data };
-    IntFloatPairList output_order = { kBlockSize, output_order_data };
+    int count = MakeInputOrder(block, orig_block, input_order_data, kComputeBlockSize);
+    IntFloatPairList input_order = { count, input_order_data };
+    IntFloatPairList output_order = { 0, output_order_data };
 
-    coeff_t processed_block[kBlockSize];
-    for (int i = 0; i < kBlockSize; i++) {
+    coeff_t processed_block[kComputeBlockSize];
+    for (int i = 0; i < kComputeBlockSize; i++) {
         processed_block[i] = block[i];
     }
 
@@ -2114,8 +2152,8 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
         int best_i = 0;
         for (int i = 0; i < min(3, input_order.size); i++)
         {
-            coeff_t candidate_block[kBlockSize];
-            for (int i = 0; i < kBlockSize; i++) {
+            coeff_t candidate_block[kComputeBlockSize];
+            for (int i = 0; i < kComputeBlockSize; i++) {
                 candidate_block[i] = processed_block[i];
             }
 
@@ -2144,11 +2182,11 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
         output_order.pData[i].err = min_err;
     }
 
-    __global CoeffData *output_block = output_order_list + block_idx * kBlockSize;
+    __global CoeffData *output_block = output_order_list + block_idx * kComputeBlockSize;
 
-    for (int i = 0; i < kBlockSize; i++)
+    for (int i = 0; i < kComputeBlockSize; i++)
     {
-        if (i > output_order.size)
+        if (i >= output_order.size)
         {
             output_block[i].idx = 0;
             output_block[i].err = 0;
