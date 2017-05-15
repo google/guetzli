@@ -1495,8 +1495,12 @@ void BlockToImage(coeff_t *candidate_block, float *r, float *g, float *b)
     // ²Î¿¼clguetzli_comparator.cpp : BlockToImage
 }
 
-void Convolution(__global float* multipliers, __global float* inp, __global float* result,
-    size_t xsize, size_t ysize, int xstep, int len, int offset, float border_ratio)
+void Convolution(size_t xsize, size_t ysize, 
+                 int xstep, int len, int offset, 
+                 float* multipliers, 
+                 float* inp, 
+                 float border_ratio,
+                 float* result)
 { 
 	float weight_no_border = 0;
 
@@ -1539,13 +1543,15 @@ void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, 
 							  exp(scaler * (-diff + 3) * (-diff + 3)),
 							  exp(scaler * (-diff + 4) * (-diff + 4))};				  
 	const int xstep = 1; // when sigma=1.1, xstep is 1.
-	/*
-	Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
-              border_ratio,
-              tmp.data());
-	Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
+  const int ystep = xstep;
+
+  int dxsize = (xsize + xstep - 1) / xstep;
+  int dysize = (ysize + ystep - 1) / ystep;
+
+  float *tmp = 0; // TODO:need a tmp and 
+	Convolution(xsize, ysize, xstep, expn_size, diff, expn, r, border_ratio, tmp);
+	Convolution(ysize, dxsize, ystep, expn_size, diff, expn, tmp,
               border_ratio, output);
-			  */
 }
 
 
@@ -1554,7 +1560,29 @@ void OpsinDynamicsImageBlock(float *r, float *g, float *b,
                             float *r_blurred, float *g_blurred, float *b_blurred,
                             int size)
 {
-    
+  for (size_t i = 0; i < size; ++i) {
+    double sensitivity[3];
+    {
+      // Calculate sensitivity[3] based on the smoothed image gamma derivative.
+      double pre_rgb[3] = { r_blurred[i], g_blurred[i], b_blurred[i] };
+      double pre_mixed[3];
+      OpsinAbsorbance(pre_rgb, pre_mixed);
+      sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
+      sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
+      sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
+    }
+    double cur_rgb[3] = { r[i],  g[i],  b[i] };
+    double cur_mixed[3];
+    OpsinAbsorbance(cur_rgb, cur_mixed);
+    cur_mixed[0] *= sensitivity[0];
+    cur_mixed[1] *= sensitivity[1];
+    cur_mixed[2] *= sensitivity[2];
+    double x, y, z;
+    RgbToXyb(cur_mixed[0], cur_mixed[1], cur_mixed[2], &x, &y, &z);
+    r[i] = (float)(x);
+    g[i] = (float)(y);
+    b[i] = (float)(z);
+  }
 }
 
 // chrisk todo
