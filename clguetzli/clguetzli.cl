@@ -1439,20 +1439,41 @@ typedef struct __IntFloatPairList
 // return size
 int list_push_back(IntFloatPairList* list, int i, float f)
 {
-    return 0;
+	list->pData[list->size].idx = i;
+	list->pData[list->size].err = f;
+    return ++list->size;
 }
 
 // chrisk todo
 // remove idx and return size
 int list_erase(IntFloatPairList* list, int idx)
 {
-    return 0;
+	for (int i = idx; i < list->size - 1; i++)
+	{
+		list->pData[i].idx = list->pData[i + 1].idx;
+		list->pData[i].err = list->pData[i + 1].err;
+	}
+    return --list->size;
 }
 
 // chrisk todo
 int SortInputOrder(DCTScoreData* input_order, int size)
 {
-    return 0;
+	int i, j;
+	DCTScoreData tmp;
+	for (j = 1; j < size; j++) {
+		tmp.idx = input_order[j].idx;
+		tmp.err = input_order[j].err;
+		i = j - 1;
+		while (i >= 0 && input_order[i].err > tmp.err) {
+			input_order[i + 1].idx = input_order[i].idx;
+			input_order[i + 1].err = input_order[i].err;
+			i--;
+		}
+		input_order[i + 1].idx = tmp.idx;
+		input_order[i + 1].err = tmp.err;
+	}
+    return size;
 /*
     std::sort(input_order.begin(), input_order.end(),
         [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
@@ -1460,10 +1481,412 @@ int SortInputOrder(DCTScoreData* input_order, int size)
 */
 }
 
+__constant static float csf[192] = {
+	0.0f,
+	1.71014f,
+	0.298711f,
+	0.233709f,
+	0.223126f,
+	0.207072f,
+	0.192775f,
+	0.161201f,
+	2.05807f,
+	0.222927f,
+	0.203406f,
+	0.188465f,
+	0.184668f,
+	0.169993f,
+	0.159142f,
+	0.130155f,
+	0.430518f,
+	0.204939f,
+	0.206655f,
+	0.192231f,
+	0.182941f,
+	0.169455f,
+	0.157599f,
+	0.127153f,
+	0.234757f,
+	0.191098f,
+	0.192698f,
+	0.17425f,
+	0.166503f,
+	0.142154f,
+	0.126182f,
+	0.104196f,
+	0.226117f,
+	0.185373f,
+	0.183825f,
+	0.166643f,
+	0.159414f,
+	0.12636f,
+	0.108696f,
+	0.0911974f,
+	0.207463f,
+	0.171517f,
+	0.170124f,
+	0.141582f,
+	0.126213f,
+	0.103627f,
+	0.0882436f,
+	0.0751848f,
+	0.196436f,
+	0.161947f,
+	0.159271f,
+	0.126938f,
+	0.109125f,
+	0.0878027f,
+	0.0749842f,
+	0.0633859f,
+	0.165232f,
+	0.132905f,
+	0.128679f,
+	0.105766f,
+	0.0906087f,
+	0.0751544f,
+	0.0641187f,
+	0.0529921f,
+	0.0f,
+	0.147235f,
+	0.11264f,
+	0.0757892f,
+	0.0493929f,
+	0.0280663f,
+	0.0075012f,
+	-0.000945567f,
+	0.149251f,
+	0.0964806f,
+	0.0786224f,
+	0.05206f,
+	0.0292758f,
+	0.00353094f,
+	-0.00277912f,
+	-0.00404481f,
+	0.115551f,
+	0.0793142f,
+	0.0623735f,
+	0.0405019f,
+	0.0152656f,
+	-0.00145742f,
+	-0.00370369f,
+	-0.00375106f,
+	0.0791547f,
+	0.0537506f,
+	0.0413634f,
+	0.0193486f,
+	0.000609066f,
+	-0.00510923f,
+	-0.0046452f,
+	-0.00385187f,
+	0.0544534f,
+	0.0334066f,
+	0.0153899f,
+	0.000539088f,
+	-0.00356085f,
+	-0.00535661f,
+	-0.00429145f,
+	-0.00343131f,
+	0.0356439f,
+	0.00865645f,
+	0.00165229f,
+	-0.00425931f,
+	-0.00507324f,
+	-0.00459083f,
+	-0.003703f,
+	-0.00310327f,
+	0.0121926f,
+	-0.0009259f,
+	-0.00330991f,
+	-0.00499378f,
+	-0.00437381f,
+	-0.00377427f,
+	-0.00311731f,
+	-0.00255125f,
+	-0.000320593f,
+	-0.00426043f,
+	-0.00416549f,
+	-0.00419364f,
+	-0.00365418f,
+	-0.00317499f,
+	-0.00255932f,
+	-0.00217917f,
+	0.0f,
+	0.143471f,
+	0.124336f,
+	0.0947465f,
+	0.0814066f,
+	0.0686776f,
+	0.0588122f,
+	0.0374415f,
+	0.146315f,
+	0.105334f,
+	0.0949415f,
+	0.0784241f,
+	0.0689064f,
+	0.0588304f,
+	0.0495961f,
+	0.0202342f,
+	0.123818f,
+	0.0952654f,
+	0.0860556f,
+	0.0724158f,
+	0.0628307f,
+	0.0529965f,
+	0.0353941f,
+	0.00815821f,
+	0.097054f,
+	0.080422f,
+	0.0731085f,
+	0.0636154f,
+	0.055606f,
+	0.0384127f,
+	0.0142879f,
+	0.00105195f,
+	0.0849312f,
+	0.071115f,
+	0.0631183f,
+	0.0552972f,
+	0.0369221f,
+	0.00798314f,
+	0.000716374f,
+	-0.00200948f,
+	0.0722298f,
+	0.0599559f,
+	0.054841f,
+	0.0387529f,
+	0.0107262f,
+	0.000355315f,
+	-0.00244803f,
+	-0.00335222f,
+	0.0635335f,
+	0.0514196f,
+	0.0406309f,
+	0.0125833f,
+	0.00151305f,
+	-0.00140269f,
+	-0.00362547f,
+	-0.00337649f,
+	0.0472024f,
+	0.0198725f,
+	0.0113437f,
+	0.00266305f,
+	-0.00137183f,
+	-0.00354158f,
+	-0.00341292f,
+	-0.00290074f
+};
+
+__constant static float bias[192] = {
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0f,
+	0.0
+};
+
 // chrisk todo
 // return the count of Non-zero item
-int MakeInputOrder(__global coeff_t *orig_block, DCTScoreData *input_order, int size)
+int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, DCTScoreData *input_order, int size)
 {
+	/* 有一些问题，先注释掉
+	for (int c = 0; c < 3; ++c) {
+		if (!(comp_mask & (1 << c))) continue;
+		for (int k = 1; k < size; ++k) {
+			int idx = c * size + k;
+			if (block[idx] != 0) {
+				float score = abs(orig_block[idx]) * csf[idx] + bias[idx];
+				list_push_back(input_order, idx, score);
+			}
+		}
+	}
+	*/
 /*
     static const double kWeight[3] = { 1.0, 0.22, 0.20 };
 #include "guetzli/order.inc"
@@ -1495,8 +1918,12 @@ void BlockToImage(coeff_t *candidate_block, float *r, float *g, float *b)
     // 参考clguetzli_comparator.cpp : BlockToImage
 }
 
-void Convolution(__global float* multipliers, __global float* inp, __global float* result,
-    size_t xsize, size_t ysize, int xstep, int len, int offset, float border_ratio)
+void Convolution(size_t xsize, size_t ysize,
+                 int xstep, int len, int offset,
+                 float* multipliers,
+                 float* inp,
+                 float border_ratio,
+                 float* result)
 {
 	float weight_no_border = 0;
 
@@ -1539,13 +1966,15 @@ void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, 
 							  exp(scaler * (-diff + 3) * (-diff + 3)),
 							  exp(scaler * (-diff + 4) * (-diff + 4))};
 	const int xstep = 1; // when sigma=1.1, xstep is 1.
-	/*
-	Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
-              border_ratio,
-              tmp.data());
-	Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
+  const int ystep = xstep;
+
+  int dxsize = (xsize + xstep - 1) / xstep;
+  int dysize = (ysize + ystep - 1) / ystep;
+
+  float *tmp = 0; // TODO:need a tmp and
+	Convolution(xsize, ysize, xstep, expn_size, diff, expn, r, border_ratio, tmp);
+	Convolution(ysize, dxsize, ystep, expn_size, diff, expn, tmp,
               border_ratio, output);
-			  */
 }
 
 
@@ -1554,7 +1983,29 @@ void OpsinDynamicsImageBlock(float *r, float *g, float *b,
                             float *r_blurred, float *g_blurred, float *b_blurred,
                             int size)
 {
-
+  for (size_t i = 0; i < size; ++i) {
+    double sensitivity[3];
+    {
+      // Calculate sensitivity[3] based on the smoothed image gamma derivative.
+      double pre_rgb[3] = { r_blurred[i], g_blurred[i], b_blurred[i] };
+      double pre_mixed[3];
+      OpsinAbsorbance(pre_rgb, pre_mixed);
+      sensitivity[0] = Gamma(pre_mixed[0]) / pre_mixed[0];
+      sensitivity[1] = Gamma(pre_mixed[1]) / pre_mixed[1];
+      sensitivity[2] = Gamma(pre_mixed[2]) / pre_mixed[2];
+    }
+    double cur_rgb[3] = { r[i],  g[i],  b[i] };
+    double cur_mixed[3];
+    OpsinAbsorbance(cur_rgb, cur_mixed);
+    cur_mixed[0] *= sensitivity[0];
+    cur_mixed[1] *= sensitivity[1];
+    cur_mixed[2] *= sensitivity[2];
+    double x, y, z;
+    RgbToXyb(cur_mixed[0], cur_mixed[1], cur_mixed[2], &x, &y, &z);
+    r[i] = (float)(x);
+    g[i] = (float)(y);
+    b[i] = (float)(z);
+  }
 }
 
 // chrisk todo
@@ -1597,6 +2048,9 @@ void CalcOpsinDynamicsImage(ocl_channels rgb)
 }
 
 // strong todo
+// candidate_block [R....R][G....G][B....B]
+// orig_image_block [RR..RRGG..GGBB..BB]
+// mask_scale[RGB]
 float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block, __global float* mask_scale_block)
 {
     float rgb0[3][kDCTBlockSize];
@@ -1661,6 +2115,12 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
 }
 
 // strong todo
+// orig_block_list [R....R][G....G][B....B]
+// block_list [R....R][G....G][B....B]
+// orig_image [RR..RRGG..GGBB..BB]
+// mask_scale[RGB]
+// output_orlder_list [3 * kBlockSize]
+
 __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/,
                                          __global coeff_t *block_list/*in*/,
                                          __global float *orig_image/*in*/,
@@ -1668,20 +2128,21 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
                                          __global CoeffData *output_order_list/*out*/)
 {
     int block_idx = get_global_id(0);
+#define kComputeBlockSize (kBlockSize * 3)
 
-    __global coeff_t *orig_block = orig_block_list + block_idx * kBlockSize;
-    __global coeff_t *block      = block_list + block_idx * kBlockSize;
-    __global float* orig_image_block = orig_image + block_idx * kBlockSize;
+    __global coeff_t *orig_block     = orig_block_list + block_idx * kComputeBlockSize;
+    __global coeff_t *block          = block_list + block_idx * kComputeBlockSize;
+    __global float* orig_image_block = orig_image + block_idx * kComputeBlockSize;
 
-    DCTScoreData input_order_data[kBlockSize];
-    CoeffData    output_order_data[kBlockSize];
+    DCTScoreData input_order_data[kComputeBlockSize];
+    CoeffData    output_order_data[kComputeBlockSize];
 
-    MakeInputOrder(orig_block, input_order_data, kBlockSize);
-    IntFloatPairList input_order = { kBlockSize, input_order_data };
-    IntFloatPairList output_order = { kBlockSize, output_order_data };
+    int count = MakeInputOrder(block, orig_block, input_order_data, kComputeBlockSize);
+    IntFloatPairList input_order = { count, input_order_data };
+    IntFloatPairList output_order = { 0, output_order_data };
 
-    coeff_t processed_block[kBlockSize];
-    for (int i = 0; i < kBlockSize; i++) {
+    coeff_t processed_block[kComputeBlockSize];
+    for (int i = 0; i < kComputeBlockSize; i++) {
         processed_block[i] = block[i];
     }
 
@@ -1691,8 +2152,8 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
         int best_i = 0;
         for (int i = 0; i < min(3, input_order.size); i++)
         {
-            coeff_t candidate_block[kBlockSize];
-            for (int i = 0; i < kBlockSize; i++) {
+            coeff_t candidate_block[kComputeBlockSize];
+            for (int i = 0; i < kComputeBlockSize; i++) {
                 candidate_block[i] = processed_block[i];
             }
 
@@ -1721,11 +2182,11 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
         output_order.pData[i].err = min_err;
     }
 
-    __global CoeffData *output_block = output_order_list + block_idx * kBlockSize;
+    __global CoeffData *output_block = output_order_list + block_idx * kComputeBlockSize;
 
-    for (int i = 0; i < kBlockSize; i++)
+    for (int i = 0; i < kComputeBlockSize; i++)
     {
-        if (i > output_order.size)
+        if (i >= output_order.size)
         {
             output_block[i].idx = 0;
             output_block[i].err = 0;
