@@ -1495,11 +1495,57 @@ void BlockToImage(coeff_t *candidate_block, float *r, float *g, float *b)
     // 参考clguetzli_comparator.cpp : BlockToImage
 }
 
+void Convolution(__global float* multipliers, __global float* inp, __global float* result,
+    size_t xsize, size_t ysize, int xstep, int len, int offset, float border_ratio)
+{
+	float weight_no_border = 0;
+
+	for (size_t j = 0; j <= 2 * offset; ++j) {
+		weight_no_border += multipliers[j];
+	}
+	for (size_t x = 0, ox = 0; x < xsize; x += xstep, ox++) {
+		int minx = x < offset ? 0 : x - offset;
+		int maxx = min(xsize, x + len - offset) - 1;
+		float weight = 0.0;
+		for (int j = minx; j <= maxx; ++j) {
+			weight += multipliers[j - x + offset];
+		}
+		// Interpolate linearly between the no-border scaling and border scaling.
+		weight = (1.0 - border_ratio) * weight + border_ratio * weight_no_border;
+		float scale = 1.0 / weight;
+		for (size_t y = 0; y < ysize; ++y) {
+			float sum = 0.0;
+			for (int j = minx; j <= maxx; ++j) {
+				sum += inp[y * xsize + j] * multipliers[j - x + offset];
+			}
+			result[ox * ysize + y] = (float)(sum * scale);
+		}
+	}
+}
+
 // ian todo
 // 计算结果输出到output
 void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, float *output)
 {
     // 参考clBlurEx2的实现，sigma = 1.1，这时step、diff都将特化为固定值
+	const double sigma = 1.1;
+	double m = 2.25;  // Accuracy increases when m is increased.
+	const double scaler = -0.41322314049586772; // when sigma=1.1, scaler is -0.41322314049586772
+	const int diff = 2;  // when sigma=1.1, diff's value is 2.
+	const int expn_size = 5; // when sigma=1.1, scaler is  5
+	float expn[5] = { exp(scaler * (-diff) * (-diff)),
+							  exp(scaler * (-diff + 1) * (-diff + 1)),
+							  exp(scaler * (-diff + 2) * (-diff + 2)),
+							  exp(scaler * (-diff + 3) * (-diff + 3)),
+							  exp(scaler * (-diff + 4) * (-diff + 4))};
+	const int xstep = 1; // when sigma=1.1, xstep is 1.
+	/*
+	Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
+              border_ratio,
+              tmp.data());
+	Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
+              border_ratio, output);
+			  */
 }
 
 
