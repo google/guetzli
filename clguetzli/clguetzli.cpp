@@ -63,6 +63,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMap", &err);
 	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMap", &err);
 	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreq", &err);
+    ocl.kernel[KERNEL_COMPUTEBLOCKZERONGORDER] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrder", &err);
 
 	return ocl;
 }
@@ -1191,4 +1192,55 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	clReleaseMemObject(block_diff_ac);
 
 	clReleaseMemObject(mem_result);
+}
+
+void clComputeBlockZeroingOrder(guetzli::coeff_t *orig_block_list, guetzli::coeff_t *block_list, 
+                              float *orig_iamge, float* mask_scale, CoeffData *output_order_list, 
+                              int size)
+{
+    using namespace guetzli;
+
+    int item_count = 3 * kDCTBlockSize * size;
+
+    cl_int err = 0;
+    ocl_args_d_t &ocl = getOcl();
+
+    cl_mem mem_orig_block_list = ocl.allocMem(sizeof(coeff_t) * item_count);
+    cl_mem mem_block_list = ocl.allocMem(sizeof(coeff_t) * item_count);
+    cl_mem mem_orig_image = ocl.allocMem(sizeof(float) * item_count);
+    cl_mem mem_mask_scale = ocl.allocMem(sizeof(float) * 3 * size);
+    cl_mem mem_output_order_list = ocl.allocMem(sizeof(CoeffData) * item_count);
+
+    cl_kernel kernel = ocl.kernel[KERNEL_COMPUTEBLOCKZERONGORDER];
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mem_orig_block_list);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mem_block_list);
+    clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&mem_orig_image);
+    clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&mem_mask_scale);
+    clSetKernelArg(kernel, 4, sizeof(cl_mem), &mem_output_order_list);
+
+    size_t globalWorkSize[1] = { size };
+    err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: clComputeBlockZeroingOrder() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+    }
+    err = clFinish(ocl.commandQueue);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: clComputeBlockZeroingOrder() clFinish returned %s.\n", TranslateOpenCLError(err));
+    }
+
+    CoeffData *result = (CoeffData *)clEnqueueMapBuffer(ocl.commandQueue, mem_output_order_list, true, CL_MAP_READ, 0, sizeof(CoeffData) * item_count, 0, NULL, NULL, &err);
+    err = clFinish(ocl.commandQueue);
+    memcpy(output_order_list, result, sizeof(CoeffData) * item_count);
+
+    clEnqueueUnmapMemObject(ocl.commandQueue, mem_output_order_list, result, sizeof(CoeffData) * item_count, NULL, NULL);
+    clFinish(ocl.commandQueue);
+
+    clReleaseMemObject(mem_orig_block_list);
+    clReleaseMemObject(mem_block_list);
+    clReleaseMemObject(mem_orig_image);
+    clReleaseMemObject(mem_mask_scale);
+    clReleaseMemObject(mem_output_order_list);
+
 }

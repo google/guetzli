@@ -1625,6 +1625,9 @@ void CalcOpsinDynamicsImage(ocl_channels rgb)
 }
 
 // strong todo
+// candidate_block [R....R][G....G][B....B]
+// orig_image_block [RR..RRGG..GGBB..BB]
+// mask_scale[RGB]
 float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block, __global float* mask_scale_block)
 {
     float rgb0[3][kDCTBlockSize];
@@ -1689,6 +1692,12 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
 }
 
 // strong todo
+// orig_block_list [R....R][G....G][B....B]
+// block_list [R....R][G....G][B....B]
+// orig_image [RR..RRGG..GGBB..BB]
+// mask_scale[RGB]
+// output_orlder_list [3 * kBlockSize]
+
 __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/,
                                          __global coeff_t *block_list/*in*/,
                                          __global float *orig_image/*in*/,
@@ -1696,20 +1705,21 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
                                          __global CoeffData *output_order_list/*out*/)
 {
     int block_idx = get_global_id(0);
+#define kComputeBlockSize (kBlockSize * 3)
 
-    __global coeff_t *orig_block = orig_block_list + block_idx * kBlockSize;
-    __global coeff_t *block      = block_list + block_idx * kBlockSize;
-    __global float* orig_image_block = orig_image + block_idx * kBlockSize;
+    __global coeff_t *orig_block     = orig_block_list + block_idx * kComputeBlockSize;
+    __global coeff_t *block          = block_list + block_idx * kComputeBlockSize;
+    __global float* orig_image_block = orig_image + block_idx * kComputeBlockSize;
 
-    DCTScoreData input_order_data[kBlockSize];
-    CoeffData    output_order_data[kBlockSize];
+    DCTScoreData input_order_data[kComputeBlockSize];
+    CoeffData    output_order_data[kComputeBlockSize];
 
-    MakeInputOrder(orig_block, input_order_data, kBlockSize);
-    IntFloatPairList input_order = { kBlockSize, input_order_data };
-    IntFloatPairList output_order = { kBlockSize, output_order_data };
+    int count = MakeInputOrder(orig_block, input_order_data, kComputeBlockSize);
+    IntFloatPairList input_order = { count, input_order_data };
+    IntFloatPairList output_order = { 0, output_order_data };
 
-    coeff_t processed_block[kBlockSize];
-    for (int i = 0; i < kBlockSize; i++) {
+    coeff_t processed_block[kComputeBlockSize];
+    for (int i = 0; i < kComputeBlockSize; i++) {
         processed_block[i] = block[i];
     }
 
@@ -1719,8 +1729,8 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
         int best_i = 0;
         for (int i = 0; i < min(3, input_order.size); i++)
         {
-            coeff_t candidate_block[kBlockSize];
-            for (int i = 0; i < kBlockSize; i++) {
+            coeff_t candidate_block[kComputeBlockSize];
+            for (int i = 0; i < kComputeBlockSize; i++) {
                 candidate_block[i] = processed_block[i];
             }
 
@@ -1749,11 +1759,11 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
         output_order.pData[i].err = min_err;
     }
 
-    __global CoeffData *output_block = output_order_list + block_idx * kBlockSize;
+    __global CoeffData *output_block = output_order_list + block_idx * kComputeBlockSize;
 
-    for (int i = 0; i < kBlockSize; i++)
+    for (int i = 0; i < kComputeBlockSize; i++)
     {
-        if (i > output_order.size)
+        if (i >= output_order.size)
         {
             output_block[i].idx = 0;
             output_block[i].err = 0;
