@@ -23,6 +23,7 @@
 
 #include "guetzli/butteraugli_comparator.h"
 #include "clguetzli\clguetzli_comparator.h"
+#include "clguetzli\clguetzli.h"
 #include "guetzli/comparator.h"
 #include "guetzli/debug_print.h"
 #include "guetzli/fast_log.h"
@@ -38,11 +39,12 @@ namespace guetzli {
 namespace {
 
 static const size_t kBlockSize = 3 * kDCTBlockSize;
-
+/*
 struct CoeffData {
   int idx;
   float block_err;
 };
+*/
 struct QuantData {
   int q[3][kDCTBlockSize];
   size_t jpg_size;
@@ -601,10 +603,59 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
         }
     }
 
+    std::vector<CoeffData> output_order(num_blocks * kBlockSize);
+    ButteraugliComparatorEx * comp = (ButteraugliComparatorEx*)comparator_;
+
+    if (g_useOpenCL)
+    {
+        clComputeBlockZeroingOrder(orig_block_batch.data(),
+                                    block_batch.data(),
+                                    comp->imgOpsinDynamicsBlockList.data(),
+                                    comp->imgMaskXyzScaleBlockList.data(),
+                                    output_order.data(),
+                                    num_blocks);
+    }
+    else
+    {
+        for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
+            for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
+                coeff_t *orig_block = &orig_block_batch[block_ix * kBlockSize];
+                coeff_t *block = &block_batch[block_ix * kBlockSize];
+
+                std::vector<CoeffData> block_order;
+
+                ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, &block_order);
+
+                CoeffData * p = &output_order[block_ix * kBlockSize];
+                for (int i = 0; i < block_order.size(); i++)
+                {
+                    p[i].idx = block_order[i].idx;
+                    p[i].block_err = block_order[i].block_err;
+                }
+            }
+        }
+    }
+
     std::vector<int> candidate_coeff_offsets(num_blocks + 1);
     std::vector<uint8_t> candidate_coeffs;
     std::vector<float> candidate_coeff_errors;
 
+    for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
+        for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
+            CoeffData * p = &output_order[block_ix * kBlockSize];
+   
+            candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
+            for (int i = 0; i < kBlockSize; i++)
+            {
+                if (p[i].block_err > 0 && p[i].block_err <= comparator_->BlockErrorLimit())
+                {
+                    candidate_coeffs.push_back(p[i].idx);
+                    candidate_coeff_errors.push_back(p[i].block_err);
+                }
+            }
+        }
+    }
+/*
     // step 2 对比每个block结果
     for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
         for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
@@ -623,7 +674,7 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
             }
         }
     }
-
+*/
     //
     comparator_->FinishBlockComparisons(); // TOBEREMOVE:清除参数
     candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
@@ -666,9 +717,9 @@ void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const 
     }
     std::sort(input_order.begin(), input_order.end(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second < b.second; });
 
-    if (input_order.size() > 10)
+    if (input_order.size() > 64)
     {
-        int i = 0;
+        g_compareBlock++;
     }
     coeff_t processed_block[kBlockSize];
     memcpy(processed_block, block, sizeof(processed_block));

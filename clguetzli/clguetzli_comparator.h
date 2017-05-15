@@ -18,7 +18,7 @@ namespace guetzli {
 		double CompareBlockEx(coeff_t* candidate_block);
     private:
         int getCurrentBlockIdx(void);
-	protected:
+	public:
 		std::vector<float> imgOpsinDynamicsBlockList;   // [RR..RRGG..GGBB..BB]:blockCount
         std::vector<float> imgMaskXyzScaleBlockList;    // [RGBRGB..RGBRGB]:blockCount
 	};
