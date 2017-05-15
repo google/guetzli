@@ -1494,7 +1494,8 @@ void BlockToImage(coeff_t *candidate_block, float *r, float *g, float *b)
 }
 
 // ian todo
-void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio)
+// 计算结果输出到output
+void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, float *output)
 {
     // 参考clBlurEx2的实现，sigma = 1.1，这时step、diff都将特化为固定值
 }
@@ -1517,75 +1518,111 @@ void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
 {
 }
 
-// strong todo
-float CompareBlockEx(coeff_t *candidate_block, float* orig_image_block, float* mask_scale_block)
+void func(float *r, float *g, float *b, float *r_blurred, float *g_blurred, float *b_blurred)
 {
-    float image_block[3 * kDCTBlockSize];
-    float *r1 = image_block;
-    float *g1 = &image_block[kDCTBlockSize];
-    float *b1 = &image_block[2 * kDCTBlockSize];
-    BlockToImage(candidate_block, r1, g1, b1);
+    //BlurEx(r, g, b, r_blurred, g_blurred, 
+}
 
-    float *r0 = orig_image_block;
-    float *g0 = &orig_image_block[kDCTBlockSize];
-    float *b0 = &orig_image_block[2 * kDCTBlockSize];
-
-    float *cr0, *cg0, *cb0;
-    float *cr1, *cg1, *cb1;
-
-    float *r0_blurred, *g0_blurred, *b0_blurred;
-    float *r1_blurred, *g1_blurred, *b1_blurred;
-
-    //BlurEx(r0,..
-    //BlurEx
-    //BlurEx
-    //BlurEx.
-    OpsinDynamicsImageBlock(r0, g0, b0, r0_blurred, g0_blurred, b0_blurred, kDCTBlockSize);
-    OpsinDynamicsImageBlock(r1, g1, b1, r1_blurred, g1_blurred, b1_blurred, kDCTBlockSize);
-
-    MaskHighIntensityChangeBlock(r0, g0, b0, r1, g1, b1, cr0, cg0, cb0, cr1, cg1, cb1, 8, 8);
+typedef union ocl_channels_t
+{
+    struct
     {
-        double b0[3 * kDCTBlockSize];
-        double b1[3 * kDCTBlockSize];
-        /*
-            for (int c = 0; c < 3; ++c) {
-                for (int ix = 0; ix < kDCTBlockSize; ++ix) {
-                    b0[c * kDCTBlockSize + ix] = rgb0[c][ix];
-                    b1[c * kDCTBlockSize + ix] = rgb1[c][ix];
-                }
-            }
-        */
-        double diff_xyz_dc[3] = { 0.0 };
-        double diff_xyz_ac[3] = { 0.0 };
-        double diff_xyz_edge_dc[3] = { 0.0 };
+        float * r;
+        float * g;
+        float * b;
+    };
 
-        ButteraugliBlockDiff(b0, b1, diff_xyz_dc, diff_xyz_ac, diff_xyz_edge_dc);
+    float *ch[3];
+}ocl_channels;
 
-        double diff = 0.0;
-        double diff_edge = 0.0;
-        /*
-            for (int c = 0; c < 3; ++c) {
-                diff += diff_xyz_dc[c] * imgMaskXyzScaleBlockList[block_ix * 3 + c];
-                diff += diff_xyz_ac[c] * imgMaskXyzScaleBlockList[block_ix * 3 + c];
-                diff_edge += diff_xyz_edge_dc[c] * imgMaskXyzScaleBlockList[block_ix * 3 + c];
-            }
-            const double kEdgeWeight = 0.05;
-            return sqrt((1 - kEdgeWeight) * diff + kEdgeWeight * diff_edge);
-        */
+void floatcopy(float *dst, float *src, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        dst[i] = src[i];
     }
-    return 0;
+}
+
+void CalcOpsinDynamicsImage(ocl_channels rgb)
+{
+    float rgb_blurred[3][kDCTBlockSize];
+    for (int i = 0; i < 3; i++)
+    {
+        BlurEx(rgb.ch[i], 8, 8, 1.1, 0, rgb_blurred[i]);
+    }
+    OpsinDynamicsImageBlock(rgb.r, rgb.g, rgb.b, rgb_blurred[0], rgb_blurred[1], rgb_blurred[2], kDCTBlockSize);
+}
+
+// strong todo
+float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block, __global float* mask_scale_block)
+{
+    float rgb0[3][kDCTBlockSize];
+    float rgb1[3][kDCTBlockSize];
+    {
+        float rgb0_data[3*kDCTBlockSize];
+        ocl_channels rgb0_c = { rgb0_data, &rgb0_data[kDCTBlockSize], &rgb0_data[2 * kDCTBlockSize] };
+        for (int i = 0; i < 3*kDCTBlockSize; i++)
+        { 
+            rgb0_data[i] = orig_image_block[i];
+        }
+
+        float image_block[3 * kDCTBlockSize];
+        ocl_channels rgb1_c = { image_block, &image_block[kDCTBlockSize], &image_block[2 * kDCTBlockSize] };
+        BlockToImage(candidate_block, rgb1_c.r, rgb1_c.g, rgb1_c.b);
+
+        CalcOpsinDynamicsImage(rgb0_c);
+        CalcOpsinDynamicsImage(rgb1_c);
+
+        floatcopy(rgb0, rgb0_data, 3 * kDCTBlockSize);
+        floatcopy(rgb1, image_block, 3 * kDCTBlockSize);
+ 
+        MaskHighIntensityChangeBlock(rgb0[0],rgb0[1], rgb0[2], 
+                                     rgb1[0], rgb1[1], rgb1[2], 
+                                    rgb0_c.ch[0], rgb0_c.ch[1], rgb0_c.ch[2], 
+                                     rgb1_c.ch[0], rgb1_c.ch[1], rgb1_c.ch[2], 
+                                     8, 8);
+                                     
+    }
+
+    // 这里为啥要把float转成double才能继续做计算？
+    double b0[3 * kDCTBlockSize];       // 
+    double b1[3 * kDCTBlockSize];
+    for (int c = 0; c < 3; ++c) {
+        for (int ix = 0; ix < kDCTBlockSize; ++ix) {
+            b0[c * kDCTBlockSize + ix] = rgb0[c][ix];
+            b1[c * kDCTBlockSize + ix] = rgb1[c][ix];
+        }
+    }
+
+    double diff_xyz_dc[3] = { 0.0 };
+    double diff_xyz_ac[3] = { 0.0 };
+    double diff_xyz_edge_dc[3] = { 0.0 };
+    ButteraugliBlockDiff(b0, b1, diff_xyz_dc, diff_xyz_ac, diff_xyz_edge_dc);
+
+    double diff = 0.0;
+    double diff_edge = 0.0;
+        
+    for (int c = 0; c < 3; ++c) {
+        diff += diff_xyz_dc[c] * mask_scale_block[c];
+        diff += diff_xyz_ac[c] * mask_scale_block[c];
+        diff_edge += diff_xyz_edge_dc[c] * mask_scale_block[c];
+    }
+    const double kEdgeWeight = 0.05;
+    return sqrt((1 - kEdgeWeight) * diff + kEdgeWeight * diff_edge);
 }
 
 // strong todo
 __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/,
                                          __global coeff_t *block_list/*in*/,
                                          __global float *orig_image/*in*/,
+                                         __global float *mask_scale/*in*/,
                                          __global CoeffData *output_order_list/*out*/)
 {
     int block_idx = get_global_id(0);
 
     __global coeff_t *orig_block = orig_block_list + block_idx * kBlockSize;
     __global coeff_t *block      = block_list + block_idx * kBlockSize;
+    __global float* orig_image_block = orig_image + block_idx * kBlockSize;
 
     DCTScoreData input_order_data[kBlockSize];
     CoeffData    output_order_data[kBlockSize];
@@ -1594,9 +1631,10 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
     IntFloatPairList input_order = { kBlockSize, input_order_data };
     IntFloatPairList output_order = { kBlockSize, output_order_data };
 
-
     coeff_t processed_block[kBlockSize];
- //   memcpy(processed_block, block, sizeof(processed_block);
+    for (int i = 0; i < kBlockSize; i++) {
+        processed_block[i] = block[i];
+    }
 
     while (input_order.size > 0)
     {
@@ -1605,13 +1643,15 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
         for (int i = 0; i < min(3, input_order.size); i++)
         {
             coeff_t candidate_block[kBlockSize];
-            // memcpy(candidate_block, processed_block, sizeof(candidate_block);
+            for (int i = 0; i < kBlockSize; i++) {
+                candidate_block[i] = processed_block[i];
+            }
 
             const int idx = input_order.pData[i].idx;
 
             candidate_block[idx] = 0;
 
-            float max_err = CompareBlockEx(candidate_block, 0, 0);
+            float max_err = CompareBlockEx(candidate_block, orig_image_block, mask_scale + block_idx * 3);
             if (max_err < best_err)
             {
                 best_err = max_err;
@@ -1626,22 +1666,25 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
         list_push_back(&output_order, idx, best_err);
     }
     // 注意output_order这里的resize就是把尾部的置位0
-/*
-    // TOBEREMOVE:最终移除err数大于error限制的项返回，并还原对比图像到原始值。
-    // Make the block error values monotonic.
     float min_err = 1e10;
-    for (int i = output_order->size() - 1; i >= 0; --i) {
-    min_err = std::min(min_err, (*output_order)[i].block_err);
-    (*output_order)[i].block_err = min_err;
+    for (int i = output_order.size - 1; i >= 0; --i) {
+        min_err = min(min_err, output_order.pData[i].err);
+        output_order.pData[i].err = min_err;
     }
-    // Cut off at the block error limit.
-    size_t num = 0;
-    while (num < output_order->size() &&
-    (*output_order)[num].block_err <= comparator_->BlockErrorLimit()) {
-    ++num;
-    }
-    output_order->resize(num);
-*/
 
-    // memcpy(output_data_list + block_idx * kBlockSize
+    __global CoeffData *output_block = output_order_list + block_idx * kBlockSize;
+
+    for (int i = 0; i < kBlockSize; i++)
+    {
+        if (i > output_order.size)
+        {
+            output_block[i].idx = 0;
+            output_block[i].err = 0;
+        }
+        else
+        {
+            output_block[i].idx = output_order.pData[i].idx;
+            output_block[i].err = output_order.pData[i].err;
+        }
+    }
 }
