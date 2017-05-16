@@ -2397,6 +2397,57 @@ void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
     float *c1_x, float *c1_y, float *c1_b,
     int xsize, int ysize)
 {
+	for (int x = 0; x < xsize; ++x)
+	{
+		for (int y = 0; y < ysize; ++y)
+		{
+			size_t ix = y * xsize + x;
+			const double ave[3] = {
+				(c0_x[ix] + c1_x[ix]) * 0.5,
+				(c0_y[ix] + c1_y[ix]) * 0.5,
+				(c0_b[ix] + c1_b[ix]) * 0.5,
+			};
+			double sqr_max_diff = -1;
+			{
+				int offset[4] = { -1, 1, -(int)(xsize), (int)(xsize) };
+				int border[4] = { x == 0, x + 1 == xsize, y == 0, y + 1 == ysize };
+				for (int dir = 0; dir < 4; ++dir) {
+					if (border[dir])
+					{
+						continue;
+					}
+					const int ix2 = ix + offset[dir];
+					double diff = 0.5 * (c0_y[ix2] + c1_y[ix2]) - ave[1];
+					diff *= diff;
+					if (sqr_max_diff < diff)
+					{
+						sqr_max_diff = diff;
+					}
+				}
+			}
+			const double kReductionX = 275.19165240059317;
+			const double kReductionY = 18599.41286306991;
+			const double kReductionZ = 410.8995306951065;
+			const double kChromaBalance = 106.95800948271017;
+			double chroma_scale = kChromaBalance / (ave[1] + kChromaBalance);
+
+			const double mix[3] = {
+				chroma_scale * kReductionX / (sqr_max_diff + kReductionX),
+				kReductionY / (sqr_max_diff + kReductionY),
+				chroma_scale * kReductionZ / (sqr_max_diff + kReductionZ),
+			};
+			// Interpolate lineraly between the average color and the actual
+			// color -- to reduce the importance of this pixel.
+			xyb0_x[ix] = (float)(mix[0] * c0_x[ix] + (1 - mix[0]) * ave[0]);
+			xyb1_x[ix] = (float)(mix[0] * c1_x[ix] + (1 - mix[0]) * ave[0]);
+
+			xyb0_y[ix] = (float)(mix[1] * c0_y[ix] + (1 - mix[1]) * ave[1]);
+			xyb1_y[ix] = (float)(mix[1] * c1_y[ix] + (1 - mix[1]) * ave[1]);
+
+			xyb0_b[ix] = (float)(mix[2] * c0_b[ix] + (1 - mix[2]) * ave[2]);
+			xyb1_b[ix] = (float)(mix[2] * c1_b[ix] + (1 - mix[2]) * ave[2]);
+		}
+	}
 }
 
 typedef union ocl_channels_t
