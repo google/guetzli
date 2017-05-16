@@ -189,7 +189,7 @@ void* ocl_args_d_t::allocC(size_t s)
 	return outputC;
 }
 
-cl_mem ocl_args_d_t::allocMem(size_t s)
+cl_mem ocl_args_d_t::allocMem(size_t s, void *init)
 {
 	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
 	cl_int err = 0;
@@ -198,6 +198,20 @@ cl_mem ocl_args_d_t::allocMem(size_t s)
 	{
 		LogError("Error: allocMem() for buffer returned %s.\n", TranslateOpenCLError(err));
 	}
+    if (mem && init)
+    {
+        err = clEnqueueWriteBuffer(this->commandQueue, mem, CL_FALSE, 0, s, init, 0, NULL, NULL);
+        if (CL_SUCCESS != err)
+        {
+            LogError("Error: allocMem() clEnqueueWriteBuffer return %s.\n", TranslateOpenCLError(err));
+        }
+        err = clFinish(this->commandQueue);
+        if (CL_SUCCESS != err)
+        {
+            LogError("Error: allocMem() clFinish return %s.\n", TranslateOpenCLError(err));
+        }
+    }
+
 	return mem;
 }
 

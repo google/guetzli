@@ -22,9 +22,6 @@
 #include "guetzli/gamma_correct.h"
 #include "guetzli/score.h"
 
-int g_switchBlock = 0;
-int g_compareBlock = 0;
-
 namespace guetzli {
 
 ButteraugliComparator::ButteraugliComparator(const int width, const int height,
@@ -97,8 +94,6 @@ void ButteraugliComparator::SwitchBlock(int block_x, int block_y,
       ::butteraugli::OpsinDynamicsImage(8, 8, per_block_pregamma_[bx]);
     }
   }
-
-  g_switchBlock++;
 }
 
 double ButteraugliComparator::CompareBlock(const OutputImage& img,
@@ -114,7 +109,6 @@ double ButteraugliComparator::CompareBlock(const OutputImage& img,
   std::vector<std::vector<float> > rgb1_c(3, std::vector<float>(kDCTBlockSize));
   img.ToLinearRGB(xmin, ymin, 8, 8, &rgb1_c);
   ::butteraugli::OpsinDynamicsImage(8, 8, rgb1_c);
-  g_compareBlock++;
 
   std::vector<std::vector<float> > rgb0 = rgb0_c;
   std::vector<std::vector<float> > rgb1 = rgb1_c;
