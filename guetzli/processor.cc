@@ -603,36 +603,62 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
         }
     }
 
-    std::vector<CoeffData> output_order(num_blocks * kBlockSize);
+    // step 2 计算所有block的系数偏差
+    std::vector<CoeffData> output_order_gpu;
+    std::vector<CoeffData> output_order_cpu;
+    CoeffData * output_order = NULL;
     ButteraugliComparatorEx * comp = (ButteraugliComparatorEx*)comparator_;
 
-    if (g_useOpenCL)
+    if (g_useOpenCL || g_checkOpenCL)
     {
+        output_order_gpu.resize(num_blocks * kBlockSize);
+        output_order = output_order_gpu.data();
         clComputeBlockZeroingOrder(orig_block_batch.data(),
                                     block_batch.data(),
                                     comp->imgOpsinDynamicsBlockList.data(),
                                     comp->imgMaskXyzScaleBlockList.data(),
-                                    output_order.data(),
-                                    num_blocks);
+                                    output_order_gpu.data(),
+                                    num_blocks,
+                                    comparator_->BlockErrorLimit());
+
+
     }
-    else
+    if (!g_useOpenCL || g_checkOpenCL)
     {
+        output_order_cpu.resize(num_blocks * kBlockSize);
+        output_order = output_order_cpu.data();
         for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
             for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
                 coeff_t *orig_block = &orig_block_batch[block_ix * kBlockSize];
                 coeff_t *block = &block_batch[block_ix * kBlockSize];
 
                 std::vector<CoeffData> block_order;
-
                 ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, &block_order);
 
-                CoeffData * p = &output_order[block_ix * kBlockSize];
+                CoeffData * p = &output_order_cpu[block_ix * kBlockSize];
                 for (int i = 0; i < block_order.size(); i++)
                 {
                     p[i].idx = block_order[i].idx;
                     p[i].block_err = block_order[i].block_err;
                 }
             }
+        }
+    }
+    if (g_checkOpenCL)
+    {
+        int count = 0;
+        int check_size = output_order_gpu.size();
+        for (int i = 0; i < check_size; i++)
+        {
+            if (output_order_cpu[i].idx != output_order_gpu[i].idx ||
+                fabs(output_order_cpu[i].block_err - output_order_gpu[i].block_err) > 0.001)
+            {
+                count++;
+            }
+        }
+        if (count > 0)
+        {
+            LogError("CHK %s(%d) %d:%d\r\n", __FUNCTION__, __LINE__, count, check_size);
         }
     }
 
@@ -655,28 +681,9 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
             }
         }
     }
-/*
-    // step 2 对比每个block结果
-    for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
-        for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
-            coeff_t *orig_block = &orig_block_batch[block_ix * kBlockSize];
-            coeff_t *block = &block_batch[block_ix * kBlockSize];
 
-            std::vector<CoeffData> block_order;
-
-           ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, &block_order);
-
-            // 以下处理依然没有batch化，用于先鉴定其他计算结果
-            candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
-            for (size_t i = 0; i < block_order.size(); ++i) {
-                candidate_coeffs.push_back(block_order[i].idx);
-                candidate_coeff_errors.push_back(block_order[i].block_err);
-            }
-        }
-    }
-*/
     //
-    comparator_->FinishBlockComparisons(); // TOBEREMOVE:清除参数
+    comparator_->FinishBlockComparisons();
     candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
 
     SelectFrequencyBackEnd(jpg, img, 7, target_mul, stop_early,
@@ -717,10 +724,6 @@ void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const 
     }
     std::sort(input_order.begin(), input_order.end(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second < b.second; });
 
-    if (input_order.size() > 64)
-    {
-        g_compareBlock++;
-    }
     coeff_t processed_block[kBlockSize];
     memcpy(processed_block, block, sizeof(processed_block));
 
@@ -1122,6 +1125,8 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
       const float ymul = jpg.components.size() == 1 ? 1.0f : 0.97f;
       SelectFrequencyMasking(jpg, &img, 1, ymul, false);
       SelectFrequencyMasking(jpg, &img, 6, 1.0, true);
+//      SelectFrequencyMaskingBatch(jpg, &img, ymul, false);
+//      SelectFrequencyMaskingBatch(jpg, &img, 1.0, true);
     }
   }
 

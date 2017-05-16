@@ -1868,7 +1868,7 @@ __constant static float bias[192] = {
 
 // chrisk todo
 // return the count of Non-zero item
-int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, DCTScoreData *input_order, int block_size)
+int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
 {
 	int size = 0;
 	for (int c = 0; c < 3; ++c) {
@@ -1880,7 +1880,7 @@ int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, DCTSco
 			}
 		}
 	}
-    return SortInputOrder(input_order, size);
+    return SortInputOrder(input_order->pData, size);
 }
 
 __constant static int kIDCTMatrix[kDCTBlockSize] = {
@@ -2558,6 +2558,7 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
                                          __global coeff_t *block_list/*in*/,
                                          __global float *orig_image/*in*/,
                                          __global float *mask_scale/*in*/,
+                                         float BlockErrorLimit,
                                          __global CoeffData *output_order_list/*out*/)
 {
     int block_idx = get_global_id(0);
@@ -2570,9 +2571,10 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
     DCTScoreData input_order_data[kComputeBlockSize];
     CoeffData    output_order_data[kComputeBlockSize];
 
-    int count = MakeInputOrder(block, orig_block, input_order_data, kBlockSize);
-    IntFloatPairList input_order = { count, input_order_data };
+    IntFloatPairList input_order  = { 0, input_order_data };
     IntFloatPairList output_order = { 0, output_order_data };
+
+    int count = MakeInputOrder(block, orig_block, &input_order, kBlockSize);
 
     coeff_t processed_block[kComputeBlockSize];
     for (int i = 0; i < kComputeBlockSize; i++) {
@@ -2617,17 +2619,15 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
 
     __global CoeffData *output_block = output_order_list + block_idx * kComputeBlockSize;
 
-    for (int i = 0; i < kComputeBlockSize; i++)
+    int out_count = 0;
+    for (int i = 0; i < kComputeBlockSize && i < output_order.size; i++)
     {
-        if (i >= output_order.size)
+        // 过滤较大的err，这部分进入后端计算没有意义
+        if (output_order.pData[i].err <= BlockErrorLimit)
         {
-            output_block[i].idx = 0;
-            output_block[i].err = 0;
-        }
-        else
-        {
-            output_block[i].idx = output_order.pData[i].idx;
-            output_block[i].err = output_order.pData[i].err;
+            output_block[out_count].idx = output_order.pData[i].idx;
+            output_block[out_count].err = output_order.pData[i].err;
+            out_count++;
         }
     }
 }

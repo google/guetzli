@@ -368,7 +368,7 @@ namespace guetzli
         block_y_ = block_y;
         factor_x_ = factor_x;
         factor_y_ = factor_y;
-        return;
+
 		ButteraugliComparator::SwitchBlock(block_x, block_y, factor_x, factor_y);
 	}
 
