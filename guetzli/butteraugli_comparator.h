@@ -30,7 +30,6 @@ namespace guetzli {
 
 constexpr int kButteraugliStep = 3;
 
-
 class ButteraugliComparator : public Comparator {
  public:
   ButteraugliComparator(const int width, const int height,

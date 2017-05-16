@@ -62,7 +62,7 @@ namespace butteraugli {
         size_t len, size_t offset,
         const float* __restrict__ multipliers,
         const float* __restrict__ inp,
-        float border_ratio,
+        double border_ratio,
         float* __restrict__ result);
     void _Blur(size_t xsize, size_t ysize, float* channel, double sigma,
         double border_ratio);

@@ -225,8 +225,8 @@ void Usage() {
       "                 Default value is %d.\n"
       "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
       "                 the limit. Default limit is %d MB.\n"
-      "  --nomemlimit - Do not limit memory usage.\n"
-	  "  --opencl     - Use OpenCL\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
+	  "  --opencl     - Use OpenCL\n"
+      "  --nomemlimit - Do not limit memory usage.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
   exit(1);
 }
 
@@ -332,6 +332,5 @@ int main(int argc, char** argv) {
   }
 
   WriteFileOrDie(argv[opt_idx + 1], out_data);
-
   return 0;
 }

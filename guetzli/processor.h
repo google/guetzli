@@ -26,6 +26,11 @@
 
 namespace guetzli {
 
+struct CoeffData {
+    int idx;
+    float block_err;
+};
+    
 struct Params {
   float butteraugli_target = 1.0;
   bool clear_metadata = true;
