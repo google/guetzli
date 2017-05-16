@@ -1966,12 +1966,11 @@ void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, 
 							  exp(scaler * (-diff + 3) * (-diff + 3)),
 							  exp(scaler * (-diff + 4) * (-diff + 4))};				  
 	const int xstep = 1; // when sigma=1.1, xstep is 1.
-  const int ystep = xstep;
+	const int ystep = xstep;
 
-  int dxsize = (xsize + xstep - 1) / xstep;
-  int dysize = (ysize + ystep - 1) / ystep;
+	int dxsize = (xsize + xstep - 1) / xstep;
 
-  float *tmp = 0; // TODO:need a tmp and 
+	float tmp[8*8] = { 0 }; 
 	Convolution(xsize, ysize, xstep, expn_size, diff, expn, r, border_ratio, tmp);
 	Convolution(ysize, dxsize, ystep, expn_size, diff, expn, tmp,
               border_ratio, output);
