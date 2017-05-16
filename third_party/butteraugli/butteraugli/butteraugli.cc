@@ -30,7 +30,6 @@
 //   * Blur - to hold the smoothing code
 
 #include "butteraugli/butteraugli.h"
-#include "clguetzli\clbutter_comparator.h"
 
 #include <assert.h>
 #include <math.h>
@@ -41,6 +40,7 @@
 #include <algorithm>
 #include <array>
 
+#include "clguetzli\clbutter_comparator.h"
 #include "clguetzli\clguetzli.h"
 #include "clguetzli\clguetzli_test.h"
 
@@ -64,30 +64,29 @@ inline double DotProduct(const float u[3], const double v[3]) {
 
 // Computes a horizontal convolution and transposes the result.
 void _Convolution(size_t xsize, size_t ysize,
-	size_t xstep,
-	size_t len, size_t offset,
-	const float* __restrict__ multipliers,
-	const float* __restrict__ inp,
-	float border_ratio,
-	float* __restrict__ result) {
+                        size_t xstep,
+                        size_t len, size_t offset,
+                        const float* __restrict__ multipliers,
+                        const float* __restrict__ inp,
+                        double border_ratio,
+                        float* __restrict__ result) {
   PROFILER_FUNC;
-  float weight_no_border = 0;
-
+  double weight_no_border = 0;
   for (size_t j = 0; j <= 2 * offset; ++j) {
     weight_no_border += multipliers[j];
   }
   for (size_t x = 0, ox = 0; x < xsize; x += xstep, ox++) {
     int minx = x < offset ? 0 : x - offset;
     int maxx = std::min(xsize, x + len - offset) - 1;
-    float weight = 0.0;
+    double weight = 0.0;
     for (int j = minx; j <= maxx; ++j) {
       weight += multipliers[j - x + offset];
     }
     // Interpolate linearly between the no-border scaling and border scaling.
     weight = (1.0 - border_ratio) * weight + border_ratio * weight_no_border;
-    float scale = 1.0 / weight;
+    double scale = 1.0 / weight;
     for (size_t y = 0; y < ysize; ++y) {
-      float sum = 0.0;
+      double sum = 0.0;
       for (int j = minx; j <= maxx; ++j) {
         sum += inp[y * xsize + j] * multipliers[j - x + offset];
       }
@@ -744,7 +743,6 @@ const double *GetOpsinAbsorbance() {
   return &kMix[0];
 }
 
-// mix是一个[4x4]矩阵，与in[,,,1]进行叉乘
 void OpsinAbsorbance(const double in[3], double out[3]) {
   const double *mix = GetOpsinAbsorbance();
   out[0] = mix[0] * in[0] + mix[1] * in[1] + mix[2] * in[2] + mix[3];
@@ -874,24 +872,6 @@ inline void ClenshawRecursion<0>(const double x, const double *coefficients,
   *b1 = x_b1 - (*b2) + coefficients[0];
 }
 
-void ClenshawRecursion_fun(const double x, const double *coefficients,
-	double *b1, double *b2, int n)
-{
-	if (n == 0) {
-		const double x_b1 = x * (*b1);
-		// The final iteration differs - no 2 * x_b1 here.
-		*b1 = x_b1 - (*b2) + coefficients[0];
-		return;
-	}
-
-	const double x_b1 = x * (*b1);
-	const double t = (x_b1 + x_b1) - (*b2) + coefficients[n];
-	*b2 = *b1;
-	*b1 = t;
-
-	ClenshawRecursion_fun(x, coefficients, b1, b2, n - 1);
-}
-
 // Rational polynomial := dividing two polynomial evaluations. These are easier
 // to find than minimax polynomials.
 struct RationalPolynomial {
@@ -900,9 +880,7 @@ struct RationalPolynomial {
                                    const double (&coefficients)[N]) {
     double b1 = 0.0;
     double b2 = 0.0;
-
     ClenshawRecursion<N - 1>(x, coefficients, &b1, &b2);
-
     return b1;
   }
 
@@ -1052,7 +1030,6 @@ void ButteraugliComparator::DiffmapOpsinDynamicsImage(
     const std::vector<std::vector<float>> &xyb0_arg,
     std::vector<std::vector<float>> &xyb1,
     std::vector<float> &result) {
-
   if (xsize_ < 8 || ysize_ < 8) return;
   auto xyb0 = xyb0_arg;
   {
@@ -1154,7 +1131,6 @@ void ButteraugliComparator::EdgeDetectorLowFreq(
     const std::vector<std::vector<float> > &xyb0,
     const std::vector<std::vector<float> > &xyb1,
     std::vector<float>* block_diff_ac) {
-
   PROFILER_FUNC;
   static const double kSigma = 14;
   static const double kMul = 10;
@@ -1214,12 +1190,10 @@ void ButteraugliComparator::CombineChannels(
     const std::vector<float>& block_diff_ac,
     const std::vector<float>& edge_detector_map,
     std::vector<float>* result) {
-
   PROFILER_FUNC;
   result->resize(res_xsize_ * res_ysize_);
-
   for (size_t res_y = 0; res_y + (8 - step_) < ysize_; res_y += step_) {
-    for (size_t res_x = 0, j = 0; res_x + (8 - step_) < xsize_; res_x += step_, j++) {
+    for (size_t res_x = 0; res_x + (8 - step_) < xsize_; res_x += step_) {
       size_t res_ix = (res_y * res_xsize_ + res_x) / step_;
       double mask[3];
       double dc_mask[3];
@@ -1330,9 +1304,14 @@ double MaskDcB(double delta) {
   return InterpolateClampNegative(lut.data(), lut.size(), delta);
 }
 
+// Replaces values[x + y * xsize] with the minimum of the values in the
+// square_size square with coordinates
+//   x - offset .. x + square_size - offset - 1,
+//   y - offset .. y + square_size - offset - 1.
 void _MinSquareVal(size_t square_size, size_t offset,
 				  size_t xsize, size_t ysize,
                   float *values) {
+  PROFILER_FUNC;
   // offset is not negative and smaller than square_size.
   assert(offset < square_size);
   std::vector<float> tmp(xsize * ysize);

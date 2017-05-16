@@ -22,8 +22,6 @@
 #include <vector>
 
 #include "guetzli/butteraugli_comparator.h"
-#include "clguetzli\clguetzli_comparator.h"
-#include "clguetzli\clguetzli.h"
 #include "guetzli/comparator.h"
 #include "guetzli/debug_print.h"
 #include "guetzli/fast_log.h"
@@ -33,18 +31,15 @@
 #include "guetzli/jpeg_data_writer.h"
 #include "guetzli/output_image.h"
 #include "guetzli/quantize.h"
+#include "clguetzli\clguetzli_comparator.h"
+#include "clguetzli\clguetzli.h"
 
 namespace guetzli {
 
 namespace {
 
 static const size_t kBlockSize = 3 * kDCTBlockSize;
-/*
-struct CoeffData {
-  int idx;
-  float block_err;
-};
-*/
+
 struct QuantData {
   int q[3][kDCTBlockSize];
   size_t jpg_size;
@@ -381,14 +376,12 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
 }
 
 
-
 // REQUIRES: block[c*64...(c*64+63)] is all zero if (comp_mask & (1<<c)) == 0.
 void Processor::ComputeBlockZeroingOrder(
     const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
     const int block_x, const int block_y, const int factor_x,
     const int factor_y, const uint8_t comp_mask, OutputImage* img,
     std::vector<CoeffData>* output_order) {
-
   static const uint8_t oldCsf[kDCTBlockSize] = {
       10, 10, 20, 40, 60, 70, 80, 90,
       10, 20, 30, 60, 70, 80, 90, 90,
@@ -421,64 +414,52 @@ void Processor::ComputeBlockZeroingOrder(
   std::sort(input_order.begin(), input_order.end(),
             [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
               return a.second < b.second; });
-
-
-	coeff_t processed_block[kBlockSize];
-	memcpy(processed_block, block, sizeof(processed_block));
-
-	comparator_->SwitchBlock(block_x, block_y, factor_x, factor_y);
-
-
+  coeff_t processed_block[kBlockSize];
+  memcpy(processed_block, block, sizeof(processed_block));
+  comparator_->SwitchBlock(block_x, block_y, factor_x, factor_y);
   while (!input_order.empty()) {
     float best_err = 1e17f;
     int best_i = 0;
-    for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead, input_order.size()); ++i)
-    {
+    for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
+                                         input_order.size());
+         ++i) {
       coeff_t candidate_block[kBlockSize];
       memcpy(candidate_block, processed_block, sizeof(candidate_block));
-
       const int idx = input_order[i].first;
-
-      candidate_block[idx] = 0; // TOBEREMOVE:对比block的排序得分前i低的置0(i根据input_order数据变化而变化)，并先设置回对比图像的三个分量对应block中去，后续再做对比采用。
-
+      candidate_block[idx] = 0;
       for (int c = 0; c < 3; ++c) {
         if (comp_mask & (1 << c)) {
-          img->component(c).SetCoeffBlock(block_x, block_y, &candidate_block[c * kDCTBlockSize]);
+          img->component(c).SetCoeffBlock(
+              block_x, block_y, &candidate_block[c * kDCTBlockSize]);
         }
       }
-
       float max_err = 0;
-
       for (int iy = 0; iy < factor_y; ++iy) {
         for (int ix = 0; ix < factor_x; ++ix) {
           int block_xx = block_x * factor_x + ix;
           int block_yy = block_y * factor_y + iy;
           if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
-            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy)); // TOBEREMOVE:和原图的对应block比较，返回错误值
+            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy, candidate_block));
             max_err = std::max(max_err, err);
           }
         }
       }
-
-      if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
+      if (max_err < best_err) {
         best_err = max_err;
         best_i = i;
       }
     }
-
     int idx = input_order[best_i].first;
     processed_block[idx] = 0;
     input_order.erase(input_order.begin() + best_i);
-
-    output_order->push_back({idx, best_err}); // TOBEREMOVE:将上面计算出来的最小错误的idx，对应到对比block中的对应位置真正的置为0,移除input_order项，即选取当前值，放入output_order,并正式的设置到对比图像中去。
+    output_order->push_back({idx, best_err});
     for (int c = 0; c < 3; ++c) {
       if (comp_mask & (1 << c)) {
-        img->component(c).SetCoeffBlock(block_x, block_y, &processed_block[c * kDCTBlockSize]);
+        img->component(c).SetCoeffBlock(
+            block_x, block_y, &processed_block[c * kDCTBlockSize]);
       }
     }
   }
-
-  // TOBEREMOVE:最终移除err数大于error限制的项返回，并还原对比图像到原始值。
   // Make the block error values monotonic.
   float min_err = 1e10;
   for (int i = output_order->size() - 1; i >= 0; --i) {
@@ -495,7 +476,8 @@ void Processor::ComputeBlockZeroingOrder(
   // Restore *img to the same state as it was at the start of this function.
   for (int c = 0; c < 3; ++c) {
     if (comp_mask & (1 << c)) {
-      img->component(c).SetCoeffBlock(block_x, block_y, &block[c * kDCTBlockSize]);
+      img->component(c).SetCoeffBlock(
+          block_x, block_y, &block[c * kDCTBlockSize]);
     }
   }
 }
@@ -741,7 +723,7 @@ void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const 
 
             candidate_block[idx] = 0; // TOBEREMOVE:对比block的排序得分前i低的置0(i根据input_order数据变化而变化)，并先设置回对比图像的三个分量对应block中去，后续再做对比采用。
 
-            float max_err = ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(candidate_block);
+            float max_err = 0;/// ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(img, 0, 0, candidate_block);
             if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
                 best_err = max_err;
                 best_i = i;
@@ -777,6 +759,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                                        bool stop_early) {
   const int width = img->width();
   const int height = img->height();
+  const int ncomp = jpg.components.size();
   const int last_c = Log2FloorNonZero(comp_mask);
   if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
   const int factor_x = img->component(last_c).factor_x();
@@ -792,7 +775,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
   candidate_coeff_errors.reserve(60 * num_blocks);
   std::vector<CoeffData> block_order;
   block_order.reserve(3 * kDCTBlockSize);
-  comparator_->StartBlockComparisons(); // TOBEREMOVE:初始化一些参数
+  comparator_->StartBlockComparisons();
   for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
     for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
       coeff_t block[kBlockSize] = { 0 };
@@ -802,25 +785,25 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
           assert(img->component(c).factor_x() == factor_x);
           assert(img->component(c).factor_y() == factor_y);
           img->component(c).GetCoeffBlock(block_x, block_y,
-                                          &block[c * kDCTBlockSize]); // TOBEREMOVE:取出对比图像block系数
+                                          &block[c * kDCTBlockSize]);
           const JPEGComponent& comp = jpg.components[c];
           int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
           memcpy(&orig_block[c * kDCTBlockSize],
                  &comp.coeffs[jpg_block_ix * kDCTBlockSize],
-                 kDCTBlockSize * sizeof(orig_block[0])); // TOBEREMOVE:取出原始图像block系数
+                 kDCTBlockSize * sizeof(orig_block[0]));
         }
       }
       block_order.clear();
       ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x,
-                               factor_y, comp_mask, img, &block_order); // TOBEREMOVE:传入原始block和对比图像block计算zeroing order放入block_order
+                               factor_y, comp_mask, img, &block_order);
       candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
-      for (size_t i = 0; i < block_order.size(); ++i) { // TOBEREMOVE:把结果赋值到候选系数
+      for (size_t i = 0; i < block_order.size(); ++i) {
         candidate_coeffs.push_back(block_order[i].idx);
         candidate_coeff_errors.push_back(block_order[i].block_err);
       }
     }
   }
-  comparator_->FinishBlockComparisons(); // TOBEREMOVE:清除参数
+  comparator_->FinishBlockComparisons();
   candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
 
   SelectFrequencyBackEnd(jpg, img, comp_mask, target_mul, stop_early,
@@ -908,8 +891,7 @@ void Processor::SelectFrequencyBackEnd(const JPEGData& jpg, OutputImage* img,
                                 global_order.push_back(std::make_pair(block_ix, val));
                             }
                             blocks_to_change += (last_index < num_candidates ? 1 : 0);
-                        }
-                        else {
+                        } else {
                             for (int i = last_index - 1; i >= 0; --i) {
                                 float val = ((max_err - candidate_errors[i]) /
                                     block_weight[block_ix]);
@@ -1119,14 +1101,11 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     img.ApplyGlobalQuantization(best_q);
 
     if (!downsample) {
-      //SelectFrequencyMasking(jpg, &img, 7, 1.0, false);
-        SelectFrequencyMaskingBatch(jpg, &img, 1.0, false);
+        SelectFrequencyMasking(jpg, &img, 7, 1.0, false);
     } else {
       const float ymul = jpg.components.size() == 1 ? 1.0f : 0.97f;
       SelectFrequencyMasking(jpg, &img, 1, ymul, false);
       SelectFrequencyMasking(jpg, &img, 6, 1.0, true);
-//      SelectFrequencyMaskingBatch(jpg, &img, ymul, false);
-//      SelectFrequencyMaskingBatch(jpg, &img, 1.0, true);
     }
   }
 

@@ -96,6 +96,7 @@ namespace butteraugli
 
         if (g_checkOpenCL)
         {
+			temp.resize(res_xsize_ * res_ysize_);
             tclCombineChannels(mask_xyb[0].data(), mask_xyb[1].data(), mask_xyb[2].data(),
                 mask_xyb_dc[0].data(), mask_xyb_dc[1].data(), mask_xyb_dc[2].data(),
                 block_diff_dc.data(),

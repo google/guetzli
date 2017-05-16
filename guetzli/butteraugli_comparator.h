@@ -30,7 +30,6 @@ namespace guetzli {
 
 constexpr int kButteraugliStep = 3;
 
-
 class ButteraugliComparator : public Comparator {
  public:
   ButteraugliComparator(const int width, const int height,
@@ -46,7 +45,7 @@ class ButteraugliComparator : public Comparator {
                    int factor_x, int factor_y) override;
 
   double CompareBlock(const OutputImage& img,
-                      int off_x, int off_y) const override;
+                      int off_x, int off_y, const coeff_t* candidate_block) const override;
 
   double ScoreOutputSize(int size) const override;
 

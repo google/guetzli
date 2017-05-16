@@ -15,9 +15,10 @@ namespace guetzli {
         void FinishBlockComparisons() override;
 		void SwitchBlock(int block_x, int block_y, int factor_x, int factor_y) override;
 
-		double CompareBlockEx(coeff_t* candidate_block);
+        double CompareBlock(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block) const override;
+		double CompareBlockEx(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block) const;
     private:
-        int getCurrentBlockIdx(void);
+        int getCurrentBlockIdx(void) const;
 	public:
 		std::vector<float> imgOpsinDynamicsBlockList;   // [RR..RRGG..GGBB..BB]:blockCount
         std::vector<float> imgMaskXyzScaleBlockList;    // [RGBRGB..RGBRGB]:blockCount

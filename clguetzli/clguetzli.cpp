@@ -1195,7 +1195,7 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 }
 
 void clComputeBlockZeroingOrder(guetzli::coeff_t *orig_block_batch, guetzli::coeff_t *block_batch,
-                              float *orig_image, float* mask_scale, CoeffData *output_order_batch,
+                              float *orig_image, float* mask_scale, guetzli::CoeffData *output_order_batch,
                               int size, float BlockErrorLimit)
 {
     using namespace guetzli;

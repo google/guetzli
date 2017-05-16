@@ -1,15 +1,11 @@
 #pragma once
 #include "CL\cl.h"
 #include "guetzli\jpeg_data.h"
+#include "guetzli\processor.h"
 #include "ocl.h"
 
 extern bool g_useOpenCL;
 extern bool g_checkOpenCL;
-
-struct CoeffData {
-    int idx;
-    float block_err;
-};
 
 void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b);
 
@@ -19,7 +15,7 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
     size_t step,
     float* result);
 
-void clComputeBlockZeroingOrder(guetzli::coeff_t *orig_block_batch, guetzli::coeff_t *block_batch, float *orig_iamge, float* mask_scale, CoeffData *output_order_batch, int size, float BlockErrorLimit);
+void clComputeBlockZeroingOrder(guetzli::coeff_t *orig_block_batch, guetzli::coeff_t *block_batch, float *orig_iamge, float* mask_scale, guetzli::CoeffData *output_order_batch, int size, float BlockErrorLimit);
 
 void clMask(const float* r, const float* g, const float* b,
     const float* r2, const float* g2, const float* b2,
