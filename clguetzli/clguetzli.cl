@@ -1474,11 +1474,6 @@ int SortInputOrder(DCTScoreData* input_order, int size)
 		input_order[i + 1].err = tmp.err;
 	}
     return size;
-/*
-    std::sort(input_order.begin(), input_order.end(),
-        [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
-        return a.second < b.second; });
-*/
 }
 
 __constant static float csf[192] = {
@@ -1873,41 +1868,18 @@ __constant static float bias[192] = {
 
 // chrisk todo
 // return the count of Non-zero item
-int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, DCTScoreData *input_order, int size)
+int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, DCTScoreData *input_order, int block_size)
 {
-	int comp_mask = 7;
+	int size = 0;
 	for (int c = 0; c < 3; ++c) {
-		if (!(comp_mask & (1 << c))) continue;
-		for (int k = 1; k < size; ++k) {
-			int idx = c * size + k;
+		for (int k = 1; k < block_size; ++k) {
+			int idx = c * block_size + k;
 			if (block[idx] != 0) {
 				float score = abs(orig_block[idx]) * csf[idx] + bias[idx];
-				list_push_back(input_order, idx, score);
+				size = list_push_back(input_order, idx, score);
 			}
 		}
 	}
-/*
-    static const double kWeight[3] = { 1.0, 0.22, 0.20 };
-#include "guetzli/order.inc"
-    std::vector<std::pair<int, float> > input_order;
-    for (int c = 0; c < 3; ++c) {
-        if (!(comp_mask & (1 << c))) continue;
-        for (int k = 1; k < kDCTBlockSize; ++k) {
-            int idx = c * kDCTBlockSize + k;
-            if (block[idx] != 0) {
-                float score;
-                if (params_.new_zeroing_model) {
-                    score = std::abs(orig_block[idx]) * csf[idx] + bias[idx];
-                }
-                else {
-                    score = static_cast<float>((std::abs(orig_block[idx]) - kJPEGZigZagOrder[k] / 64.0) *
-                        kWeight[c] / oldCsf[k]);
-                }
-                input_order.push_back(std::make_pair(idx, score));
-            }
-        }
-    }
-*/
     return SortInputOrder(input_order, size);
 }
 
@@ -2135,7 +2107,7 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
     DCTScoreData input_order_data[kComputeBlockSize];
     CoeffData    output_order_data[kComputeBlockSize];
 
-    int count = MakeInputOrder(block, orig_block, input_order_data, kComputeBlockSize);
+    int count = MakeInputOrder(block, orig_block, input_order_data, kBlockSize);
     IntFloatPairList input_order = { count, input_order_data };
     IntFloatPairList output_order = { 0, output_order_data };
 
