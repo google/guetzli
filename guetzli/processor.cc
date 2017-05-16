@@ -439,7 +439,7 @@ void Processor::ComputeBlockZeroingOrder(
           int block_xx = block_x * factor_x + ix;
           int block_yy = block_y * factor_y + iy;
           if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
-            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy));
+            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy, candidate_block));
             max_err = std::max(max_err, err);
           }
         }
@@ -723,7 +723,7 @@ void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const 
 
             candidate_block[idx] = 0; // TOBEREMOVE:对比block的排序得分前i低的置0(i根据input_order数据变化而变化)，并先设置回对比图像的三个分量对应block中去，后续再做对比采用。
 
-            float max_err = ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(candidate_block);
+            float max_err = 0;/// ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(img, 0, 0, candidate_block);
             if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
                 best_err = max_err;
                 best_i = i;
@@ -1101,7 +1101,7 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     img.ApplyGlobalQuantization(best_q);
 
     if (!downsample) {
-        SelectFrequencyMaskingBatch(jpg, &img, 1.0, false);
+        SelectFrequencyMasking(jpg, &img, 7, 1.0, false);
     } else {
       const float ymul = jpg.components.size() == 1 ? 1.0f : 0.97f;
       SelectFrequencyMasking(jpg, &img, 1, ymul, false);

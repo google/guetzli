@@ -4,15 +4,17 @@
 #include "guetzli\idct.h"
 #include "guetzli\color_transform.h"
 #include "guetzli\gamma_correct.h"
+#include "clguetzli\ocl.h"
+#include "clguetzli\clguetzli.h"
 
 using namespace guetzli;
 
-void CoeffToIDCT(coeff_t *block, uint8_t *idct)
+void CoeffToIDCT(const coeff_t *block, uint8_t *idct)
 {
 	guetzli::ComputeBlockIDCT(block, idct);
 }
 
-void IDCTToImage(const uint8_t idct[8 * 8], uint16_t *pixels_)
+void IDCTToPixel(const uint8_t idct[8 * 8], uint16_t *pixels_)
 {
 	const int block_x = 0;
 	const int block_y = 0;
@@ -31,7 +33,7 @@ void IDCTToImage(const uint8_t idct[8 * 8], uint16_t *pixels_)
 }
 
 // out = [YUVYUV....YUVYUV]
-void ImageToYUV(uint16_t *pixels_, uint8_t *out)
+void PixelToYUV(uint16_t *pixels_, uint8_t *out)
 {
 	const int stride = 3;
 
@@ -61,34 +63,55 @@ void YUVToRGB(uint8_t* pixelBlock)
 }
 
 // block = [R....R][G....G][B.....]
-void BlockToImage(coeff_t *block, float* r, float* g, float* b)
+void BlockToImage(const coeff_t *block, float* r, float* g, float* b, int inside_x, int inside_y)
 {
-	uint8_t idct[8 * 8 * 3];
-	CoeffToIDCT(&block[0], &idct[0]);
-	CoeffToIDCT(&block[8 * 8], &idct[8 * 8]);
-	CoeffToIDCT(&block[8 * 8 * 2], &idct[8 * 8 * 2]);
+	uint8_t idct[3][8 * 8];
+	CoeffToIDCT(&block[0], idct[0]);
+	CoeffToIDCT(&block[8 * 8], idct[1]);
+	CoeffToIDCT(&block[8 * 8 * 2], idct[2]);
 
-	uint16_t pixels[8 * 8 * 3];
+    uint16_t pixels[3][8 * 8];
 
-	IDCTToImage(&idct[0], &pixels[0]);
-	IDCTToImage(&idct[8*8], &pixels[8*8]);
-	IDCTToImage(&idct[8*8*2], &pixels[8*8*2]);
+	IDCTToPixel(idct[0], pixels[0]);
+	IDCTToPixel(idct[1], pixels[1]);
+	IDCTToPixel(idct[2], pixels[2]);
 
 	uint8_t yuv[8 * 8 * 3];
 
-	ImageToYUV(&pixels[0], &yuv[0]);
-	ImageToYUV(&pixels[8*8], &yuv[1]);
-	ImageToYUV(&pixels[8*8*2], &yuv[2]);
+	PixelToYUV(pixels[0], &yuv[0]);
+	PixelToYUV(pixels[1], &yuv[1]);
+	PixelToYUV(pixels[2], &yuv[2]);
 
     YUVToRGB(yuv);
 
 	const double* lut = Srgb8ToLinearTable();
+
 	for (int i = 0; i < 8 * 8; i++)
 	{
 		r[i] = lut[yuv[3 * i]];
 		g[i] = lut[yuv[3 * i + 1]];
 		b[i] = lut[yuv[3 * i + 2]];
 	}
+    for (int y = 0; y < inside_y; y++)
+    {
+        for (int x = inside_x; x < 8; x++)
+        {
+            int idx = y * 8 + (inside_x - 1);
+            r[y * 8 + x] = r[idx];
+            g[y * 8 + x] = g[idx];
+            b[y * 8 + x] = b[idx];
+        }
+    }
+    for (int y = inside_y; y < 8; y++)
+    {
+        for (int x = 0; x < 8; x++)
+        {
+            int idx = (inside_y - 1) * 8 + x;
+            r[y * 8 + x] = r[idx];
+            g[y * 8 + x] = g[idx];
+            b[y * 8 + x] = b[idx];
+        }
+    }
 }
 
 namespace guetzli
@@ -113,7 +136,7 @@ namespace guetzli
         const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
         const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
         const int num_blocks = block_width * block_height;
-        
+
         const double* lut = Srgb8ToLinearTable();
 
         imgOpsinDynamicsBlockList.resize(num_blocks * 3 * kDCTBlockSize);
@@ -146,7 +169,7 @@ namespace guetzli
                 imgMaskXyzScaleBlockList[block_ix * 3 + 2] = mask_xyz_[2][ymin * width_ + xmin];
             }
         }
-	}
+    }
 
     void ButteraugliComparatorEx::FinishBlockComparisons() {
         ButteraugliComparator::FinishBlockComparisons();
@@ -155,35 +178,75 @@ namespace guetzli
         imgMaskXyzScaleBlockList.clear();
     }
 
-	void ButteraugliComparatorEx::SwitchBlock(int block_x, int block_y, int factor_x, int factor_y)
-	{
+    void ButteraugliComparatorEx::SwitchBlock(int block_x, int block_y, int factor_x, int factor_y)
+    {
         block_x_ = block_x;
         block_y_ = block_y;
         factor_x_ = factor_x;
         factor_y_ = factor_y;
 
-		ButteraugliComparator::SwitchBlock(block_x, block_y, factor_x, factor_y);
-	}
+        ButteraugliComparator::SwitchBlock(block_x, block_y, factor_x, factor_y);
+    }
 
-	double ButteraugliComparatorEx::CompareBlockEx(coeff_t* candidate_block)
-	{
+    double ButteraugliComparatorEx::CompareBlock(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block) const
+    {
+        double err = CompareBlockEx(img, off_x, off_y, candidate_block);
+        if (g_checkOpenCL)
+        {
+            double err1 = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block);
+            if (err1 != err)
+            {
+                LogError("Error: CompareBlock misstake.\n");
+            }
+        }
+       
+        return err;
+    }
+
+    double ButteraugliComparatorEx::CompareBlockEx(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block) const
+    {
         int block_ix = getCurrentBlockIdx();
 
-        float*  block_opsin = &imgOpsinDynamicsBlockList[block_ix * 3 * kDCTBlockSize];
+        const float*  block_opsin = &imgOpsinDynamicsBlockList[block_ix * 3 * kDCTBlockSize];
 
-        // 这个内存拷贝待优化，但不是现在
+        // 这块是原始图像
         std::vector< std::vector<float> > rgb0_c;
         rgb0_c.resize(3);
         for (int i = 0; i < 3; i++)
         {
             rgb0_c[i].resize(kDCTBlockSize);
-            memcpy(rgb0_c[i].data(), block_opsin + i*kDCTBlockSize, kDCTBlockSize * sizeof(float));
+            memcpy(rgb0_c[i].data(), block_opsin + i * kDCTBlockSize, kDCTBlockSize * sizeof(float));
         }
 
-        //
-		std::vector<std::vector<float> > rgb1_c(3, std::vector<float>(kDCTBlockSize));
-		BlockToImage(candidate_block, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data());
+        // img是全局优化后的图像，我们通过coeff_t数据反算出来rgb
+        int border_x = block_x_ * 8 + 8 > width_ ? width_ - block_x_ * 8 : 8;
+        int border_y = block_y_ * 8 + 8 > height_ ? height_ - block_y_ * 8 : 8;
+        std::vector<std::vector<float> > rgb1_c(3, std::vector<float>(kDCTBlockSize));
+        BlockToImage(candidate_block, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data(), border_x, border_y);
+/*
+        {
+            // 可能还有问题，我们做一个校验
+            int block_x = block_x_ * factor_x_ + off_x;
+            int block_y = block_y_ * factor_y_ + off_y;
+            int xmin = 8 * block_x;
+            int ymin = 8 * block_y;
 
+            std::vector<std::vector<float> > rgb1_c2(3, std::vector<float>(kDCTBlockSize));
+            img.ToLinearRGB(xmin, ymin, 8, 8, &rgb1_c2);
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int k = 0; k < 64; k++)
+                {
+                    if (fabs(rgb1_c[i][k] - rgb1_c2[i][k]) > 0.001)
+                    {
+                        LogError("Error: CompareBlock misstake.\n");
+                    }
+                }
+            }
+        }
+*/
+        // 下面是计算工作
         ::butteraugli::OpsinDynamicsImage(8, 8, rgb0_c);
 		::butteraugli::OpsinDynamicsImage(8, 8, rgb1_c);
 
@@ -217,15 +280,10 @@ namespace guetzli
 	}
 
 
-    int ButteraugliComparatorEx::getCurrentBlockIdx(void)
+    int ButteraugliComparatorEx::getCurrentBlockIdx(void) const
     {
-        const int width = width_;
-        const int height = height_;
-        const int factor_x = 1;
-        const int factor_y = 1;
-
-        const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
-        const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
+        const int block_width = (width_ + 8 * factor_x_ - 1) / (8 * factor_x_);
+        const int block_height = (height_ + 8 * factor_y_ - 1) / (8 * factor_y_);
 
         return block_y_ * block_width + block_x_;
     }
