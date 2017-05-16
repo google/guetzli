@@ -1427,7 +1427,7 @@ typedef struct __IntFloatPair
     float err;
 }IntFloatPair, DCTScoreData, CoeffData;
 
-typedef int16 coeff_t;
+typedef short coeff_t;
 
 typedef struct __IntFloatPairList 
 {
@@ -1875,7 +1875,7 @@ __constant static float bias[192] = {
 // return the count of Non-zero item
 int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, DCTScoreData *input_order, int size)
 {
-	/* 有一些问题，先注释掉
+	int comp_mask = 7;
 	for (int c = 0; c < 3; ++c) {
 		if (!(comp_mask & (1 << c))) continue;
 		for (int k = 1; k < size; ++k) {
@@ -1886,7 +1886,6 @@ int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, DCTSco
 			}
 		}
 	}
-	*/
 /*
     static const double kWeight[3] = { 1.0, 0.22, 0.20 };
 #include "guetzli/order.inc"
