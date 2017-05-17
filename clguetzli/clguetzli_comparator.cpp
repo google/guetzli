@@ -63,7 +63,7 @@ void YUVToRGB(uint8_t pixelBlock[3*8*8])
 }
 
 // block = [R....R][G....G][B.....]
-void BlockToImage(const coeff_t *block, float* r, float* g, float* b, int inside_x, int inside_y)
+void BlockToImage(const coeff_t block[8*8*3], float* r, float* g, float* b, int inside_x, int inside_y)
 {
 	uint8_t idct[3][8 * 8];
 	CoeffToIDCT(&block[0], idct[0]);
