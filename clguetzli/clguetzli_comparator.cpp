@@ -196,7 +196,7 @@ namespace guetzli
             double err1 = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block);
             if (err1 != err)
             {
-                LogError("Error: CompareBlock misstake.\n");
+                LogError("CHK %s(%d) \r\n", __FUNCTION__, __LINE__);
             }
         }
 
