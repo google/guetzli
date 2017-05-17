@@ -33,7 +33,7 @@ namespace butteraugli
     {
         ButteraugliComparator::BlockDiffMap(xyb0, xyb1, block_diff_dc, block_diff_ac);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize_ > 8 && ysize_ > 8)
         {
             tclBlockDiffMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
                 xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
@@ -49,7 +49,7 @@ namespace butteraugli
     {
         ButteraugliComparator::EdgeDetectorMap(xyb0, xyb1, edge_detector_map);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize_ > 8 && ysize_ > 8)
         {
             tclEdgeDetectorMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
                 xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
@@ -63,14 +63,14 @@ namespace butteraugli
         std::vector<float>* block_diff_ac)
     {
         std::vector<float> orign_ac;
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize_ > 8 && ysize_ > 8)
         {
             orign_ac = *block_diff_ac;
         }
 
         ButteraugliComparator::EdgeDetectorLowFreq(xyb0, xyb1, block_diff_ac);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize_ > 8 && ysize_ > 8)
         {
             tclEdgeDetectorLowFreq(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
                 xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
@@ -87,14 +87,14 @@ namespace butteraugli
         std::vector<float>* result)
     {
         std::vector<float> temp;
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize_ > 8 && ysize_ > 8)
         {
             temp = *result;
         }
 
         ButteraugliComparator::CombineChannels(mask_xyb, mask_xyb_dc, block_diff_dc, block_diff_ac, edge_detector_map, result);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize_ > 8 && ysize_ > 8)
         {
 			temp.resize(res_xsize_ * res_ysize_);
             tclCombineChannels(mask_xyb[0].data(), mask_xyb[1].data(), mask_xyb[2].data(),
@@ -107,7 +107,7 @@ namespace butteraugli
     void MinSquareVal(size_t square_size, size_t offset, size_t xsize, size_t ysize, float *values) 
     {
         std::vector<float> img;
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             img.resize(xsize * ysize);
             memcpy(img.data(), values, xsize * ysize * sizeof(float));
@@ -116,7 +116,7 @@ namespace butteraugli
         _MinSquareVal(square_size, offset, xsize, ysize, values);
 
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             tclMinSquareVal(img.data(), square_size, offset, xsize, ysize, values);
         }
@@ -125,14 +125,14 @@ namespace butteraugli
     void Average5x5(int xsize, int ysize, std::vector<float>* diffs)
     {
         std::vector<float> diffs_org;
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             diffs_org = *diffs;
         }
 
         _Average5x5(xsize, ysize, diffs);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             tclAverage5x5(xsize, ysize, diffs_org, *diffs);
         }
@@ -142,7 +142,7 @@ namespace butteraugli
     {
         _DiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             tclDiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
         }
@@ -154,7 +154,7 @@ namespace butteraugli
         std::vector<std::vector<float> > *mask,
         std::vector<std::vector<float> > *mask_dc)
     {
-        if (g_useOpenCL)
+        if (g_useOpenCL && xsize > 100 && ysize > 100)
         {
             mask->resize(3);
             mask_dc->resize(3);
@@ -173,7 +173,7 @@ namespace butteraugli
 
         _Mask(xyb0, xyb1, xsize, ysize, mask, mask_dc);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             tclMask(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
                 xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
@@ -188,14 +188,14 @@ namespace butteraugli
         std::vector<float>* diffmap)
     {
         std::vector<float> diffmap_org;
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             diffmap_org = *diffmap;
         }
 
         _CalculateDiffmap(xsize, ysize, step, diffmap);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             tclCalculateDiffmap(xsize, ysize, step, diffmap_org.data(), diffmap_org.size(), (*diffmap).data());
         }
@@ -210,7 +210,7 @@ namespace butteraugli
     {
         _MaskHighIntensityChange(xsize, ysize, c0, c1, xyb0, xyb1);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             tclMaskHighIntensityChange(c0[0].data(), c0[1].data(), c0[2].data(),
                 c1[0].data(), c1[1].data(), c1[2].data(),
@@ -223,14 +223,14 @@ namespace butteraugli
     void ScaleImage(double scale, std::vector<float> *result)
     {
         std::vector<float> result_org;
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && result->size() > 64)
         {
             result_org = *result;
         }
 
         _ScaleImage(scale, result);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && result->size() > 64)
         {
             tclScaleImage(scale, result_org.data(), (*result).data(), (*result).size());
         }
@@ -246,7 +246,7 @@ namespace butteraugli
     {
         _Convolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             tclConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
         }
@@ -256,7 +256,7 @@ namespace butteraugli
         double border_ratio)
     {
         std::vector<float> orignChannel;
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             orignChannel.resize(xsize * ysize);
             memcpy(orignChannel.data(), channel, xsize * ysize * sizeof(float));
@@ -264,7 +264,7 @@ namespace butteraugli
 
         _Blur(xsize, ysize, channel, sigma, border_ratio);
 
-        if (g_checkOpenCL)
+        if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
             tclBlur(orignChannel.data(), xsize, ysize, sigma, border_ratio, channel);
         }
@@ -284,14 +284,14 @@ namespace butteraugli
         else
         {
             std::vector< std::vector<float>> orig_rgb;
-            if (g_checkOpenCL)
+            if (g_checkOpenCL && xsize > 8 && ysize > 8)
             {
                 orig_rgb = rgb;
             }
 
             _OpsinDynamicsImage(xsize, ysize, rgb);
 
-            if (g_checkOpenCL)
+            if (g_checkOpenCL && xsize > 8 && ysize > 8)
             {
                 tclOpsinDynamicsImage(orig_rgb[0].data(), orig_rgb[1].data(), orig_rgb[2].data(), xsize, ysize,
                     rgb[0].data(), rgb[1].data(), rgb[2].data());
