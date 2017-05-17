@@ -189,7 +189,7 @@ void* ocl_args_d_t::allocC(size_t s)
 	return outputC;
 }
 
-cl_mem ocl_args_d_t::allocMem(size_t s, void *init)
+cl_mem ocl_args_d_t::allocMem(size_t s, const void *init)
 {
 	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
 	cl_int err = 0;

@@ -2512,7 +2512,7 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
  
         MaskHighIntensityChangeBlock(rgb0[0],rgb0[1], rgb0[2], 
                                      rgb1[0], rgb1[1], rgb1[2], 
-                                    rgb0_c.ch[0], rgb0_c.ch[1], rgb0_c.ch[2], 
+                                     rgb0_c.ch[0], rgb0_c.ch[1], rgb0_c.ch[2], 
                                      rgb1_c.ch[0], rgb1_c.ch[1], rgb1_c.ch[2], 
                                      8, 8);
                                      
@@ -2546,25 +2546,20 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
 }
 
 // strong todo
-// orig_block_list [R....R][G....G][B....B]
-// block_list [R....R][G....G][B....B]
-// orig_image [RR..RRGG..GGBB..BB]
-// mask_scale[RGB]
-// output_orlder_list [3 * kBlockSize]
-
-__kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/,
-                                         __global coeff_t *block_list/*in*/,
-                                         __global float *orig_image/*in*/,
-                                         __global float *mask_scale/*in*/,
+// batch是指已经二维块展开为了一维块
+__kernel void clComputeBlockZeroingOrder(__global const coeff_t *orig_batch,         // 原始图像系数
+                                         __global const float   *orig_image_batch,   // 原始图像pregamma后
+                                         __global const float   *mask_scale,         // 原始图像的某个神秘参数
+                                         __global const coeff_t *mayout_batch,       // 输出备选图的系数
                                          float BlockErrorLimit,
                                          __global CoeffData *output_order_list/*out*/)
 {
     int block_idx = get_global_id(0);
 #define kComputeBlockSize (kBlockSize * 3)
 
-    __global coeff_t *orig_block     = orig_block_list + block_idx * kComputeBlockSize;
-    __global coeff_t *block          = block_list + block_idx * kComputeBlockSize;
-    __global float* orig_image_block = orig_image + block_idx * kComputeBlockSize;
+    __global coeff_t *orig_block       = orig_batch + block_idx * kComputeBlockSize;
+    __global coeff_t *mayout_block     = mayout_batch + block_idx * kComputeBlockSize;
+    __global float   *orig_image_block = orig_image_batch + block_idx * kComputeBlockSize;
 
     DCTScoreData input_order_data[kComputeBlockSize];
     CoeffData    output_order_data[kComputeBlockSize];
@@ -2572,11 +2567,11 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
     IntFloatPairList input_order  = { 0, input_order_data };
     IntFloatPairList output_order = { 0, output_order_data };
 
-    int count = MakeInputOrder(block, orig_block, &input_order, kBlockSize);
+    int count = MakeInputOrder(mayout_block, orig_block, &input_order, kBlockSize);
 
     coeff_t processed_block[kComputeBlockSize];
     for (int i = 0; i < kComputeBlockSize; i++) {
-        processed_block[i] = block[i];
+        processed_block[i] = mayout_block[i];
     }
 
     while (input_order.size > 0)
