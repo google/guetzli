@@ -9,12 +9,12 @@
 
 using namespace guetzli;
 
-void CoeffToIDCT(const coeff_t *block, uint8_t *idct)
+void CoeffToIDCT(const coeff_t block[8*8], uint8_t idct[8*8])
 {
 	guetzli::ComputeBlockIDCT(block, idct);
 }
 
-void IDCTToPixel(const uint8_t idct[8 * 8], uint16_t *pixels_)
+void IDCTToPixel(const uint8_t idct[8 * 8], uint16_t pixels_[8*8])
 {
 	const int block_x = 0;
 	const int block_y = 0;
@@ -33,7 +33,7 @@ void IDCTToPixel(const uint8_t idct[8 * 8], uint16_t *pixels_)
 }
 
 // out = [YUVYUV....YUVYUV]
-void PixelToYUV(uint16_t *pixels_, uint8_t *out)
+void PixelToYUV(uint16_t pixels_[8*8], uint8_t out[8*8])
 {
 	const int stride = 3;
 
@@ -47,7 +47,7 @@ void PixelToYUV(uint16_t *pixels_, uint8_t *out)
 }
 
 // pixel = [YUVYUV...YUVYUV] to [RGBRGB...RGBRGB]
-void YUVToRGB(uint8_t* pixelBlock)
+void YUVToRGB(uint8_t pixelBlock[3*8*8])
 {
 	for (int i = 0; i < 64; i++)
 	{
@@ -71,13 +71,11 @@ void BlockToImage(const coeff_t *block, float* r, float* g, float* b, int inside
 	CoeffToIDCT(&block[8 * 8 * 2], idct[2]);
 
     uint16_t pixels[3][8 * 8];
-
 	IDCTToPixel(idct[0], pixels[0]);
 	IDCTToPixel(idct[1], pixels[1]);
 	IDCTToPixel(idct[2], pixels[2]);
 
 	uint8_t yuv[8 * 8 * 3];
-
 	PixelToYUV(pixels[0], &yuv[0]);
 	PixelToYUV(pixels[1], &yuv[1]);
 	PixelToYUV(pixels[2], &yuv[2]);

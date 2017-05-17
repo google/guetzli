@@ -1993,7 +1993,7 @@ void Compute1dIDCT(const coeff_t* in, const int stride, int out[8]) {
 	out[7] -= tmp1;
 }
 
-void CoeffToIDCT(coeff_t *block, uchar * out)
+void CoeffToIDCT(__private const coeff_t block[8*8], uchar out[8*8])
 {
 	coeff_t colidcts[kDCTBlockSize];
 	const int kColScale = 11;
@@ -2020,7 +2020,7 @@ void CoeffToIDCT(coeff_t *block, uchar * out)
 	}
 }
 
-void IDCTToImage(uchar *idct, ushort *pixels_)
+void IDCTToPixel(const uchar idct[8*8], ushort pixels_[8*8])
 {
 	const int block_x = 0;
 	const int block_y = 0;
@@ -2040,7 +2040,7 @@ void IDCTToImage(uchar *idct, ushort *pixels_)
 	}
 }
 
-void ImageToYUV(ushort *pixels_, uchar *out)
+void PixelToYUV(const ushort pixels_[8*8], uchar out[8*8])
 {
 	const int stride = 3;
 
@@ -2242,7 +2242,7 @@ __constant static uchar kRangeLimitLut[4 * 256] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
-void YUVToRGB(uchar *pixelBlock)
+void YUVToRGB(__private uchar pixelBlock[3*8*8])
 {
 	__constant uchar* kRangeLimit = kRangeLimitLut + 384;
 	for (int i = 0; i < 64; i++)
@@ -2259,24 +2259,22 @@ void YUVToRGB(uchar *pixelBlock)
 }
 
 // chrisk todo
-void BlockToImage(coeff_t *block, float *r, float *g, float *b)
+void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8])
 {
-	uchar idct[8 * 8 * 3];
+	uchar idct[3][8 * 8];
 	CoeffToIDCT(&block[0], &idct[0]);
-	CoeffToIDCT(&block[8 * 8], &idct[8 * 8]);
-	CoeffToIDCT(&block[8 * 8 * 2], &idct[8 * 8 * 2]);
+	CoeffToIDCT(&block[8 * 8], &idct[1]);
+	CoeffToIDCT(&block[8 * 8 * 2], &idct[2]);
 
-	ushort pixels[8 * 8 * 3];
-
-	IDCTToImage(&idct[0], &pixels[0]);
-	IDCTToImage(&idct[8 * 8], &pixels[8 * 8]);
-	IDCTToImage(&idct[8 * 8 * 2], &pixels[8 * 8 * 2]);
+	ushort pixels[3][8 * 8];
+	IDCTToPixel(&idct[0], &pixels[0]);
+	IDCTToPixel(&idct[1], &pixels[1]);
+	IDCTToPixel(&idct[2], &pixels[2]);
 
 	uchar yuv[8 * 8 * 3];
-
-	ImageToYUV(&pixels[0], &yuv[0]);
-	ImageToYUV(&pixels[8 * 8], &yuv[1]);
-	ImageToYUV(&pixels[8 * 8 * 2], &yuv[2]);
+	PixelToYUV(&pixels[0], &yuv[0]);
+	PixelToYUV(&pixels[1], &yuv[1]);
+	PixelToYUV(&pixels[2], &yuv[2]);
 
 	YUVToRGB(yuv);
 
