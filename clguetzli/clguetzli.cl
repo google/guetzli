@@ -1993,7 +1993,7 @@ void Compute1dIDCT(const coeff_t* in, const int stride, int out[8]) {
 	out[7] -= tmp1;
 }
 
-void CoeffToIDCT(coeff_t *block, uchar * out)
+void CoeffToIDCT(__private const coeff_t block[8*8], uchar out[8*8])
 {
 	coeff_t colidcts[kDCTBlockSize];
 	const int kColScale = 11;
@@ -2020,7 +2020,7 @@ void CoeffToIDCT(coeff_t *block, uchar * out)
 	}
 }
 
-void IDCTToImage(uchar *idct, ushort *pixels_)
+void IDCTToPixel(const uchar idct[8*8], ushort pixels_[8*8])
 {
 	const int block_x = 0;
 	const int block_y = 0;
@@ -2040,7 +2040,7 @@ void IDCTToImage(uchar *idct, ushort *pixels_)
 	}
 }
 
-void ImageToYUV(ushort *pixels_, uchar *out)
+void PixelToYUV(const ushort pixels_[8*8], uchar out[8*8])
 {
 	const int stride = 3;
 
@@ -2242,7 +2242,7 @@ __constant static uchar kRangeLimitLut[4 * 256] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
-void YUVToRGB(uchar *pixelBlock)
+void YUVToRGB(__private uchar pixelBlock[3*8*8])
 {
 	__constant uchar* kRangeLimit = kRangeLimitLut + 384;
 	for (int i = 0; i < 64; i++)
@@ -2258,46 +2258,290 @@ void YUVToRGB(uchar *pixelBlock)
 	}
 }
 
+__constant static double kSrgb8ToLinearTable[256] = {
+	0.000000,
+	0.077399,
+	0.154799,
+	0.232198,
+	0.309598,
+	0.386997,
+	0.464396,
+	0.541796,
+	0.619195,
+	0.696594,
+	0.773994,
+	0.853367,
+	0.937509,
+	1.026303,
+	1.119818,
+	1.218123,
+	1.321287,
+	1.429375,
+	1.542452,
+	1.660583,
+	1.783830,
+	1.912253,
+	2.045914,
+	2.184872,
+	2.329185,
+	2.478910,
+	2.634105,
+	2.794824,
+	2.961123,
+	3.133055,
+	3.310673,
+	3.494031,
+	3.683180,
+	3.878171,
+	4.079055,
+	4.285881,
+	4.498698,
+	4.717556,
+	4.942502,
+	5.173584,
+	5.410848,
+	5.654341,
+	5.904108,
+	6.160196,
+	6.422649,
+	6.691512,
+	6.966827,
+	7.248640,
+	7.536993,
+	7.831928,
+	8.133488,
+	8.441715,
+	8.756651,
+	9.078335,
+	9.406810,
+	9.742115,
+	10.084290,
+	10.433375,
+	10.789410,
+	11.152432,
+	11.522482,
+	11.899597,
+	12.283815,
+	12.675174,
+	13.073712,
+	13.479465,
+	13.892470,
+	14.312765,
+	14.740385,
+	15.175366,
+	15.617744,
+	16.067555,
+	16.524833,
+	16.989614,
+	17.461933,
+	17.941824,
+	18.429322,
+	18.924460,
+	19.427272,
+	19.937793,
+	20.456054,
+	20.982090,
+	21.515934,
+	22.057618,
+	22.607175,
+	23.164636,
+	23.730036,
+	24.303404,
+	24.884774,
+	25.474176,
+	26.071642,
+	26.677203,
+	27.290891,
+	27.912736,
+	28.542769,
+	29.181020,
+	29.827520,
+	30.482299,
+	31.145387,
+	31.816813,
+	32.496609,
+	33.184802,
+	33.881422,
+	34.586499,
+	35.300062,
+	36.022139,
+	36.752760,
+	37.491953,
+	38.239746,
+	38.996169,
+	39.761248,
+	40.535013,
+	41.317491,
+	42.108710,
+	42.908697,
+	43.717481,
+	44.535088,
+	45.361546,
+	46.196882,
+	47.041124,
+	47.894297,
+	48.756429,
+	49.627547,
+	50.507676,
+	51.396845,
+	52.295078,
+	53.202402,
+	54.118843,
+	55.044428,
+	55.979181,
+	56.923129,
+	57.876298,
+	58.838712,
+	59.810398,
+	60.791381,
+	61.781686,
+	62.781338,
+	63.790363,
+	64.808784,
+	65.836627,
+	66.873918,
+	67.920679,
+	68.976937,
+	70.042715,
+	71.118037,
+	72.202929,
+	73.297414,
+	74.401516,
+	75.515259,
+	76.638668,
+	77.771765,
+	78.914575,
+	80.067122,
+	81.229428,
+	82.401518,
+	83.583415,
+	84.775142,
+	85.976722,
+	87.188178,
+	88.409534,
+	89.640813,
+	90.882037,
+	92.133229,
+	93.394412,
+	94.665609,
+	95.946841,
+	97.238133,
+	98.539506,
+	99.850982,
+	101.172584,
+	102.504334,
+	103.846254,
+	105.198366,
+	106.560693,
+	107.933256,
+	109.316077,
+	110.709177,
+	112.112579,
+	113.526305,
+	114.950375,
+	116.384811,
+	117.829635,
+	119.284868,
+	120.750532,
+	122.226647,
+	123.713235,
+	125.210317,
+	126.717914,
+	128.236047,
+	129.764737,
+	131.304005,
+	132.853871,
+	134.414357,
+	135.985483,
+	137.567270,
+	139.159738,
+	140.762907,
+	142.376799,
+	144.001434,
+	145.636832,
+	147.283012,
+	148.939997,
+	150.607804,
+	152.286456,
+	153.975971,
+	155.676371,
+	157.387673,
+	159.109900,
+	160.843070,
+	162.587203,
+	164.342319,
+	166.108438,
+	167.885578,
+	169.673761,
+	171.473005,
+	173.283330,
+	175.104755,
+	176.937299,
+	178.780982,
+	180.635824,
+	182.501843,
+	184.379058,
+	186.267489,
+	188.167154,
+	190.078073,
+	192.000265,
+	193.933749,
+	195.878543,
+	197.834666,
+	199.802137,
+	201.780975,
+	203.771198,
+	205.772826,
+	207.785876,
+	209.810367,
+	211.846319,
+	213.893748,
+	215.952674,
+	218.023115,
+	220.105089,
+	222.198615,
+	224.303711,
+	226.420395,
+	228.548685,
+	230.688599,
+	232.840156,
+	235.003373,
+	237.178269,
+	239.364861,
+	241.563167,
+	243.773205,
+	245.994993,
+	248.228549,
+	250.473890,
+	252.731035,
+	255.000000,
+};
+
 // chrisk todo
-void BlockToImage(coeff_t *block, float *r, float *g, float *b)
+void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8])
 {
-	uchar idct[8 * 8 * 3];
+	uchar idct[3][8 * 8];
 	CoeffToIDCT(&block[0], &idct[0]);
-	CoeffToIDCT(&block[8 * 8], &idct[8 * 8]);
-	CoeffToIDCT(&block[8 * 8 * 2], &idct[8 * 8 * 2]);
+	CoeffToIDCT(&block[8 * 8], &idct[1]);
+	CoeffToIDCT(&block[8 * 8 * 2], &idct[2]);
 
-	ushort pixels[8 * 8 * 3];
-
-	IDCTToImage(&idct[0], &pixels[0]);
-	IDCTToImage(&idct[8 * 8], &pixels[8 * 8]);
-	IDCTToImage(&idct[8 * 8 * 2], &pixels[8 * 8 * 2]);
+	ushort pixels[3][8 * 8];
+	IDCTToPixel(&idct[0], &pixels[0]);
+	IDCTToPixel(&idct[1], &pixels[1]);
+	IDCTToPixel(&idct[2], &pixels[2]);
 
 	uchar yuv[8 * 8 * 3];
-
-	ImageToYUV(&pixels[0], &yuv[0]);
-	ImageToYUV(&pixels[8 * 8], &yuv[1]);
-	ImageToYUV(&pixels[8 * 8 * 2], &yuv[2]);
+	PixelToYUV(&pixels[0], &yuv[0]);
+	PixelToYUV(&pixels[1], &yuv[1]);
+	PixelToYUV(&pixels[2], &yuv[2]);
 
 	YUVToRGB(yuv);
 
-	// Srgb8ToLinearTable begin
-	double lut[256];
-	int i = 0;
-	for (; i < 11; ++i)
-	{
-		lut[i] = i / 12.92;
-	}
-	for (; i < 256; ++i)
-	{
-		lut[i] = 255.0 * pow(((i / 255.0) + 0.055) / 1.055, 2.4);
-	}
-	// Srgb8ToLinearTable end
-
 	for (int i = 0; i < 8 * 8; i++)
 	{
-		r[i] = lut[yuv[3 * i]];
-		g[i] = lut[yuv[3 * i + 1]];
-		b[i] = lut[yuv[3 * i + 2]];
+		r[i] = kSrgb8ToLinearTable[yuv[3 * i]];
+		g[i] = kSrgb8ToLinearTable[yuv[3 * i + 1]];
+		b[i] = kSrgb8ToLinearTable[yuv[3 * i + 2]];
 	}
 }
 
@@ -2514,7 +2758,7 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
 
         MaskHighIntensityChangeBlock(rgb0[0],rgb0[1], rgb0[2],
                                      rgb1[0], rgb1[1], rgb1[2],
-                                    rgb0_c.ch[0], rgb0_c.ch[1], rgb0_c.ch[2],
+                                     rgb0_c.ch[0], rgb0_c.ch[1], rgb0_c.ch[2],
                                      rgb1_c.ch[0], rgb1_c.ch[1], rgb1_c.ch[2],
                                      8, 8);
 
@@ -2548,25 +2792,20 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
 }
 
 // strong todo
-// orig_block_list [R....R][G....G][B....B]
-// block_list [R....R][G....G][B....B]
-// orig_image [RR..RRGG..GGBB..BB]
-// mask_scale[RGB]
-// output_orlder_list [3 * kBlockSize]
-
-__kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/,
-                                         __global coeff_t *block_list/*in*/,
-                                         __global float *orig_image/*in*/,
-                                         __global float *mask_scale/*in*/,
+// batch是指已经二维块展开为了一维块
+__kernel void clComputeBlockZeroingOrder(__global const coeff_t *orig_batch,         // 原始图像系数
+                                         __global const float   *orig_image_batch,   // 原始图像pregamma后
+                                         __global const float   *mask_scale,         // 原始图像的某个神秘参数
+                                         __global const coeff_t *mayout_batch,       // 输出备选图的系数
                                          float BlockErrorLimit,
                                          __global CoeffData *output_order_list/*out*/)
 {
     int block_idx = get_global_id(0);
 #define kComputeBlockSize (kBlockSize * 3)
 
-    __global coeff_t *orig_block     = orig_block_list + block_idx * kComputeBlockSize;
-    __global coeff_t *block          = block_list + block_idx * kComputeBlockSize;
-    __global float* orig_image_block = orig_image + block_idx * kComputeBlockSize;
+    __global coeff_t *orig_block       = orig_batch + block_idx * kComputeBlockSize;
+    __global coeff_t *mayout_block     = mayout_batch + block_idx * kComputeBlockSize;
+    __global float   *orig_image_block = orig_image_batch + block_idx * kComputeBlockSize;
 
     DCTScoreData input_order_data[kComputeBlockSize];
     CoeffData    output_order_data[kComputeBlockSize];
@@ -2574,11 +2813,11 @@ __kernel void clComputeBlockZeroingOrder(__global coeff_t *orig_block_list/*in*/
     IntFloatPairList input_order  = { 0, input_order_data };
     IntFloatPairList output_order = { 0, output_order_data };
 
-    int count = MakeInputOrder(block, orig_block, &input_order, kBlockSize);
+    int count = MakeInputOrder(mayout_block, orig_block, &input_order, kBlockSize);
 
     coeff_t processed_block[kComputeBlockSize];
     for (int i = 0; i < kComputeBlockSize; i++) {
-        processed_block[i] = block[i];
+        processed_block[i] = mayout_block[i];
     }
 
     while (input_order.size > 0)

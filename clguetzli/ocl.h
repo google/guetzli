@@ -95,7 +95,7 @@ struct ocl_args_d_t
 	void* allocB(size_t s);
 	void* allocC(size_t s);
 
-	cl_mem allocMem(size_t s, void *init = NULL);
+	cl_mem allocMem(size_t s, const void *init = NULL);
 	ocl_channels allocMemChannels(size_t s);
     void releaseMemChannels(ocl_channels rgb);
 

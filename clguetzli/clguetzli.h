@@ -15,7 +15,13 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
     size_t step,
     float* result);
 
-void clComputeBlockZeroingOrder(guetzli::coeff_t *orig_block_batch, guetzli::coeff_t *block_batch, float *orig_iamge, float* mask_scale, guetzli::CoeffData *output_order_batch, int size, float BlockErrorLimit);
+void clComputeBlockZeroingOrder(const guetzli::coeff_t *orig_batch,
+    const float *orig_image_batch,
+    const float* orig_mask_scale_batch,
+    const guetzli::coeff_t *mayout_batch,
+    int size,
+    float BlockErrorLimit,
+    guetzli::CoeffData *output_order_batch);
 
 void clMask(const float* r, const float* g, const float* b,
     const float* r2, const float* g2, const float* b2,
