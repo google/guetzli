@@ -59,7 +59,7 @@ class Processor {
 
   void SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                               const uint8_t comp_mask, const double target_mul,
-                              bool stop_early);
+                              bool stop_early, const OutputImage &img2);
 
   void SelectFrequencyBackEnd(const JPEGData& jpg, OutputImage* img,
       const uint8_t comp_mask,
@@ -72,7 +72,7 @@ class Processor {
   void ComputeBlockZeroingOrder(
       const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
       const int block_x, const int block_y, const int factor_x,
-      const int factor_y, const uint8_t comp_mask, OutputImage* img,
+      const int factor_y, const uint8_t comp_mask, OutputImage* img, const OutputImage& img2,
       std::vector<CoeffData>* output_order);
 
   void ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
@@ -354,7 +354,7 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
   const float target_mul_low = 0.95f;
 
   QuantData best = TryQuantMatrix(jpg_in, target_mul_high, best_q, img);
-/*
+
   for (;;) {
     int q_next[3][kDCTBlockSize];
     if (!qgen.GetNext(q_next)) {
@@ -370,7 +370,7 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
       }
     }
   }
-*/
+
   memcpy(&best_q[0][0], &best.q[0][0], kBlockSize * sizeof(best_q[0][0]));
   GUETZLI_LOG(stats_, "\n%s selected quantization matrix:\n",
               downsample ? "YUV420" : "YUV444");
@@ -383,7 +383,7 @@ bool Processor::SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
 void Processor::ComputeBlockZeroingOrder(
     const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
     const int block_x, const int block_y, const int factor_x,
-    const int factor_y, const uint8_t comp_mask, OutputImage* img,
+    const int factor_y, const uint8_t comp_mask, OutputImage* img, const OutputImage &img2,
     std::vector<CoeffData>* output_order) {
   static const uint8_t oldCsf[kDCTBlockSize] = {
       10, 10, 20, 40, 60, 70, 80, 90,
@@ -420,6 +420,19 @@ void Processor::ComputeBlockZeroingOrder(
   coeff_t processed_block[kBlockSize];
   memcpy(processed_block, block, sizeof(processed_block));
   comparator_->SwitchBlock(block_x, block_y, factor_x, factor_y);
+
+  bool bCheck = false;
+  uint8_t orig_rgb[3][16 * 16] = { 0 };
+  if (bCheck)
+  {
+      for (int c = 0; c < 3; ++c) {
+          if (comp_mask & (1 << c) && factor_x == 2) {
+              if ((block_x + 1) * factor_x * 8 > img->width()) continue;
+              img->component(c).ToPixels((block_x + 1) * factor_x * 8, block_y * factor_y * 8, 16, 16, orig_rgb[c], 1);
+          }
+      }
+  }
+
   while (!input_order.empty()) {
     float best_err = 1e17f;
     int best_i = 0;
@@ -450,6 +463,36 @@ void Processor::ComputeBlockZeroingOrder(
       if (max_err < best_err) {
         best_err = max_err;
         best_i = i;
+      }
+
+      if (bCheck)
+      {
+          // 每次都要恢复一下看看
+          for (int c = 0; c < 3; ++c) {
+              if (comp_mask & (1 << c)) {
+                  img->component(c).SetCoeffBlock(block_x, block_y, &block[c * kDCTBlockSize]);
+              }
+          }
+          // 看看相临块是不是恢复了
+          uint8_t last_rgb[3][16 * 16] = { 0 };
+          for (int c = 0; c < 3; ++c) {
+              if (comp_mask & (1 << c) && factor_x == 2) {
+                  if ((block_x + 1) * factor_x * 8 > img->width()) continue;
+                  img->component(c).ToPixels((block_x + 1) * factor_x * 8, block_y * factor_y * 8, 16, 16, last_rgb[c], 1);
+              }
+          }
+          int count = 0;
+          for (int c = 0; c < 3; c++) {
+              for (int k = 0; factor_x == 2 && k < 16 * 16; k++) {
+                  if (last_rgb[c][k] != orig_rgb[c][k]) {
+                      count++;
+                  }
+              }
+          }
+          if (count > 0)
+          {
+              LogError("misstake in processing %d:%d block=%d:%d\r\n", count, 16 * 16, block_x, block_y);
+          }
       }
     }
     int idx = input_order[best_i].first;
@@ -482,6 +525,23 @@ void Processor::ComputeBlockZeroingOrder(
       img->component(c).SetCoeffBlock(
           block_x, block_y, &block[c * kDCTBlockSize]);
     }
+  }
+
+  if (bCheck)
+  {
+      // 全图检查一下
+      for (int c = 0; c < 3; c++)
+      {
+          int size = img->component(c).pixels_size();
+          if (!(comp_mask & (1 << c))) continue;
+          for (int k = 0; k < size && factor_x == 2; k++)
+          {
+              if (img2.component(c).pixels()[k] != img->component(c).pixels()[k])
+              {
+                  LogError("misstake in restore\r\n");
+              }
+          }
+      }
   }
 }
 
@@ -770,7 +830,8 @@ void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const 
 void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                                        const uint8_t comp_mask,
                                        const double target_mul,
-                                       bool stop_early) {
+                                       bool stop_early,
+                                       const OutputImage& img2) {
   const int width = img->width();
   const int height = img->height();
   const int ncomp = jpg.components.size();
@@ -809,7 +870,8 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
       }
       block_order.clear();
       ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x,
-                               factor_y, comp_mask, img, &block_order);
+                               factor_y, comp_mask, img, img2, &block_order);
+
       candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
       for (size_t i = 0; i < block_order.size(); ++i) {
         candidate_coeffs.push_back(block_order[i].idx);
@@ -1114,12 +1176,28 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     img.CopyFromJpegData(jpg);
     img.ApplyGlobalQuantization(best_q);
 
+    OutputImage img2(jpg.width, jpg.height);
+    img2.CopyFromJpegData(jpg);
+    img2.ApplyGlobalQuantization(best_q);
+
+    for (int c = 0; c < 3; c++)
+    {
+        int size = img.component(c).pixels_size();
+        for (int k = 0; k < size; k++)
+        {
+            if (img2.component(c).pixels()[k] != img.component(c).pixels()[k])
+            {
+                LogError("fdjsalfjlkadsfdsafjdsfjdlsajdklsjf\r\n");
+            }
+        }
+    }
+
     if (!downsample) {
-      SelectFrequencyMasking(jpg, &img, 7, 1.0, false);
+      SelectFrequencyMasking(jpg, &img, 7, 1.0, false, img2);
     } else {
       const float ymul = jpg.components.size() == 1 ? 1.0f : 0.97f;
-      SelectFrequencyMasking(jpg, &img, 1, ymul, false);
-      SelectFrequencyMasking(jpg, &img, 6, 1.0, true);
+      SelectFrequencyMasking(jpg, &img, 1, ymul, false, img2);
+      SelectFrequencyMasking(jpg, &img, 6, 1.0, true, img2);
     }
   }
 
