@@ -32,13 +32,8 @@ void IDCTToPixel8x8(const uint8_t idct[8 * 8], uint16_t pixels_[8*8])
 	}
 }
 
-void IDCTToPixel16x16(const uint8_t idct[8*8], uint16_t pixels_[16*16])
+void IDCTToPixel16x16(const uint8_t idct[8*8], uint16_t pixels_out[16*16], const uint16_t *pixel_orig, int block_x, int block_y, int width_, int height_)
 {
-    const int block_x = 0;
-    const int block_y = 0;
-    const int width_  = 16;
-    const int height_ = 16;
-
     // Fill in the 10x10 pixel area in the subsampled image that will be the
     // basis of the upsampling. This area is enough to hold the 3x3 kernel of
     // the fancy upsampler around each pixel.
@@ -74,30 +69,32 @@ void IDCTToPixel16x16(const uint8_t idct[8*8], uint16_t pixels_[16*16])
                 // block by computing the inverse of the fancy upsampler.
                 const int y1 = std::max(y0 - 1, 0);
                 const int x1 = std::max(x0 - 1, 0);
-                subsampled[ix] = (pixels_[y0 * width_ + x0] * 9 +
-                    pixels_[y1 * width_ + x1] +
-                    pixels_[y0 * width_ + x1] * -3 +
-                    pixels_[y1 * width_ + x0] * -3) >> 2;
+                subsampled[ix] = (pixel_orig[y0 * width_ + x0] * 9 +
+                    pixel_orig[y1 * width_ + x1] +
+                    pixel_orig[y0 * width_ + x1] * -3 +
+                    pixel_orig[y1 * width_ + x0] * -3) >> 2;
             }
         }
     }
-
-    // Determine area to update.
-    int xmin = std::max(block_x * 16 - 1, 0);
-    int xmax = std::min(block_x * 16 + 16, width_ - 1);
-    int ymin = std::max(block_y * 16 - 1, 0);
-    int ymax = std::min(block_y * 16 + 16, height_ - 1);
+	// Determine area to update.
+    int xmin = block_x * 16; // std::max(block_x * 16 - 1, 0);
+    int xmax = std::min(block_x * 16 + 15, width_ -  1);
+    int ymin = block_y * 16; // std::max(block_y * 16 - 1, 0);
+    int ymax = std::min(block_y * 16 + 15, height_ - 1);
 
     // Apply the fancy upsampler on the subsampled block.
     for (int y = ymin; y <= ymax; ++y) {
         const int y0 = ((y & ~1) / 2 - block_y * 8 + 1) * kSubsampledEdgeSize;
         const int dy = ((y & 1) * 2 - 1) * kSubsampledEdgeSize;
-        uint16_t* rowptr = &pixels_[y * width_];
         for (int x = xmin; x <= xmax; ++x) {
             const int x0 = (x & ~1) / 2 - block_x * 8 + 1;
             const int dx = (x & 1) * 2 - 1;
             const int ix = x0 + y0;
-            rowptr[x] = (subsampled[ix] * 9 + subsampled[ix + dy] * 3 +
+
+            int out_x = x - xmin;
+            int out_y = y - ymin;
+
+            pixels_out[out_y * 16 + out_x] = (subsampled[ix] * 9 + subsampled[ix + dy] * 3 +
                 subsampled[ix + dx] * 3 + subsampled[ix + dx + dy]) >> 4;
         }
     }
@@ -149,20 +146,20 @@ void YUVToImage(uint8_t yuv[3 * 8 * 8], float* r, float* g, float* b, int xsize 
     {
         for (int x = inside_x; x < xsize; x++)
         {
-            int idx = y * 8 + (inside_x - 1);
-            r[y * 8 + x] = r[idx];
-            g[y * 8 + x] = g[idx];
-            b[y * 8 + x] = b[idx];
+            int idx = y * xsize + (inside_x - 1);
+            r[y * xsize + x] = r[idx];
+            g[y * xsize + x] = g[idx];
+            b[y * xsize + x] = b[idx];
         }
     }
     for (int y = inside_y; y < ysize; y++)
     {
         for (int x = 0; x < xsize; x++)
         {
-            int idx = (inside_y - 1) * 8 + x;
-            r[y * 8 + x] = r[idx];
-            g[y * 8 + x] = g[idx];
-            b[y * 8 + x] = b[idx];
+            int idx = (inside_y - 1) * xsize + x;
+            r[y * xsize + x] = r[idx];
+            g[y * xsize + x] = g[idx];
+            b[y * xsize + x] = b[idx];
         }
     }
 }
@@ -217,13 +214,13 @@ void BlockToImage(const coeff_t block[8*8*3], float* r, float* g, float* b, int 
     }
 }
 
-void CoeffToYUV16x16(const coeff_t block[8 * 8], uint8_t *yuv)
+void CoeffToYUV16x16(const coeff_t block[8 * 8], uint8_t *yuv, const uint16_t *pixel_orig, int block_x, int block_y, int width_, int height_)
 {
     uint8_t idct[8 * 8];
     CoeffToIDCT(&block[0], &idct[0]);
 
     uint16_t pixels[16 * 16];
-    IDCTToPixel16x16(idct, pixels);
+    IDCTToPixel16x16(idct, pixels, pixel_orig, block_x, block_y, width_, height_);
 
     PixelToYUV(pixels, yuv, 16, 16);
 }
@@ -285,6 +282,7 @@ typedef struct __channel_info_t
     int factor;
     int block_width;
     int block_height;
+    const uint16_t *pixel;
 }channel_info;
 
 void ComputeBlockFacor(const coeff_t* candidate_block,
@@ -403,10 +401,10 @@ namespace guetzli
         }
 
         // img是全局优化后的图像，我们通过coeff_t数据反算出来rgb
-        int border_x = block_x_ * 8 + 8 > width_ ? width_ - block_x_ * 8 : 8;
-        int border_y = block_y_ * 8 + 8 > height_ ? height_ - block_y_ * 8 : 8;
+        int inside_x = block_x_ * 8 + 8 > width_ ? width_ - block_x_ * 8 : 8;
+        int inside_y = block_y_ * 8 + 8 > height_ ? height_ - block_y_ * 8 : 8;
         std::vector<std::vector<float> > rgb1_c(3, std::vector<float>(kDCTBlockSize));
-        BlockToImage(candidate_block, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data(), border_x, border_y);
+        BlockToImage(candidate_block, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data(), inside_x, inside_y);
 /*
         {
             // 可能还有问题，我们做一个校验
@@ -471,18 +469,18 @@ namespace guetzli
             mayout_channel[c].block_height = img.component(c).height_in_blocks();
             mayout_channel[c].block_width  = img.component(c).width_in_blocks();
             mayout_channel[c].factor       = img.component(c).factor_x();
+            mayout_channel[c].pixel =       img.component(c).pixels();
         }
 
-        uint8_t yuv16x16[3 * 16 * 16];  // factor 2 mode output image
-        uint8_t yuv8x8[3 * 8 * 8];      // factor 1 mode output image
+        uint8_t yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
+        uint8_t yuv8x8[3 * 8 * 8] = { 0 };      // factor 1 mode output image
 
         // 不管comp_mask如何，转换为RGB总是需要的
         for (int c = 0; c < 3; c++)
         {
             if (mayout_channel[c].factor == 1) {
                 if (factor == 1) {  // channel_factor == factor 说明要介入运算，采用candidate中的系数
-                    //int block_8x8idx = block_y * mayout_channel[c].block_width + block_x;
-                    const coeff_t * coeff_block = candidate_channel[c];//mayout_coeff[c] + block_8x8idx * 8 * 8;
+                    const coeff_t * coeff_block = candidate_channel[c];
                     CoeffToYUV8x8(coeff_block, &yuv8x8[c]);
                 }
                 else {
@@ -491,6 +489,12 @@ namespace guetzli
                             int block_xx = block_x * factor + ix;
                             int block_yy = block_y * factor + iy;
 
+                            if (ix != off_x || iy != off_y) continue;
+                            if (block_xx >= mayout_channel[c].block_width ||
+                                block_yy >= mayout_channel[c].block_height)
+                            {
+                                continue;
+                            }
                             int block_8x8idx = block_yy * mayout_channel[c].block_width + block_xx;
                             const coeff_t * coeff_block = mayout_coeff[c] + block_8x8idx * 8 * 8;
                             CoeffToYUV8x8(coeff_block, &yuv8x8[c]);
@@ -508,61 +512,98 @@ namespace guetzli
                     int ix = block_x % mayout_channel[c].factor;;
                     int iy = block_y % mayout_channel[c].factor;
 
-                    int block_8x8idx = block_yy * mayout_channel[c].block_width + block_xx;
-                    const coeff_t * coeff_block = mayout_coeff[c] + block_8x8idx * 8 * 8;
-                    CoeffToYUV16x16(coeff_block, &yuv16x16[c]);
+                    int block_16x16idx = block_yy * mayout_channel[c].block_width + block_xx;
+                    const coeff_t * coeff_block = mayout_coeff[c] + block_16x16idx * 8 * 8;
+/*
+                    uint8_t ch[16 * 16] = { 0 };
+                    img.component(c).ToPixels(block_xx * 8, block_yy * 8, 16, 16, ch, 1);
+*/
+                    CoeffToYUV16x16(coeff_block, &yuv16x16[c], mayout_channel[c].pixel, block_xx, block_yy, img.width(), img.height());
 
                     // copy YUV16x16 corner to YUV8x8
                     Copy16x16To8x8(&yuv16x16[c], &yuv8x8[c], ix, iy);
                 }
                 else {
-                    //int block_8x8idx = block_y * mayout_channel[c].block_width + block_x;
-                    const coeff_t * coeff_block = candidate_channel[c];//mayout_coeff[c] + block_8x8idx * 8 * 8;
-                    CoeffToYUV16x16(coeff_block, &yuv16x16[c]);
+                    const coeff_t * coeff_block = candidate_channel[c];
+                    CoeffToYUV16x16(coeff_block, &yuv16x16[c], mayout_channel[c].pixel, block_x, block_y, img.width(), img.height());
                 }
             }
         }
 
         if (factor == 1)
         {
-            int block_ix = getCurrentBlockIdx();
-            const float*  block_opsin = &imgOpsinDynamicsBlockList[block_ix * 3 * kDCTBlockSize];
             std::vector< std::vector<float> > rgb0_c;
             int block_8x8idx = GetOrigBlock(rgb0_c, 0, 0);
+/*
+            uint8_t yuv[3 * 8 * 8];
 
+            std::vector<std::vector<float> > rgb1_c2(3, std::vector<float>(kDCTBlockSize));
+            {
+                int block_x = block_x_ * factor_x_ + off_x;
+                int block_y = block_y_ * factor_y_ + off_y;
+                int xmin = 8 * block_x;
+                int ymin = 8 * block_y;
+
+                img.ToLinearRGB(xmin, ymin, 8, 8, &rgb1_c2);
+
+                img.component(0).ToPixels(xmin, ymin, 8, 8, &yuv[0], 3);
+                img.component(1).ToPixels(xmin, ymin, 8, 8, &yuv[1], 3);
+                img.component(2).ToPixels(xmin, ymin, 8, 8, &yuv[2], 3);
+            }
+*/
+            int inside_x = block_x_ * 8 + 8 > width_ ? width_ - block_x_ * 8 : 8;
+            int inside_y = block_y_ * 8 + 8 > height_ ? height_ - block_y_ * 8 : 8;
             std::vector<std::vector<float> > rgb1_c(3, std::vector<float>(kDCTBlockSize));
-            YUVToImage(yuv8x8, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data());
-
-            double err = 0;// ComputeImage8x8Block(rgb0_c, rgb1_c, block_8x8idx);
-
-            double err1 = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block, comp_mask);
-
-            return err;
+            YUVToImage(yuv8x8, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data(), 8, 8, inside_x, inside_y);
+/*
+            int count = 0;
+            for (int i = 0; i < 64; i++)
+            {
+                if (rgb1_c[0][i] != rgb1_c2[0][i] ||
+                    rgb1_c[1][i] != rgb1_c2[1][i] ||
+                    rgb1_c[2][i] != rgb1_c2[2][i])
+                {
+                    count++;
+                }
+            }
+            if (count > 0)
+            {
+                LogError("fdjskafjdlasfj");
+            }
+*/
+            return ComputeImage8x8Block(rgb0_c, rgb1_c, block_8x8idx);
         }
         else
         {
-            float rgb16x16[3][16 * 16];
-            YUVToImage(yuv8x8, rgb16x16[0], rgb16x16[1], rgb16x16[2], 16, 16, 16, 16);
-
-            float max_err = 0;
-           // for (int iy = 0; iy < factor; ++iy)
+            int inside_x = block_x_ * 16 + 16 > width_ ? width_ - block_x_ * 16 : 16;
+            int inside_y = block_y_ * 16 + 16 > height_ ? height_ - block_y_ * 16 : 16;
+/*
+            uint8_t yuv[3 * 8 * 8];
+            std::vector<std::vector<float> > rgb1_c2(3, std::vector<float>(kDCTBlockSize));
             {
-                //for (int ix = 0; ix < factor; ++ix)
-                {
-                    int ix = off_x;
-                    int iy = off_y;
-                    std::vector< std::vector<float> > rgb0_c;
-                    int block_8x8idx = GetOrigBlock(rgb0_c, ix, iy);
-                    if (block_8x8idx < 0) return max_err;// continue;
+                int block_x = block_x_ * factor_x_ + off_x;
+                int block_y = block_y_ * factor_y_ + off_y;
+                int xmin = 8 * block_x;
+                int ymin = 8 * block_y;
 
-                    std::vector<std::vector<float> > rgb1_c(3, std::vector<float>(kDCTBlockSize));
-                    Copy16x16ToChannel(rgb16x16, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data(), ix, iy);
+                img.ToLinearRGB(xmin, ymin, 8, 8, &rgb1_c2);
 
-                    float err = ComputeImage8x8Block(rgb0_c, rgb1_c, getCurrentBlock8x8Idx(0, 0));
-                    max_err = std::max(max_err, err);
-                }
+                img.component(0).ToPixels(xmin, ymin, 8, 8, &yuv[0], 3);
+                img.component(1).ToPixels(xmin, ymin, 8, 8, &yuv[1], 3);
+                img.component(2).ToPixels(xmin, ymin, 8, 8, &yuv[2], 3);
             }
-            return max_err;
+
+*/
+            float rgb16x16[3][16 * 16];
+            YUVToImage(yuv16x16, rgb16x16[0], rgb16x16[1], rgb16x16[2], 16, 16, inside_x, inside_y);
+
+            std::vector< std::vector<float> > rgb0_c;
+            int block_8x8idx = GetOrigBlock(rgb0_c, off_x, off_y);
+
+            std::vector<std::vector<float> > rgb1_c(3, std::vector<float>(kDCTBlockSize));
+            Copy16x16ToChannel(rgb16x16, rgb1_c[0].data(), rgb1_c[1].data(), rgb1_c[2].data(), off_x, off_y);
+
+            return ComputeImage8x8Block(rgb0_c, rgb1_c, block_8x8idx);
         }
     }
 
