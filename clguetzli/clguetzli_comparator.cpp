@@ -276,26 +276,16 @@ void Copy16x16ToChannel(const float rgb16x16[3][16 * 16], float r[8 * 8], float 
         }
     }
 }
-
+/*
 typedef struct __channel_info_t
 {
     int factor;
     int block_width;
     int block_height;
+    const coeff_t  *coeff;
     const uint16_t *pixel;
 }channel_info;
-
-void ComputeBlockFacor(const coeff_t* candidate_block,
-                       const coeff_t * mayout_coeff[3],
-                       const channel_info mayout_channel[3],
-                       const coeff_t * orig_coeff[3],
-                       const int comp_mask,
-                       int factor
-)
-{
-
-}
-
+*/
 namespace guetzli
 {
 	ButteraugliComparatorEx::ButteraugliComparatorEx(const int width, const int height,
@@ -461,15 +451,14 @@ namespace guetzli
 
         const coeff_t *candidate_channel[3];
         channel_info mayout_channel[3];
-        const coeff_t *mayout_coeff[3];
         for (int c = 0; c < 3; c++)
         {
             candidate_channel[c] = &candidate_block[c * 8 * 8];
-            mayout_coeff[c] = img.component(c).coeffs();
             mayout_channel[c].block_height = img.component(c).height_in_blocks();
             mayout_channel[c].block_width  = img.component(c).width_in_blocks();
             mayout_channel[c].factor       = img.component(c).factor_x();
-            mayout_channel[c].pixel =       img.component(c).pixels();
+            mayout_channel[c].pixel        = img.component(c).pixels();
+            mayout_channel[c].coeff        = img.component(c).coeffs();
         }
 
         uint8_t yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
@@ -496,7 +485,7 @@ namespace guetzli
                                 continue;
                             }
                             int block_8x8idx = block_yy * mayout_channel[c].block_width + block_xx;
-                            const coeff_t * coeff_block = mayout_coeff[c] + block_8x8idx * 8 * 8;
+                            const coeff_t * coeff_block = mayout_channel[c].coeff + block_8x8idx * 8 * 8;
                             CoeffToYUV8x8(coeff_block, &yuv8x8[c]);
 
                             // copy YUV8x8 to YUV1616 corner
@@ -513,7 +502,7 @@ namespace guetzli
                     int iy = block_y % mayout_channel[c].factor;
 
                     int block_16x16idx = block_yy * mayout_channel[c].block_width + block_xx;
-                    const coeff_t * coeff_block = mayout_coeff[c] + block_16x16idx * 8 * 8;
+                    const coeff_t * coeff_block = mayout_channel[c].coeff + block_16x16idx * 8 * 8;
 /*
                     uint8_t ch[16 * 16] = { 0 };
                     img.component(c).ToPixels(block_xx * 8, block_yy * 8, 16, 16, ch, 1);

@@ -2020,6 +2020,25 @@ void CoeffToIDCT(__private const coeff_t block[8*8], uchar out[8*8])
 	}
 }
 
+
+void IDCTToPixel8x8(const uchar idct[8 * 8], ushort pixels_[8 * 8])
+{
+    const int block_x = 0;
+    const int block_y = 0;
+    const int width_ = 8;
+    const int height_ = 8;
+
+    for (int iy = 0; iy < 8; ++iy) {
+        for (int ix = 0; ix < 8; ++ix) {
+            int x = 8 * block_x + ix;
+            int y = 8 * block_y + iy;
+            if (x >= width_ || y >= height_) continue;
+            int p = y * width_ + x;
+            pixels_[p] = idct[8 * iy + ix] << 4;
+        }
+    }
+}
+/*
 void IDCTToPixel(const uchar idct[8*8], ushort pixels_[8*8])
 {
 	const int block_x = 0;
@@ -2039,20 +2058,89 @@ void IDCTToPixel(const uchar idct[8*8], ushort pixels_[8*8])
 		}
 	}
 }
+*/
 
-void PixelToYUV(const ushort pixels_[8*8], uchar out[8*8])
+
+void IDCTToPixel16x16(const uchar idct[8 * 8], ushort pixels_out[16 * 16], __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
 {
-	const int stride = 3;
+    // Fill in the 10x10 pixel area in the subsampled image that will be the
+    // basis of the upsampling. This area is enough to hold the 3x3 kernel of
+    // the fancy upsampler around each pixel.
+#define  kSubsampledEdgeSize 10
+    ushort subsampled[kSubsampledEdgeSize * kSubsampledEdgeSize];
+    for (int j = 0; j < kSubsampledEdgeSize; ++j) {
+        // The order we fill in the rows is:
+        //   8 rows intersecting the block, row below, row above
+        const int y0 = block_y * 16 + (j < 9 ? j * 2 : -2);
+        for (int i = 0; i < kSubsampledEdgeSize; ++i) {
+            // The order we fill in each row is:
+            //   8 pixels within the block, left edge, right edge
+            const int ix = ((j < 9 ? (j + 1) * kSubsampledEdgeSize : 0) +
+                (i < 9 ? i + 1 : 0));
+            const int x0 = block_x * 16 + (i < 9 ? i * 2 : -2);
+            if (x0 < 0) {
+                subsampled[ix] = subsampled[ix + 1];
+            }
+            else if (y0 < 0) {
+                subsampled[ix] = subsampled[ix + kSubsampledEdgeSize];
+            }
+            else if (x0 >= width_) {
+                subsampled[ix] = subsampled[ix - 1];
+            }
+            else if (y0 >= height_) {
+                subsampled[ix] = subsampled[ix - kSubsampledEdgeSize];
+            }
+            else if (i < 8 && j < 8) {
+                subsampled[ix] = idct[j * 8 + i] << 4;
+            }
+            else {
+                // Reconstruct the subsampled pixels around the edge of the current
+                // block by computing the inverse of the fancy upsampler.
+                const int y1 = max(y0 - 1, 0);
+                const int x1 = max(x0 - 1, 0);
+                subsampled[ix] = (pixel_orig[y0 * width_ + x0] * 9 +
+                    pixel_orig[y1 * width_ + x1] +
+                    pixel_orig[y0 * width_ + x1] * -3 +
+                    pixel_orig[y1 * width_ + x0] * -3) >> 2;
+            }
+        }
+    }
+    // Determine area to update.
+    int xmin = block_x * 16; // std::max(block_x * 16 - 1, 0);
+    int xmax = min(block_x * 16 + 15, width_ - 1);
+    int ymin = block_y * 16; // std::max(block_y * 16 - 1, 0);
+    int ymax = min(block_y * 16 + 15, height_ - 1);
 
-	for (int y = 0; y < 8; ++y)
-	{
-		for (int x = 0; x < 8; ++x)
-		{
-			int px = y * 8 + x;
-			*out = (uchar) ((pixels_[px] + 8 - (x & 1)) >> 4);
-			out += stride;
-		}
-	}
+    // Apply the fancy upsampler on the subsampled block.
+    for (int y = ymin; y <= ymax; ++y) {
+        const int y0 = ((y & ~1) / 2 - block_y * 8 + 1) * kSubsampledEdgeSize;
+        const int dy = ((y & 1) * 2 - 1) * kSubsampledEdgeSize;
+        for (int x = xmin; x <= xmax; ++x) {
+            const int x0 = (x & ~1) / 2 - block_x * 8 + 1;
+            const int dx = (x & 1) * 2 - 1;
+            const int ix = x0 + y0;
+
+            int out_x = x - xmin;
+            int out_y = y - ymin;
+
+            pixels_out[out_y * 16 + out_x] = (subsampled[ix] * 9 + subsampled[ix + dy] * 3 +
+                subsampled[ix + dx] * 3 + subsampled[ix + dx + dy]) >> 4;
+        }
+    }
+}
+
+// out = [YUVYUV....YUVYUV]
+void PixelToYUV(ushort pixels_[8 * 8], uchar out[8 * 8], int xsize/* = 8*/, int ysize/* = 8*/)
+{
+    const int stride = 3;
+
+    for (int y = 0; y < xsize; ++y) {
+        for (int x = 0; x < ysize; ++x) {
+            int px = y * xsize + x;
+            *out = (uchar)((pixels_[px] + 8 - (x & 1)) >> 4);
+            out += stride;
+        }
+    }
 }
 
 __constant static int kCrToRedTable[256] = {
@@ -2242,10 +2330,10 @@ __constant static uchar kRangeLimitLut[4 * 256] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
-void YUVToRGB(__private uchar pixelBlock[3*8*8])
+void YUVToRGB(__private uchar pixelBlock[3*8*8], int size /*= 8 * 8*/)
 {
 	__constant uchar* kRangeLimit = kRangeLimitLut + 384;
-	for (int i = 0; i < 64; i++)
+	for (int i = 0; i < size; i++)
 	{
 		uchar *pixel = &pixelBlock[i * 3];
 
@@ -2517,8 +2605,44 @@ __constant static double kSrgb8ToLinearTable[256] = {
 	255.000000,
 };
 
+
+void YUVToImage(uchar yuv[3 * 8 * 8], float* r, float* g, float* b, int xsize/* = 8*/, int ysize/* = 8*/, int inside_x/* = 8*/, int inside_y/* = 8*/)
+{
+    YUVToRGB(yuv, xsize * ysize);
+
+    const __constant double* lut = kSrgb8ToLinearTable;
+
+    for (int i = 0; i < xsize * ysize; i++)
+    {
+        r[i] = lut[yuv[3 * i]];
+        g[i] = lut[yuv[3 * i + 1]];
+        b[i] = lut[yuv[3 * i + 2]];
+    }
+    for (int y = 0; y < inside_y; y++)
+    {
+        for (int x = inside_x; x < xsize; x++)
+        {
+            int idx = y * xsize + (inside_x - 1);
+            r[y * xsize + x] = r[idx];
+            g[y * xsize + x] = g[idx];
+            b[y * xsize + x] = b[idx];
+        }
+    }
+    for (int y = inside_y; y < ysize; y++)
+    {
+        for (int x = 0; x < xsize; x++)
+        {
+            int idx = (inside_y - 1) * xsize + x;
+            r[y * xsize + x] = r[idx];
+            g[y * xsize + x] = g[idx];
+            b[y * xsize + x] = b[idx];
+        }
+    }
+}
+
+
 // chrisk todo
-void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8])
+void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8], int inside_x, int inside_y)
 {
 	uchar idct[3][8 * 8];
 	CoeffToIDCT(&block[0], &idct[0]);
@@ -2526,16 +2650,16 @@ void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], fl
 	CoeffToIDCT(&block[8 * 8 * 2], &idct[2]);
 
 	ushort pixels[3][8 * 8];
-	IDCTToPixel(&idct[0], &pixels[0]);
-	IDCTToPixel(&idct[1], &pixels[1]);
-	IDCTToPixel(&idct[2], &pixels[2]);
+	IDCTToPixel8x8(&idct[0], &pixels[0]);
+	IDCTToPixel8x8(&idct[1], &pixels[1]);
+	IDCTToPixel8x8(&idct[2], &pixels[2]);
 
 	uchar yuv[8 * 8 * 3];
-	PixelToYUV(&pixels[0], &yuv[0]);
-	PixelToYUV(&pixels[1], &yuv[1]);
-	PixelToYUV(&pixels[2], &yuv[2]);
+	PixelToYUV(&pixels[0], &yuv[0], 8, 8);
+	PixelToYUV(&pixels[1], &yuv[1], 8, 8);
+	PixelToYUV(&pixels[2], &yuv[2], 8, 8);
 
-	YUVToRGB(yuv);
+	YUVToRGB(yuv, 8 * 8);
 
 	for (int i = 0; i < 8 * 8; i++)
 	{
@@ -2543,6 +2667,110 @@ void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], fl
 		g[i] = kSrgb8ToLinearTable[yuv[3 * i + 1]];
 		b[i] = kSrgb8ToLinearTable[yuv[3 * i + 2]];
 	}
+    for (int y = 0; y < inside_y; y++)
+    {
+        for (int x = inside_x; x < 8; x++)
+        {
+            int idx = y * 8 + (inside_x - 1);
+            r[y * 8 + x] = r[idx];
+            g[y * 8 + x] = g[idx];
+            b[y * 8 + x] = b[idx];
+        }
+    }
+    for (int y = inside_y; y < 8; y++)
+    {
+        for (int x = 0; x < 8; x++)
+        {
+            int idx = (inside_y - 1) * 8 + x;
+            r[y * 8 + x] = r[idx];
+            g[y * 8 + x] = g[idx];
+            b[y * 8 + x] = b[idx];
+        }
+    }
+}
+
+void CoeffToYUV16x16(const coeff_t block[8 * 8], uchar *yuv, __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
+{
+    uchar idct[8 * 8];
+    CoeffToIDCT(&block[0], &idct[0]);
+
+    uchar pixels[16 * 16];
+    IDCTToPixel16x16(idct, pixels, pixel_orig, block_x, block_y, width_, height_);
+
+    PixelToYUV(pixels, yuv, 16, 16);
+}
+
+void CoeffToYUV16x16_g(__global const coeff_t block[8 * 8], uchar *yuv, __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
+{
+    coeff_t b[8 * 8];
+    for (int i = 0; i < 8 * 8; i++)
+    {
+        b[i] = block[i];
+    }
+    CoeffToYUV16x16(b, yuv, pixel_orig, block_x, block_y, width_, height_);
+}
+
+void CoeffToYUV8x8(const coeff_t block[8 * 8], uchar *yuv)
+{
+    uchar idct[8 * 8];
+    CoeffToIDCT(&block[0], &idct[0]);
+
+    ushort pixels[8 * 8];
+    IDCTToPixel8x8(idct, pixels);
+
+    PixelToYUV(pixels, yuv, 8, 8);
+}
+
+void CoeffToYUV8x8_g(__global const coeff_t block[8 * 8], uchar *yuv)
+{
+    coeff_t b[8 * 8];
+    for (int i = 0; i < 8 * 8; i++)
+    {
+        b[i] = block[i];
+    }
+
+    CoeffToYUV8x8(b, yuv);
+}
+
+void Copy8x8To16x16(const uchar yuv8x8[3 * 8 * 8], uchar yuv16x16[3 * 16 * 16], int off_x, int off_y)
+{
+    for (int y = 0; y < 8; y++)
+    {
+        for (int x = 0; x < 8; x++)
+        {
+            int idx = y * 8 + x;
+            int idx16 = (y + off_y * 8) * 16 + (x + off_x * 8);
+            yuv16x16[idx16 * 3] = yuv8x8[idx * 3];
+        }
+    }
+}
+
+void Copy16x16To8x8(const uchar yuv16x16[3 * 16 * 16], uchar yuv8x8[3 * 8 * 8], int off_x, int off_y)
+{
+    for (int y = 0; y < 8; y++)
+    {
+        for (int x = 0; x < 8; x++)
+        {
+            int idx = y * 8 + x;
+            int idx16 = (y + off_y * 8) * 16 + (x + off_x * 8);
+            yuv8x8[idx * 3] = yuv16x16[idx16 * 3];
+        }
+    }
+}
+
+void Copy16x16ToChannel(const float rgb16x16[3][16 * 16], float r[8 * 8], float g[8 * 8], float b[8 * 8], int off_x, int off_y)
+{
+    for (int y = 0; y < 8; y++)
+    {
+        for (int x = 0; x < 8; x++)
+        {
+            int idx = y * 8 + x;
+            int idx16 = (y + off_y * 8) * 16 + (x + off_x * 8);
+            r[idx] = rgb16x16[0][idx16];
+            g[idx] = rgb16x16[1][idx16];
+            b[idx] = rgb16x16[2][idx16];
+        }
+    }
 }
 
 void Convolution(size_t xsize, size_t ysize,
@@ -2714,6 +2942,14 @@ void floatcopy(float *dst, float *src, int size)
     }
 }
 
+void floatcopy_g(float *dst, __global float *src, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
 void CalcOpsinDynamicsImage(ocl_channels rgb)
 {
     float rgb_blurred[3][kDCTBlockSize];
@@ -2722,6 +2958,60 @@ void CalcOpsinDynamicsImage(ocl_channels rgb)
         BlurEx(rgb.ch[i], 8, 8, 1.1, 0, rgb_blurred[i]);
     }
     OpsinDynamicsImageBlock(rgb.r, rgb.g, rgb.b, rgb_blurred[0], rgb_blurred[1], rgb_blurred[2], kDCTBlockSize);
+}
+
+void CalcOpsinDynamicsImage2(float rgb[3][kDCTBlockSize])
+{
+    float rgb_blurred[3][kDCTBlockSize];
+    for (int i = 0; i < 3; i++)
+    {
+        BlurEx(rgb[i], 8, 8, 1.1, 0, rgb_blurred[i]);
+    }
+    OpsinDynamicsImageBlock(rgb[0], rgb[1], rgb[2], rgb_blurred[0], rgb_blurred[1], rgb_blurred[2], kDCTBlockSize);
+}
+
+double ComputeImage8x8Block(float rgb0_c[3][kDCTBlockSize], float rgb1_c[3][kDCTBlockSize], __global float* mask_scale_block)
+{
+    CalcOpsinDynamicsImage2(rgb0_c);
+    CalcOpsinDynamicsImage2(rgb1_c);
+
+    float rgb0[3][kDCTBlockSize];
+    float rgb1[3][kDCTBlockSize];
+
+    floatcopy(rgb0, rgb0_c, 3 * kDCTBlockSize);
+    floatcopy(rgb1, rgb1_c, 3 * kDCTBlockSize);
+
+    MaskHighIntensityChangeBlock(rgb0[0], rgb0[1], rgb0[2],
+                                rgb1[0], rgb1[1], rgb1[2],
+                                rgb0_c[0], rgb0_c[1], rgb0_c[2],
+                                rgb1_c[0], rgb1_c[1], rgb1_c[2],
+                                8, 8);
+
+    // 这里为啥要把float转成double才能继续做计算？
+    double b0[3 * kDCTBlockSize];       //
+    double b1[3 * kDCTBlockSize];
+    for (int c = 0; c < 3; ++c) {
+        for (int ix = 0; ix < kDCTBlockSize; ++ix) {
+            b0[c * kDCTBlockSize + ix] = rgb0[c][ix];
+            b1[c * kDCTBlockSize + ix] = rgb1[c][ix];
+        }
+    }
+
+    double diff_xyz_dc[3] = { 0.0 };
+    double diff_xyz_ac[3] = { 0.0 };
+    double diff_xyz_edge_dc[3] = { 0.0 };
+    ButteraugliBlockDiff(b0, b1, diff_xyz_dc, diff_xyz_ac, diff_xyz_edge_dc);
+
+    double diff = 0.0;
+    double diff_edge = 0.0;
+
+    for (int c = 0; c < 3; ++c) {
+        diff += diff_xyz_dc[c] * mask_scale_block[c];
+        diff += diff_xyz_ac[c] * mask_scale_block[c];
+        diff_edge += diff_xyz_edge_dc[c] * mask_scale_block[c];
+    }
+    const double kEdgeWeight = 0.05;
+    return sqrt((1 - kEdgeWeight) * diff + kEdgeWeight * diff_edge);
 }
 
 // strong todo
@@ -2748,7 +3038,7 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
         rgb1_c.r = &image_block[0];
         rgb1_c.g = &image_block[kDCTBlockSize];
         rgb1_c.b = &image_block[2 * kDCTBlockSize];
-        BlockToImage(candidate_block, rgb1_c.r, rgb1_c.g, rgb1_c.b);
+        BlockToImage(candidate_block, rgb1_c.r, rgb1_c.g, rgb1_c.b, 8, 8);
 
         CalcOpsinDynamicsImage(rgb0_c);
         CalcOpsinDynamicsImage(rgb1_c);
@@ -2849,6 +3139,308 @@ __kernel void clComputeBlockZeroingOrder(__global const coeff_t *orig_batch,    
 
         list_push_back(&output_order, idx, best_err);
     }
+    // 注意output_order这里的resize就是把尾部的置位0
+    float min_err = 1e10;
+    for (int i = output_order.size - 1; i >= 0; --i) {
+        min_err = min(min_err, output_order.pData[i].err);
+        output_order.pData[i].err = min_err;
+    }
+
+    __global CoeffData *output_block = output_order_list + block_idx * kComputeBlockSize;
+
+    int out_count = 0;
+    for (int i = 0; i < kComputeBlockSize && i < output_order.size; i++)
+    {
+        // 过滤较大的err，这部分进入后端计算没有意义
+        if (output_order.pData[i].err <= BlockErrorLimit)
+        {
+            output_block[out_count].idx = output_order.pData[i].idx;
+            output_block[out_count].err = output_order.pData[i].err;
+            out_count++;
+        }
+    }
+}
+
+typedef struct __channel_info_t
+{
+    int factor;
+    int block_width;
+    int block_height;
+    __global const coeff_t *coeff;
+    __global const ushort *pixel;
+}channel_info;
+
+// return the count of Non-zero item
+int MakeInputOrderEx(coeff_t *block, coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
+{
+    int size = 0;
+    for (int c = 0; c < 3; ++c) {
+        for (int k = 1; k < block_size; ++k) {
+            int idx = c * block_size + k;
+            if (block[idx] != 0) {
+                float score = abs(orig_block[idx]) * csf[idx] + bias[idx];
+                size = list_push_back(input_order, idx, score);
+            }
+        }
+    }
+    return SortInputOrder(input_order->pData, size);
+}
+
+int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
+                 __global float *orig_image_batch,
+                 int width_,
+                 int height_,
+                 int block_x, int block_y,
+                 int factor,
+                 int off_x, int off_y)
+{
+    int block_xx = block_x * factor + off_x;
+    int block_yy = block_y * factor + off_y;
+    if (block_xx * 8 >= width_ || block_yy * 8 >= height_) return -1;
+
+    const int block8_width = (width_ + 8 - 1) / 8;
+
+    int block_ix = block_yy * block8_width + block_xx;
+
+    __global const float*  block_opsin = &orig_image_batch[block_ix * 3 * kDCTBlockSize];
+    for (int i = 0; i < 3; i++) {
+        for (int k = 0; k < kDCTBlockSize; k++) {
+            rgb0_c[i][k] = block_opsin[i * kDCTBlockSize + k];
+        }
+    }
+
+    return block_ix;
+}
+
+double CompareBlockFactor(const channel_info mayout_channel[3],
+                          const coeff_t* candidate_block,
+                          const int block_x,
+                          const int block_y,
+                          __global const float *orig_image_batch,
+                          __global const float *mask_scale,
+                          const int image_width,
+                          const int image_height,
+                          const int factor)
+{
+    const coeff_t *candidate_channel[3];
+    for (int c = 0; c < 3; c++) {
+        candidate_channel[c] = &candidate_block[c * 8 * 8];
+    }
+
+    uchar yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
+    uchar yuv8x8[3 * 8 * 8] = { 0 };      // factor 1 mode output image
+
+    for (int c = 0; c < 3; c++)
+    {
+        if (mayout_channel[c].factor == 1) {
+            if (factor == 1) {
+                const coeff_t *coeff_block = candidate_channel[c];
+                CoeffToYUV8x8(coeff_block, &yuv8x8[c]);
+            }
+            else {
+                for (int iy = 0; iy < factor; ++iy) {
+                    for (int ix = 0; ix < factor; ++ix) {
+                        int block_xx = block_x * factor + ix;
+                        int block_yy = block_y * factor + iy;
+
+                        ///if (ix != off_x || iy != off_y) continue;
+                        if (block_xx >= mayout_channel[c].block_width ||
+                            block_yy >= mayout_channel[c].block_height)
+                        {
+                            continue;
+                        }
+                        int block_8x8idx = block_yy * mayout_channel[c].block_width + block_xx;
+                        __global const coeff_t * coeff_block = mayout_channel[c].coeff + block_8x8idx * 8 * 8;
+                        CoeffToYUV8x8_g(coeff_block, &yuv8x8[c]);
+
+                        // copy YUV8x8 to YUV1616 corner
+                        Copy8x8To16x16(&yuv8x8[c], &yuv16x16[c], ix, iy);
+                    }
+                }
+            }
+        }
+        else {
+            if (factor == 1) {
+                int block_xx = block_x / mayout_channel[c].factor;
+                int block_yy = block_y / mayout_channel[c].factor;
+                int ix = block_x % mayout_channel[c].factor;;
+                int iy = block_y % mayout_channel[c].factor;
+
+                int block_16x16idx = block_yy * mayout_channel[c].block_width + block_xx;
+                __global const coeff_t * coeff_block = mayout_channel[c].coeff + block_16x16idx * 8 * 8;
+
+                CoeffToYUV16x16_g(coeff_block, &yuv16x16[c],
+                    mayout_channel[c].pixel, block_xx, block_yy,
+                    image_width,
+                    image_height);
+
+                // copy YUV16x16 corner to YUV8x8
+                Copy16x16To8x8(&yuv16x16[c], &yuv8x8[c], ix, iy);
+            }
+            else {
+                const coeff_t * coeff_block = candidate_channel[c];
+                CoeffToYUV16x16(coeff_block, &yuv16x16[c],
+                    mayout_channel[c].pixel, block_x, block_y,
+                    image_width,
+                    image_height);
+            }
+        }
+    }
+
+    if (factor == 1)
+    {
+        float rgb0_c[3][kDCTBlockSize];
+        int block_8x8idx = GetOrigBlock(rgb0_c, orig_image_batch, image_width, image_height, block_x, block_y, factor, 0, 0);
+
+        int inside_x = block_x * 8 + 8 > image_width ? image_width - block_x * 8 : 8;
+        int inside_y = block_y * 8 + 8 > image_height ? image_height - block_y * 8 : 8;
+        float rgb1_c[3][kDCTBlockSize];
+
+        YUVToImage(yuv8x8, rgb1_c[0], rgb1_c[1], rgb1_c[2], 8, 8, inside_x, inside_y);
+
+        return ComputeImage8x8Block(rgb0_c, rgb1_c, mask_scale + block_8x8idx * 3);
+    }
+    else
+    {
+        int inside_x = block_x * 16 + 16 > image_width ? image_width - block_x * 16 : 16;
+        int inside_y = block_y * 16 + 16 > image_height ? image_height - block_y * 16 : 16;
+
+        float rgb16x16[3][16 * 16];
+        YUVToImage(yuv16x16, rgb16x16[0], rgb16x16[1], rgb16x16[2], 16, 16, inside_x, inside_y);
+
+        double max_err = 0;
+        for (int iy = 0; iy < factor; ++iy) {
+            for (int ix = 0; ix < factor; ++ix) {
+                int block_xx = block_x * factor + ix;
+                int block_yy = block_y * factor + iy;
+
+                if (block_xx * 8 >= image_width ||
+                    block_yy * 8 >= image_height)
+                {
+                    continue;
+                }
+
+                float rgb0_c[3][kDCTBlockSize];
+                int block_8x8idx = GetOrigBlock(rgb0_c, orig_image_batch, image_width, image_height, block_x, block_y, factor, ix, iy);
+
+                float rgb1_c[3][kDCTBlockSize];
+                Copy16x16ToChannel(rgb16x16, rgb1_c[0], rgb1_c[1], rgb1_c[2], ix, iy);
+                double err = ComputeImage8x8Block(rgb0_c, rgb1_c, block_8x8idx);
+                max_err = max(max_err, err);
+            }
+        }
+        return max_err;
+    }
+}
+
+// batch是指已经二维块展开为了一维块
+__kernel void clComputeBlockZeroingOrderFactor(
+    __global const coeff_t *orig_batch_0,       // 原始图像系数
+    __global const coeff_t *orig_batch_1,       // 原始图像系数
+    __global const coeff_t *orig_batch_2,       // 原始图像系数
+    __global const float   *orig_image_batch,   // 原始图像pregamma
+    __global const float   *mask_scale,         // 原始图像的某个神秘参数
+    int                    image_width,
+    int                    image_height,
+    __global const coeff_t *mayout_batch_0,     // 输出备选图的系数
+    __global const coeff_t *mayout_batch_1,     // 输出备选图的系数
+    __global const coeff_t *mayout_batch_2,     // 输出备选图的系数
+    __global const ushort  *mayout_pixel_0,
+    __global const ushort  *mayout_pixel_1,
+    __global const ushort  *mayout_pixel_2,
+    channel_info            mayout_channel_0,
+    channel_info            mayout_channel_1,
+    channel_info            mayout_channel_2,
+    int factor,                                 // 当前参与运算的factor
+    int comp_mask,                              // 当前参与运算的channel
+    float BlockErrorLimit,
+    __global CoeffData *output_order_list/*out*/)
+{
+    const int block_x = get_global_id(0);
+    const int block_y = get_global_id(1);
+#define kComputeBlockSize (kBlockSize * 3)
+
+    channel_info orig_channel[3];
+    orig_channel[0].coeff = orig_batch_0;
+    orig_channel[1].coeff = orig_batch_1;
+    orig_channel[2].coeff = orig_batch_2;
+
+    channel_info mayout_channel[3] = { mayout_channel_0, mayout_channel_1, mayout_channel_2 };
+    mayout_channel[0].coeff = mayout_batch_0;
+    mayout_channel[1].coeff = mayout_batch_1;
+    mayout_channel[2].coeff = mayout_batch_2;
+    mayout_channel[0].pixel = mayout_pixel_0;
+    mayout_channel[1].pixel = mayout_pixel_1;
+    mayout_channel[2].pixel = mayout_pixel_2;
+
+    int block_idx = 0;        // 根据下面mask命中的channel来计算indx
+
+    coeff_t mayout_block[kComputeBlockSize] = { 0 };
+    coeff_t orig_block[kComputeBlockSize]   = { 0 };
+    for (int c = 0; c < 3; c++) {
+        if (comp_mask & (1<<c)) {
+            block_idx = block_y * mayout_channel[c].block_width + block_x;
+            floatcopy_g(&mayout_block[c * kBlockSize],
+                        mayout_channel[c].coeff + block_idx * kBlockSize,
+                        kBlockSize);
+
+            floatcopy_g(&orig_block[c * kBlockSize],
+                        orig_channel[c].coeff + block_idx * kBlockSize,
+                        kBlockSize);
+        }
+    }
+
+    DCTScoreData input_order_data[kComputeBlockSize];
+    CoeffData    output_order_data[kComputeBlockSize];
+
+    IntFloatPairList input_order = { 0, input_order_data };
+    IntFloatPairList output_order = { 0, output_order_data };
+
+    int count = MakeInputOrderEx(mayout_block, orig_block, &input_order, kBlockSize);
+
+    coeff_t processed_block[kComputeBlockSize];
+    for (int i = 0; i < kComputeBlockSize; i++) {
+        processed_block[i] = mayout_block[i];
+    }
+
+    while (input_order.size > 0)
+    {
+        float best_err = 1e17f;
+        int best_i = 0;
+        for (int i = 0; i < min(3, input_order.size); i++)
+        {
+            coeff_t candidate_block[kComputeBlockSize];
+            for (int i = 0; i < kComputeBlockSize; i++) {
+                candidate_block[i] = processed_block[i];
+            }
+
+            const int idx = input_order.pData[i].idx;
+
+            candidate_block[idx] = 0;
+
+            float max_err = CompareBlockFactor(mayout_channel,
+                                               candidate_block,
+                                               block_x,
+                                               block_y,
+                                               orig_image_batch,
+                                               mask_scale,
+                                               image_width,
+                                               image_height,
+                                               factor);
+            if (max_err < best_err)
+            {
+                best_err = max_err;
+                best_i = i;
+            }
+        }
+
+        int idx = input_order.pData[best_i].idx;
+        processed_block[idx] = 0;
+        list_erase(&input_order, best_i);
+
+        list_push_back(&output_order, idx, best_err);
+    }
+
     // 注意output_order这里的resize就是把尾部的置位0
     float min_err = 1e10;
     for (int i = output_order.size - 1; i >= 0; --i) {
