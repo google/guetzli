@@ -23,6 +23,30 @@ void clComputeBlockZeroingOrder(const guetzli::coeff_t *orig_batch,
     float BlockErrorLimit,
     guetzli::CoeffData *output_order_batch);
 
+typedef struct __channel_info_t
+{
+    int factor;
+    int block_width;
+    int block_height;
+    const guetzli::coeff_t *coeff;
+    const uint16_t *pixel;
+}channel_info;
+
+void clComputeBlockZeroingOrderFactor(
+    const guetzli::coeff_t *orig_batch[3],
+    const float *orig_image_batch,
+    const float *mask_scale,
+    int image_width,
+    int image_height,
+    const guetzli::coeff_t *mayout_batch[3],
+    const channel_info     *channel[3],
+    int factor,
+    int comp_mask,
+    int block_width,
+    int block_height,
+    float BlockErrorLimit,
+    guetzli::CoeffData *output_order_batch);
+
 void clMask(const float* r, const float* g, const float* b,
     const float* r2, const float* g2, const float* b2,
     size_t xsize, size_t ysize,
