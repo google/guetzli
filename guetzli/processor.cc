@@ -31,7 +31,6 @@
 #include "guetzli/jpeg_data_writer.h"
 #include "guetzli/output_image.h"
 #include "guetzli/quantize.h"
-#include "clguetzli\clguetzli_comparator.h"
 #include "clguetzli\clguetzli.h"
 
 namespace guetzli {
