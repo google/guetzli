@@ -55,7 +55,7 @@ class Processor {
 
   void SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* img, 
                               const uint8_t comp_mask, const double target_mul,
-                              bool stop_early);
+                              bool stop_early, const OutputImage &img2);
 
   void SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                               const uint8_t comp_mask, const double target_mul,
@@ -74,9 +74,10 @@ class Processor {
       const int block_x, const int block_y, const int factor_x,
       const int factor_y, const uint8_t comp_mask, OutputImage* img, const OutputImage& img2,
       std::vector<CoeffData>* output_order);
-
+  /*
   void ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
       const int block_x, const int block_y, std::vector<CoeffData>* output_order);
+  */
 
   bool SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
                          int best_q[3][kDCTBlockSize],
@@ -616,7 +617,7 @@ size_t EstimateDCSize(const JPEGData& jpg) {
 }  // namespace
 
 void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* img, const uint8_t comp_mask, 
-                                       const double target_mul, bool stop_early)
+                                       const double target_mul, bool stop_early, const OutputImage &img2)
 {
     const int width = img->width();
     const int height = img->height();
@@ -632,27 +633,6 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
 
     comparator_->StartBlockComparisons(); // 初始化一些参数，主要是对原图进行一些处理
 
-//    std::vector<coeff_t> orig_batch(num_blocks * kBlockSize);   // [block_r block_g block_b]
-//    std::vector<coeff_t> mayout_batch(num_blocks * kBlockSize); // [block_r block_g block_b]
-/*
-    // step 1 获取所有block list
-    for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
-        for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
-            coeff_t *orig_block   = &orig_batch[block_ix * kBlockSize];
-            coeff_t *mayout_block = &mayout_batch[block_ix * kBlockSize];
-            
-            for (int c = 0; c < 3; ++c) 
-            {
-                img->component(c).GetCoeffBlock(block_x, block_y, &mayout_block[c * kDCTBlockSize]);
-
-                const JPEGComponent& comp = jpg.components[c];
-                int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
-                memcpy(&orig_block[c * kDCTBlockSize], &comp.coeffs[jpg_block_ix * kDCTBlockSize], kDCTBlockSize * sizeof(orig_block[0])); // TOBEREMOVE:取出原始图像block系数
-            }
-        }
-    }
-*/
-    // step 2 计算所有block的系数偏差
     std::vector<CoeffData> output_order_gpu;
     std::vector<CoeffData> output_order_cpu;
     CoeffData * output_order = NULL;
@@ -690,32 +670,31 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
                                         comp->BlockErrorLimit(),
                                         output_order);
 
-/*
-        output_order_gpu.resize(num_blocks * kBlockSize);
-        output_order = output_order_gpu.data();
-
-        clComputeBlockZeroingOrder(orig_batch.data(),
-                                   comp->imgOpsinDynamicsBlockList.data(),
-                                   comp->imgMaskXyzScaleBlockList.data(),
-                                   mayout_batch.data(),
-                                   num_blocks,
-                                   comparator_->BlockErrorLimit(),
-                                   output_order_gpu.data());
-*/
-
     }
-/*
     if (!g_useOpenCL || g_checkOpenCL)
     {
         output_order_cpu.resize(num_blocks * kBlockSize);
         output_order = output_order_cpu.data();
         for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
             for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
-                coeff_t *orig_block = &orig_batch[block_ix * kBlockSize];
-                coeff_t *block      = &mayout_batch[block_ix * kBlockSize];
+                coeff_t block[kBlockSize] = { 0 };
+                coeff_t orig_block[kBlockSize] = { 0 };
+                for (int c = 0; c < 3; ++c) {
+                    if (comp_mask & (1 << c)) {
+                        assert(img->component(c).factor_x() == factor_x);
+                        assert(img->component(c).factor_y() == factor_y);
+                        img->component(c).GetCoeffBlock(block_x, block_y,
+                            &block[c * kDCTBlockSize]);
+                        const JPEGComponent& comp = jpg.components[c];
+                        int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
+                        memcpy(&orig_block[c * kDCTBlockSize],
+                            &comp.coeffs[jpg_block_ix * kDCTBlockSize],
+                            kDCTBlockSize * sizeof(orig_block[0]));
+                    }
+                }
 
                 std::vector<CoeffData> block_order;
-                ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, &block_order);
+                ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x, factor_y, comp_mask, img, img2, &block_order);
 
                 CoeffData * p = &output_order_cpu[block_ix * kBlockSize];
                 for (int i = 0; i < block_order.size(); i++)
@@ -726,7 +705,7 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
             }
         }
     }
-*/
+
     if (g_checkOpenCL)
     {
         int count = 0;
@@ -769,11 +748,11 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
     comparator_->FinishBlockComparisons();
     candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
 
-    SelectFrequencyBackEnd(jpg, img, 7, target_mul, stop_early, 
+    SelectFrequencyBackEnd(jpg, img, comp_mask, target_mul, stop_early,
         candidate_coeff_offsets, candidate_coeffs, candidate_coeff_errors);
 
 }
-
+/*
 void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
     const int block_x, const int block_y, std::vector<CoeffData>* output_order)
 {
@@ -824,7 +803,7 @@ void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const 
 
             candidate_block[idx] = 0; // TOBEREMOVE:对比block的排序得分前i低的置0(i根据input_order数据变化而变化)，并先设置回对比图像的三个分量对应block中去，后续再做对比采用。
 
-            float max_err = 0;/// ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(img, 0, 0, candidate_block);
+            float max_err = ((ButteraugliComparatorEx*)comparator_)->CompareBlockEx(img, 0, 0, candidate_block);
             if (max_err < best_err) { // TOBEREMOVE:找出最小错误值的i
                 best_err = max_err;
                 best_i = i;
@@ -853,7 +832,7 @@ void Processor::ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const 
     }
     output_order->resize(num);
 }
-
+*/
 void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                                        const uint8_t comp_mask,
                                        const double target_mul,
@@ -1220,11 +1199,11 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
     }
 
     if (!downsample) {
-      SelectFrequencyMaskingBatch(jpg, &img, 7, 1.0, false);
+      SelectFrequencyMaskingBatch(jpg, &img, 7, 1.0, false, img2);
     } else {
       const float ymul = jpg.components.size() == 1 ? 1.0f : 0.97f;
-      SelectFrequencyMaskingBatch(jpg, &img, 1, ymul, false);
-      SelectFrequencyMaskingBatch(jpg, &img, 6, 1.0, true);
+      SelectFrequencyMaskingBatch(jpg, &img, 1, ymul, false, img2);
+      SelectFrequencyMaskingBatch(jpg, &img, 6, 1.0, true, img2);
     }
   }
 

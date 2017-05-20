@@ -362,7 +362,8 @@ namespace guetzli
 
     double ButteraugliComparatorEx::CompareBlock(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const
     {
-        double err = CompareBlockEx2(img, off_x, off_y, candidate_block, comp_mask);
+        double err = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block, comp_mask);
+        return err;
         if (g_checkOpenCL)
         {
             double err1 = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block, comp_mask);
