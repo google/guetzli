@@ -2,11 +2,11 @@
 
 #include  "clguetzli\clguetzli.cl.h"
 
-#define kBlockEdge 8
-#define kBlockSize (kBlockEdge * kBlockEdge)
-#define kDCTBlockSize (kBlockEdge * kBlockEdge)
+#define kBlockEdge      8
+#define kBlockSize      (kBlockEdge * kBlockEdge)
+#define kDCTBlockSize   (kBlockEdge * kBlockEdge)
 #define kBlockEdgeHalf  (kBlockEdge / 2)
-#define kBlockHalf (kBlockEdge * kBlockEdgeHalf)
+#define kBlockHalf      (kBlockEdge * kBlockEdgeHalf)
 
 void   XybToVals(double x, double y, double z, double *valx, double *valy, double *valz);
 double InterpolateClampNegative(__global const double *array, int size, double sx);
@@ -2941,17 +2941,7 @@ void coeffcopy(coeff_t *dst, const coeff_t *src, int size)
     }
 }
 
-void CalcOpsinDynamicsImage(ocl_channels rgb)
-{
-    float rgb_blurred[3][kDCTBlockSize];
-    for (int i = 0; i < 3; i++)
-    {
-        BlurEx(rgb.ch[i], 8, 8, 1.1, 0, rgb_blurred[i]);
-    }
-    OpsinDynamicsImageBlock(rgb.r, rgb.g, rgb.b, rgb_blurred[0], rgb_blurred[1], rgb_blurred[2], kDCTBlockSize);
-}
-
-void CalcOpsinDynamicsImage2(__private float rgb[3][kDCTBlockSize])
+void CalcOpsinDynamicsImage(__private float rgb[3][kDCTBlockSize])
 {
     float rgb_blurred[3][kDCTBlockSize];
     for (int i = 0; i < 3; i++)
@@ -2963,8 +2953,8 @@ void CalcOpsinDynamicsImage2(__private float rgb[3][kDCTBlockSize])
 
 double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private float rgb1_c[3][kDCTBlockSize], const __global float* mask_scale_block)
 { 
-    CalcOpsinDynamicsImage2(rgb0_c);
-    CalcOpsinDynamicsImage2(rgb1_c);
+    CalcOpsinDynamicsImage(rgb0_c);
+    CalcOpsinDynamicsImage(rgb1_c);
 
     float rgb0[3][kDCTBlockSize];
     float rgb1[3][kDCTBlockSize];
@@ -3003,153 +2993,6 @@ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private 
     }
     const double kEdgeWeight = 0.05;
     return sqrt((1 - kEdgeWeight) * diff + kEdgeWeight * diff_edge);
-}
-
-// strong todo
-// candidate_block [R....R][G....G][B....B]
-// orig_image_block [RR..RRGG..GGBB..BB]
-// mask_scale[RGB]
-float CompareBlockEx(coeff_t *candidate_block, __global const float* orig_image_block, __global const float* mask_scale_block)
-{
-    float rgb0[3][kDCTBlockSize];
-    float rgb1[3][kDCTBlockSize];
-    {
-        float rgb0_data[3*kDCTBlockSize];
-        ocl_channels rgb0_c;
-        rgb0_c.r = &rgb0_data[0];
-        rgb0_c.g = &rgb0_data[kDCTBlockSize];
-        rgb0_c.b = &rgb0_data[2 * kDCTBlockSize];
-        for (int i = 0; i < 3*kDCTBlockSize; i++)
-        { 
-            rgb0_data[i] = orig_image_block[i];
-        }
-
-        float image_block[3 * kDCTBlockSize];
-        ocl_channels rgb1_c;
-        rgb1_c.r = &image_block[0];
-        rgb1_c.g = &image_block[kDCTBlockSize];
-        rgb1_c.b = &image_block[2 * kDCTBlockSize];
-        BlockToImage(candidate_block, rgb1_c.r, rgb1_c.g, rgb1_c.b, 8, 8);
-
-        CalcOpsinDynamicsImage(rgb0_c);
-        CalcOpsinDynamicsImage(rgb1_c);
-
-        floatcopy(&rgb0[0][0], rgb0_data, 3 * kDCTBlockSize);
-        floatcopy(&rgb1[0][0], image_block, 3 * kDCTBlockSize);
- 
-        MaskHighIntensityChangeBlock(rgb0[0],rgb0[1], rgb0[2], 
-                                     rgb1[0], rgb1[1], rgb1[2], 
-                                     rgb0_c.ch[0], rgb0_c.ch[1], rgb0_c.ch[2], 
-                                     rgb1_c.ch[0], rgb1_c.ch[1], rgb1_c.ch[2], 
-                                     8, 8);
-                                     
-    }
-
-    // 这里为啥要把float转成double才能继续做计算？
-    double b0[3 * kDCTBlockSize];       // 
-    double b1[3 * kDCTBlockSize];
-    for (int c = 0; c < 3; ++c) {
-        for (int ix = 0; ix < kDCTBlockSize; ++ix) {
-            b0[c * kDCTBlockSize + ix] = rgb0[c][ix];
-            b1[c * kDCTBlockSize + ix] = rgb1[c][ix];
-        }
-    }
-
-    double diff_xyz_dc[3] = { 0.0 };
-    double diff_xyz_ac[3] = { 0.0 };
-    double diff_xyz_edge_dc[3] = { 0.0 };
-    ButteraugliBlockDiff(b0, b1, diff_xyz_dc, diff_xyz_ac, diff_xyz_edge_dc);
-
-    double diff = 0.0;
-    double diff_edge = 0.0;
-        
-    for (int c = 0; c < 3; ++c) {
-        diff += diff_xyz_dc[c] * mask_scale_block[c];
-        diff += diff_xyz_ac[c] * mask_scale_block[c];
-        diff_edge += diff_xyz_edge_dc[c] * mask_scale_block[c];
-    }
-    const double kEdgeWeight = 0.05;
-    return sqrt((1 - kEdgeWeight) * diff + kEdgeWeight * diff_edge);
-}
-
-// strong todo
-// batch是指已经二维块展开为了一维块
-__kernel void clComputeBlockZeroingOrder(__global const coeff_t *orig_batch,         // 原始图像系数
-                                         __global const float   *orig_image_batch,   // 原始图像pregamma后
-                                         __global const float   *mask_scale,         // 原始图像的某个神秘参数
-                                         __global const coeff_t *mayout_batch,       // 输出备选图的系数
-                                         float BlockErrorLimit,
-                                         __global CoeffData *output_order_list/*out*/)
-{
-    int block_idx = get_global_id(0);
-#define kComputeBlockSize (kBlockSize * 3)
-
-    __global const coeff_t *orig_block       = orig_batch + block_idx * kComputeBlockSize;
-    __global const coeff_t *mayout_block     = mayout_batch + block_idx * kComputeBlockSize;
-    __global const float   *orig_image_block = orig_image_batch + block_idx * kComputeBlockSize;
-
-    DCTScoreData input_order_data[kComputeBlockSize];
-    CoeffData    output_order_data[kComputeBlockSize];
-    
-    IntFloatPairList input_order  = { 0, input_order_data };
-    IntFloatPairList output_order = { 0, output_order_data };
-
-    int count = MakeInputOrder(mayout_block, orig_block, &input_order, kBlockSize);
-
-    coeff_t processed_block[kComputeBlockSize];
-    for (int i = 0; i < kComputeBlockSize; i++) {
-        processed_block[i] = mayout_block[i];
-    }
-
-    while (input_order.size > 0)
-    {
-        float best_err = 1e17f;
-        int best_i = 0;
-        for (int i = 0; i < min(3, input_order.size); i++)
-        {
-            coeff_t candidate_block[kComputeBlockSize];
-            for (int i = 0; i < kComputeBlockSize; i++) {
-                candidate_block[i] = processed_block[i];
-            }
-
-            const int idx = input_order.pData[i].idx;
-
-            candidate_block[idx] = 0;
-
-            float max_err = CompareBlockEx(candidate_block, orig_image_block, mask_scale + block_idx * 3);
-            if (max_err < best_err)
-            {
-                best_err = max_err;
-                best_i = i;
-            }
-        }
-
-        int idx = input_order.pData[best_i].idx;
-        processed_block[idx] = 0;
-        list_erase(&input_order, best_i);
-
-        list_push_back(&output_order, idx, best_err);
-    }
-    // 注意output_order这里的resize就是把尾部的置位0
-    float min_err = 1e10;
-    for (int i = output_order.size - 1; i >= 0; --i) {
-        min_err = min(min_err, output_order.pData[i].err);
-        output_order.pData[i].err = min_err;
-    }
-
-    __global CoeffData *output_block = output_order_list + block_idx * kComputeBlockSize;
-
-    int out_count = 0;
-    for (int i = 0; i < kComputeBlockSize && i < output_order.size; i++)
-    {
-        // 过滤较大的err，这部分进入后端计算没有意义
-        if (output_order.pData[i].err <= BlockErrorLimit)
-        {
-            output_block[out_count].idx = output_order.pData[i].idx;
-            output_block[out_count].err = output_order.pData[i].err;
-            out_count++;
-        }
-    }
 }
 
 // return the count of Non-zero item

@@ -63,7 +63,6 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMap", &err);
 	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMap", &err);
 	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreq", &err);
-    ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrder", &err);
     ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDERFACTOR] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrderFactor", &err);
 
 	return ocl;
