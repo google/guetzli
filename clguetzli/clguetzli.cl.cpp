@@ -74,6 +74,8 @@ namespace guetzli
                     }
                 }
 
+                CalcOpsinDynamicsImage((float(*)[64])curR);
+
                 int xmin = block_x * 8;
                 int ymin = block_y * 8;
 

@@ -1217,7 +1217,7 @@ void clComputeBlockZeroingOrder(const guetzli::coeff_t *orig_batch,     // ԭʼ�
     cl_mem mem_output_order_batch = ocl.allocMem(sizeof(CoeffData) * item_count);
     cl_float clBlockErrorLimit = BlockErrorLimit;
 
-    cl_kernel kernel = ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER];
+    cl_kernel kernel = 0;// ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER];
     clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mem_orig_batch);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mem_orig_image_batch);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&mem_mask_scale_batch);
