@@ -2951,6 +2951,14 @@ void coeffcopy_g(coeff_t *dst, __global coeff_t *src, int size)
     }
 }
 
+void coeffcopy(coeff_t *dst, coeff_t *src, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        dst[i] = src[i];
+    }
+}
+
 void CalcOpsinDynamicsImage(ocl_channels rgb)
 {
     float rgb_blurred[3][kDCTBlockSize];
@@ -3378,8 +3386,8 @@ __kernel void clComputeBlockZeroingOrderFactor(
 
     int block_idx = 0;        // 根据下面mask命中的channel来计算indx
 
-    coeff_t mayout_block[kComputeBlockSize] = { 1,20,160,78 };
-    coeff_t orig_block[kComputeBlockSize]   = { 2,190,78,78 };
+    coeff_t mayout_block[kComputeBlockSize] = { 0 };
+    coeff_t orig_block[kComputeBlockSize]   = { 0 };
 
     for (int c = 0; c < 3; c++) {
         if (comp_mask & (1<<c)) {
@@ -3390,14 +3398,6 @@ __kernel void clComputeBlockZeroingOrderFactor(
             coeffcopy_g(&orig_block[c * kBlockSize],
                 orig_channel[c].coeff + block_idx * kBlockSize,
                 kBlockSize);
- /*           floatcopy_g(&mayout_block[c * kBlockSize],
-                       mayout_channel[c].coeff + block_idx * kBlockSize,
-                        kBlockSize);
-
-            floatcopy_g(&orig_block[c * kBlockSize],
-                        orig_channel[c].coeff + block_idx * kBlockSize,
-                        kBlockSize);
-*/
         }
     }
 
@@ -3411,9 +3411,7 @@ __kernel void clComputeBlockZeroingOrderFactor(
     int count = MakeInputOrderEx(mayout_block, orig_block, &input_order);
 
     coeff_t processed_block[kComputeBlockSize];
-    for (int i = 0; i < kComputeBlockSize; i++) {
-        processed_block[i] = mayout_block[i];
-    }
+    coeffcopy(processed_block, mayout_block, kComputeBlockSize);
 
     while (input_order.size > 0)
     {
@@ -3422,12 +3420,9 @@ __kernel void clComputeBlockZeroingOrderFactor(
         for (int i = 0; i < min(3, input_order.size); i++)
         {
             coeff_t candidate_block[kComputeBlockSize];
-            for (int i = 0; i < kComputeBlockSize; i++) {
-                candidate_block[i] = processed_block[i];
-            }
+            coeffcopy(candidate_block, processed_block, kComputeBlockSize);
 
             const int idx = input_order.pData[i].idx;
-
             candidate_block[idx] = 0;
 
             float max_err = CompareBlockFactor(mayout_channel,
