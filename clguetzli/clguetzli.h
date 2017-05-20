@@ -33,18 +33,15 @@ typedef struct __channel_info_t
 }channel_info;
 
 void clComputeBlockZeroingOrderFactor(
-    const guetzli::coeff_t *orig_batch[3],
+    const channel_info orig_channel[3],
     const float *orig_image_batch,
     const float *mask_scale,
-    int image_width,
-    int image_height,
-    const guetzli::coeff_t *mayout_batch[3],
-    const channel_info     *channel[3],
-    int factor,
-    int comp_mask,
-    int block_width,
-    int block_height,
-    float BlockErrorLimit,
+    const int image_width,
+    const int image_height,
+    const channel_info mayout_channel[3],
+    const int factor,
+    const int comp_mask,
+    const float BlockErrorLimit,
     guetzli::CoeffData *output_order_batch);
 
 void clMask(const float* r, const float* g, const float* b,

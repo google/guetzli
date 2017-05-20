@@ -1464,6 +1464,7 @@ int SortInputOrder(DCTScoreData* input_order, int size)
 	for (j = 1; j < size; j++) {
 		tmp.idx = input_order[j].idx;
 		tmp.err = input_order[j].err;
+
 		i = j - 1;
 		while (i >= 0 && input_order[i].err > tmp.err) {
 			input_order[i + 1].idx = input_order[i].idx;
@@ -2942,7 +2943,7 @@ void floatcopy(float *dst, float *src, int size)
     }
 }
 
-void floatcopy_g(float *dst, __global float *src, int size)
+void coeffcopy_g(coeff_t *dst, __global coeff_t *src, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -3171,8 +3172,9 @@ typedef struct __channel_info_t
 }channel_info;
 
 // return the count of Non-zero item
-int MakeInputOrderEx(coeff_t *block, coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
+int MakeInputOrderEx(coeff_t block[3*8*8], coeff_t orig_block[3*8*8], IntFloatPairList *input_order)
 {
+    const int block_size = 64;
     int size = 0;
     for (int c = 0; c < 3; ++c) {
         for (int k = 1; k < block_size; ++k) {
@@ -3183,6 +3185,7 @@ int MakeInputOrderEx(coeff_t *block, coeff_t *orig_block, IntFloatPairList *inpu
             }
         }
     }
+ 
     return SortInputOrder(input_order->pData, size);
 }
 
@@ -3375,20 +3378,29 @@ __kernel void clComputeBlockZeroingOrderFactor(
 
     int block_idx = 0;        // 根据下面mask命中的channel来计算indx
 
-    coeff_t mayout_block[kComputeBlockSize] = { 0 };
-    coeff_t orig_block[kComputeBlockSize]   = { 0 };
+    coeff_t mayout_block[kComputeBlockSize] = { 1,20,160,78 };
+    coeff_t orig_block[kComputeBlockSize]   = { 2,190,78,78 };
+
     for (int c = 0; c < 3; c++) {
         if (comp_mask & (1<<c)) {
             block_idx = block_y * mayout_channel[c].block_width + block_x;
-            floatcopy_g(&mayout_block[c * kBlockSize],
-                        mayout_channel[c].coeff + block_idx * kBlockSize,
+            coeffcopy_g(&mayout_block[c * kBlockSize],
+                mayout_channel[c].coeff + block_idx * kBlockSize,
+                kBlockSize);
+            coeffcopy_g(&orig_block[c * kBlockSize],
+                orig_channel[c].coeff + block_idx * kBlockSize,
+                kBlockSize);
+ /*           floatcopy_g(&mayout_block[c * kBlockSize],
+                       mayout_channel[c].coeff + block_idx * kBlockSize,
                         kBlockSize);
 
             floatcopy_g(&orig_block[c * kBlockSize],
                         orig_channel[c].coeff + block_idx * kBlockSize,
                         kBlockSize);
+*/
         }
     }
+
 
     DCTScoreData input_order_data[kComputeBlockSize];
     CoeffData    output_order_data[kComputeBlockSize];
@@ -3396,7 +3408,7 @@ __kernel void clComputeBlockZeroingOrderFactor(
     IntFloatPairList input_order = { 0, input_order_data };
     IntFloatPairList output_order = { 0, output_order_data };
 
-    int count = MakeInputOrderEx(mayout_block, orig_block, &input_order, kBlockSize);
+    int count = MakeInputOrderEx(mayout_block, orig_block, &input_order);
 
     coeff_t processed_block[kComputeBlockSize];
     for (int i = 0; i < kComputeBlockSize; i++) {
