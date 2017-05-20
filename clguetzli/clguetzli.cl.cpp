@@ -1,28 +1,31 @@
 #include <algorithm>
 #include <stdint.h>
+#include <vector>
 #include "utils.h"
-#include "clguetzli_comparator.h"
-
-extern bool g_useOpenCL;
-extern bool g_checkOpenCL;
 
 using namespace std;
 
-int get_global_id(int dim)
-{
-    return 0;
+int g_idvec[10] = { 0 };
+int g_sizevec[10] = { 0 };
+
+int get_global_id(int dim) {
+    return g_idvec[dim];
+}
+int get_global_size(int dim) {
+    return g_sizevec[dim];
 }
 
-int get_global_size(int dim)
-{
-    return 0;
+void set_global_id(int dim, int id){
+    g_idvec[dim] = id;
 }
-
-#define abs(exper)    fabs((exper))
+void set_global_size(int dim, int size){
+    g_sizevec[dim] = size;
+}
 
 #define __opencl
+#define abs(exper)    fabs((exper))
+#include "clguetzli.h"
 #include "clguetzli.cl"
-
 
 namespace guetzli
 {
@@ -90,11 +93,6 @@ namespace guetzli
 
     void ButteraugliComparatorEx::SwitchBlock(int block_x, int block_y, int factor_x, int factor_y)
     {
-        block_x_ = block_x;
-        block_y_ = block_y;
-        factor_x_ = factor_x;
-        factor_y_ = factor_y;
-
         ButteraugliComparator::SwitchBlock(block_x, block_y, factor_x, factor_y);
     }
 
@@ -116,15 +114,9 @@ namespace guetzli
 
     double ButteraugliComparatorEx::CompareBlockEx(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const
     {
-        const int block_x = block_x_;
-        const int block_y = block_y_;
-        const int factor = factor_x_;
-
-        const coeff_t *candidate_channel[3];
         channel_info mayout_channel[3];
         for (int c = 0; c < 3; c++)
         {
-            candidate_channel[c] = &candidate_block[c * 8 * 8];
             mayout_channel[c].block_height = img.component(c).height_in_blocks();
             mayout_channel[c].block_width = img.component(c).width_in_blocks();
             mayout_channel[c].factor = img.component(c).factor_x();
@@ -134,8 +126,8 @@ namespace guetzli
 
         return CompareBlockFactor(mayout_channel,
             candidate_block,
-            block_x,
-            block_y,
+            block_x_,
+            block_y_,
             imgOpsinDynamicsBlockList.data(),
             imgMaskXyzScaleBlockList.data(),
             width_,
