@@ -1869,7 +1869,7 @@ __constant static float bias[192] = {
 
 // chrisk todo
 // return the count of Non-zero item
-int MakeInputOrder(__global coeff_t *block, __global coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
+int MakeInputOrder(__global const coeff_t *block, __global const coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
 {
 	int size = 0;
 	for (int c = 0; c < 3; ++c) {
@@ -2607,7 +2607,7 @@ __constant static double kSrgb8ToLinearTable[256] = {
 };
 
 
-void YUVToImage(uchar yuv[3 * 8 * 8], float* r, float* g, float* b, int xsize/* = 8*/, int ysize/* = 8*/, int inside_x/* = 8*/, int inside_y/* = 8*/)
+void YUVToImage(__private uchar yuv[3 * 8 * 8], float* r, float* g, float* b, int xsize/* = 8*/, int ysize/* = 8*/, int inside_x/* = 8*/, int inside_y/* = 8*/)
 {
     YUVToRGB(yuv, xsize * ysize);
 
@@ -2646,19 +2646,19 @@ void YUVToImage(uchar yuv[3 * 8 * 8], float* r, float* g, float* b, int xsize/* 
 void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8], int inside_x, int inside_y)
 {
 	uchar idct[3][8 * 8];
-	CoeffToIDCT(&block[0], &idct[0]);
-	CoeffToIDCT(&block[8 * 8], &idct[1]);
-	CoeffToIDCT(&block[8 * 8 * 2], &idct[2]);
+	CoeffToIDCT(&block[0], idct[0]);
+	CoeffToIDCT(&block[8 * 8], idct[1]);
+	CoeffToIDCT(&block[8 * 8 * 2], idct[2]);
 
 	ushort pixels[3][8 * 8];
-	IDCTToPixel8x8(&idct[0], &pixels[0]);
-	IDCTToPixel8x8(&idct[1], &pixels[1]);
-	IDCTToPixel8x8(&idct[2], &pixels[2]);
+	IDCTToPixel8x8(idct[0], pixels[0]);
+	IDCTToPixel8x8(idct[1], pixels[1]);
+	IDCTToPixel8x8(idct[2], pixels[2]);
 
 	uchar yuv[8 * 8 * 3];
-	PixelToYUV(&pixels[0], &yuv[0], 8, 8);
-	PixelToYUV(&pixels[1], &yuv[1], 8, 8);
-	PixelToYUV(&pixels[2], &yuv[2], 8, 8);
+	PixelToYUV(pixels[0], &yuv[0], 8, 8);
+	PixelToYUV(pixels[1], &yuv[1], 8, 8);
+	PixelToYUV(pixels[2], &yuv[2], 8, 8);
 
 	YUVToRGB(yuv, 8 * 8);
 
@@ -2690,12 +2690,12 @@ void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], fl
     }
 }
 
-void CoeffToYUV16x16(const coeff_t block[8 * 8], uchar *yuv, __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
+void CoeffToYUV16x16(__private const coeff_t block[8 * 8], uchar *yuv, __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
 {
     uchar idct[8 * 8];
     CoeffToIDCT(&block[0], &idct[0]);
 
-    uchar pixels[16 * 16];
+    ushort pixels[16 * 16];
     IDCTToPixel16x16(idct, pixels, pixel_orig, block_x, block_y, width_, height_);
 
     PixelToYUV(pixels, yuv, 16, 16);
@@ -2711,7 +2711,7 @@ void CoeffToYUV16x16_g(__global const coeff_t block[8 * 8], uchar *yuv, __global
     CoeffToYUV16x16(b, yuv, pixel_orig, block_x, block_y, width_, height_);
 }
 
-void CoeffToYUV8x8(const coeff_t block[8 * 8], uchar *yuv)
+void CoeffToYUV8x8(__private const coeff_t block[8 * 8], uchar *yuv)
 {
     uchar idct[8 * 8];
     CoeffToIDCT(&block[0], &idct[0]);
@@ -2834,8 +2834,8 @@ void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, 
 
 
 // ian todo
-void OpsinDynamicsImageBlock(float *r, float *g, float *b,
-                            float *r_blurred, float *g_blurred, float *b_blurred,
+void OpsinDynamicsImageBlock(__private float *r, __private float *g, __private float *b,
+                            __private float *r_blurred, __private float *g_blurred, __private float *b_blurred,
                             int size)
 {
   for (size_t i = 0; i < size; ++i) {
@@ -2935,7 +2935,7 @@ typedef union ocl_channels_t
     float *ch[3];
 }ocl_channels;
 
-void floatcopy(float *dst, float *src, int size)
+void floatcopy(float *dst, const float *src, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -2943,7 +2943,7 @@ void floatcopy(float *dst, float *src, int size)
     }
 }
 
-void coeffcopy_g(coeff_t *dst, __global coeff_t *src, int size)
+void coeffcopy_g(coeff_t *dst, const __global coeff_t *src, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -2951,7 +2951,7 @@ void coeffcopy_g(coeff_t *dst, __global coeff_t *src, int size)
     }
 }
 
-void coeffcopy(coeff_t *dst, coeff_t *src, int size)
+void coeffcopy(coeff_t *dst, const coeff_t *src, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -2969,7 +2969,7 @@ void CalcOpsinDynamicsImage(ocl_channels rgb)
     OpsinDynamicsImageBlock(rgb.r, rgb.g, rgb.b, rgb_blurred[0], rgb_blurred[1], rgb_blurred[2], kDCTBlockSize);
 }
 
-void CalcOpsinDynamicsImage2(float rgb[3][kDCTBlockSize])
+void CalcOpsinDynamicsImage2(__private float rgb[3][kDCTBlockSize])
 {
     float rgb_blurred[3][kDCTBlockSize];
     for (int i = 0; i < 3; i++)
@@ -2979,7 +2979,7 @@ void CalcOpsinDynamicsImage2(float rgb[3][kDCTBlockSize])
     OpsinDynamicsImageBlock(rgb[0], rgb[1], rgb[2], rgb_blurred[0], rgb_blurred[1], rgb_blurred[2], kDCTBlockSize);
 }
 
-double ComputeImage8x8Block(float rgb0_c[3][kDCTBlockSize], float rgb1_c[3][kDCTBlockSize], __global float* mask_scale_block)
+double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private float rgb1_c[3][kDCTBlockSize], const __global float* mask_scale_block)
 {
     CalcOpsinDynamicsImage2(rgb0_c);
     CalcOpsinDynamicsImage2(rgb1_c);
@@ -2987,8 +2987,8 @@ double ComputeImage8x8Block(float rgb0_c[3][kDCTBlockSize], float rgb1_c[3][kDCT
     float rgb0[3][kDCTBlockSize];
     float rgb1[3][kDCTBlockSize];
 
-    floatcopy(rgb0, rgb0_c, 3 * kDCTBlockSize);
-    floatcopy(rgb1, rgb1_c, 3 * kDCTBlockSize);
+    floatcopy(&rgb0[0][0], &rgb0_c[0][0], 3 * kDCTBlockSize);
+    floatcopy(&rgb1[0][0], &rgb1_c[0][0], 3 * kDCTBlockSize);
 
     MaskHighIntensityChangeBlock(rgb0[0], rgb0[1], rgb0[2],
                                 rgb1[0], rgb1[1], rgb1[2],
@@ -3027,7 +3027,7 @@ double ComputeImage8x8Block(float rgb0_c[3][kDCTBlockSize], float rgb1_c[3][kDCT
 // candidate_block [R....R][G....G][B....B]
 // orig_image_block [RR..RRGG..GGBB..BB]
 // mask_scale[RGB]
-float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block, __global float* mask_scale_block)
+float CompareBlockEx(coeff_t *candidate_block, __global const float* orig_image_block, __global const float* mask_scale_block)
 {
     float rgb0[3][kDCTBlockSize];
     float rgb1[3][kDCTBlockSize];
@@ -3052,8 +3052,8 @@ float CompareBlockEx(coeff_t *candidate_block, __global float* orig_image_block,
         CalcOpsinDynamicsImage(rgb0_c);
         CalcOpsinDynamicsImage(rgb1_c);
 
-        floatcopy(rgb0, rgb0_data, 3 * kDCTBlockSize);
-        floatcopy(rgb1, image_block, 3 * kDCTBlockSize);
+        floatcopy(&rgb0[0][0], rgb0_data, 3 * kDCTBlockSize);
+        floatcopy(&rgb1[0][0], image_block, 3 * kDCTBlockSize);
 
         MaskHighIntensityChangeBlock(rgb0[0],rgb0[1], rgb0[2],
                                      rgb1[0], rgb1[1], rgb1[2],
@@ -3102,9 +3102,9 @@ __kernel void clComputeBlockZeroingOrder(__global const coeff_t *orig_batch,    
     int block_idx = get_global_id(0);
 #define kComputeBlockSize (kBlockSize * 3)
 
-    __global coeff_t *orig_block       = orig_batch + block_idx * kComputeBlockSize;
-    __global coeff_t *mayout_block     = mayout_batch + block_idx * kComputeBlockSize;
-    __global float   *orig_image_block = orig_image_batch + block_idx * kComputeBlockSize;
+    __global const coeff_t *orig_block       = orig_batch + block_idx * kComputeBlockSize;
+    __global const coeff_t *mayout_block     = mayout_batch + block_idx * kComputeBlockSize;
+    __global const float   *orig_image_block = orig_image_batch + block_idx * kComputeBlockSize;
 
     DCTScoreData input_order_data[kComputeBlockSize];
     CoeffData    output_order_data[kComputeBlockSize];
@@ -3180,7 +3180,7 @@ typedef struct __channel_info_t
 }channel_info;
 
 // return the count of Non-zero item
-int MakeInputOrderEx(coeff_t block[3*8*8], coeff_t orig_block[3*8*8], IntFloatPairList *input_order)
+int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order)
 {
     const int block_size = 64;
     int size = 0;
@@ -3198,7 +3198,7 @@ int MakeInputOrderEx(coeff_t block[3*8*8], coeff_t orig_block[3*8*8], IntFloatPa
 }
 
 int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
-                 __global float *orig_image_batch,
+                 const __global float *orig_image_batch,
                  int width_,
                  int height_,
                  int block_x, int block_y,
@@ -3336,7 +3336,7 @@ double CompareBlockFactor(const channel_info mayout_channel[3],
 
                 float rgb1_c[3][kDCTBlockSize];
                 Copy16x16ToChannel(rgb16x16, rgb1_c[0], rgb1_c[1], rgb1_c[2], ix, iy);
-                double err = ComputeImage8x8Block(rgb0_c, rgb1_c, block_8x8idx);
+                double err = ComputeImage8x8Block(rgb0_c, rgb1_c, mask_scale + block_8x8idx * 3);
                 max_err = max(max_err, err);
             }
         }
