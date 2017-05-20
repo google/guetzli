@@ -63,7 +63,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMap", &err);
 	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMap", &err);
 	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreq", &err);
-    ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDERFACTOR] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrderFactor", &err);
+    ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrder", &err);
 
 	return ocl;
 }
@@ -1251,7 +1251,7 @@ void clComputeBlockZeroingOrder(const guetzli::coeff_t *orig_batch,     // ԭʼ�
     clReleaseMemObject(mem_output_order_batch);
 }
 
-void clComputeBlockZeroingOrderFactor(
+void clComputeBlockZeroingOrder(
     const channel_info orig_channel[3],
     const float *orig_image_batch,
     const float *mask_scale,
@@ -1280,12 +1280,11 @@ void clComputeBlockZeroingOrderFactor(
     {
         int block_count = orig_channel[c].block_width * orig_channel[c].block_height;
         mem_orig_coeff[c] = ocl.allocMem(block_count * sizeof(::coeff_t) * kDCTBlockSize, orig_channel[c].coeff);
-
+        
         block_count = mayout_channel[c].block_width * mayout_channel[c].block_height;
         mem_mayout_coeff[c] = ocl.allocMem(block_count * sizeof(::coeff_t) * kDCTBlockSize, mayout_channel[c].coeff);
 
         mem_mayout_pixel[c] = ocl.allocMem(image_width * image_height * sizeof(uint16_t), mayout_channel[c].pixel);
-
     }
     cl_mem mem_orig_image = ocl.allocMem(sizeof(float) * 3 * kDCTBlockSize * block8_width * block8_height, orig_image_batch);
     cl_mem mem_mask_scale = ocl.allocMem(sizeof(float) * 3 * block8_width * block8_height, mask_scale);
@@ -1293,12 +1292,12 @@ void clComputeBlockZeroingOrderFactor(
     int output_order_batch_size = sizeof(CoeffData) * 3 * kDCTBlockSize * blockf_width * blockf_height;
     cl_mem mem_output_order_batch = ocl.allocMem(output_order_batch_size);
     cl_float clBlockErrorLimit = BlockErrorLimit;
-    cl_int  clWidth = image_width;
-    cl_int  clHeight = image_height;
-    cl_int  clFactor = factor;
+    cl_int clWidth = image_width;
+    cl_int clHeight = image_height;
+    cl_int clFactor = factor;
     cl_int clMask = comp_mask;
 
-    cl_kernel kernel = ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDERFACTOR];
+    cl_kernel kernel = ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER];
     clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mem_orig_coeff[0]);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mem_orig_coeff[1]);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&mem_orig_coeff[2]);

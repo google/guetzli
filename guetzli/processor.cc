@@ -74,10 +74,6 @@ class Processor {
       const int block_x, const int block_y, const int factor_x,
       const int factor_y, const uint8_t comp_mask, OutputImage* img, const OutputImage& img2,
       std::vector<CoeffData>* output_order);
-  /*
-  void ComputeBlockZeroingOrder(const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
-      const int block_x, const int block_y, std::vector<CoeffData>* output_order);
-  */
 
   bool SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
                          int best_q[3][kDCTBlockSize],
@@ -659,7 +655,7 @@ void Processor::SelectFrequencyMaskingBatch(const JPEGData& jpg, OutputImage* im
         output_order_gpu.resize(num_blocks * kBlockSize);
         output_order = output_order_gpu.data();
 
-        clComputeBlockZeroingOrderFactor(orig_channel,
+        clComputeBlockZeroingOrder(orig_channel,
                                         comp->imgOpsinDynamicsBlockList.data(),
                                         comp->imgMaskXyzScaleBlockList.data(),
                                         width,
