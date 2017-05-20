@@ -25,7 +25,7 @@ void clComputeBlockZeroingOrder(const coeff_t *orig_batch,
     float BlockErrorLimit,
     guetzli::CoeffData *output_order_batch);
 
-void clComputeBlockZeroingOrderFactor(
+void clComputeBlockZeroingOrder(
     const channel_info orig_channel[3],
     const float *orig_image_batch,
     const float *mask_scale,

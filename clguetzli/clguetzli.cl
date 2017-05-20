@@ -3161,7 +3161,7 @@ double CompareBlockFactor(const channel_info mayout_channel[3],
 }
 
 // batch是指已经二维块展开为了一维块
-__kernel void clComputeBlockZeroingOrderFactor(
+__kernel void clComputeBlockZeroingOrder(
     __global const coeff_t *orig_batch_0,       // 原始图像系数
     __global const coeff_t *orig_batch_1,       // 原始图像系数
     __global const coeff_t *orig_batch_2,       // 原始图像系数
@@ -3169,12 +3169,14 @@ __kernel void clComputeBlockZeroingOrderFactor(
     __global const float   *mask_scale,         // 原始图像的某个神秘参数
     int                    image_width,
     int                    image_height,
+
     __global const coeff_t *mayout_batch_0,     // 输出备选图的系数
     __global const coeff_t *mayout_batch_1,     // 输出备选图的系数
     __global const coeff_t *mayout_batch_2,     // 输出备选图的系数
     __global const ushort  *mayout_pixel_0,
     __global const ushort  *mayout_pixel_1,
     __global const ushort  *mayout_pixel_2,
+
     channel_info            mayout_channel_0,
     channel_info            mayout_channel_1,
     channel_info            mayout_channel_2,
@@ -3216,7 +3218,6 @@ __kernel void clComputeBlockZeroingOrderFactor(
                 kBlockSize);
         }
     }
-
 
     DCTScoreData input_order_data[kComputeBlockSize];
     CoeffData    output_order_data[kComputeBlockSize];
