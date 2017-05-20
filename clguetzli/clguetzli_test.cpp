@@ -62,12 +62,12 @@ void tclMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	FLOAT_COMPARE(result_g2, r1_g, xsize * ysize);
 	FLOAT_COMPARE(result_b2, r1_b, xsize * ysize);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.r, r0_r, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.g, r0_g, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.b, r0_b, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.r, r1_r, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.g, r1_g, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.b, r1_b, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.r, r0_r, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.g, r0_g, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb0.b, r0_b, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.r, r1_r, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.g, r1_g, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, xyb1.b, r1_b, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb0);
@@ -106,7 +106,7 @@ void tclEdgeDetectorMap(const float* r, const float* g, const float* b,
 
 	FLOAT_COMPARE(result, r_r, res_xsize * res_ysize * 3);
 	
-	clEnqueueUnmapMemObject(ocl.commandQueue, edge, r_r, edgemap_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, edge, r_r, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb0);
@@ -150,8 +150,8 @@ void tclBlockDiffMap(const float* r, const float* g, const float* b,
 	FLOAT_COMPARE(r_dc, result_diff_dc, res_xsize * res_ysize * 3);
 	FLOAT_COMPARE(r_ac, result_diff_ac, res_xsize * res_ysize * 3);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_dc, r_dc, reschannel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_ac, r_ac, reschannel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_dc, r_dc, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_ac, r_ac, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb0);
@@ -197,7 +197,7 @@ void tclEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 
 	FLOAT_COMPARE(r_ac, result_diff_ac, res_xsize * res_ysize * 3);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_ac, r_ac, reschannel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, block_diff_ac, r_ac, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb0);
@@ -246,12 +246,12 @@ void tclMask(const float* r, const float* g, const float* b,
 	FLOAT_COMPARE(maskdc_g, r1_g, xsize * ysize);
 	FLOAT_COMPARE(maskdc_b, r1_b, xsize * ysize);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, mask.r, r0_r, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, mask.g, r0_g, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, mask.b, r0_b, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.r, r1_r, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.g, r1_g, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.b, r1_b, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask.r, r0_r, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask.g, r0_g, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask.b, r0_b, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.r, r1_r, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.g, r1_g, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mask_dc.b, r1_b, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(rgb);
@@ -299,7 +299,7 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 
 	FLOAT_COMPARE(result_tmp, result, res_xsize * res_ysize);
 
-  clEnqueueUnmapMemObject(ocl.commandQueue, cl_result, result_tmp, res_xsize * res_ysize * sizeof(float), NULL, NULL);
+  clEnqueueUnmapMemObject(ocl.commandQueue, cl_result, result_tmp, 0, NULL, NULL);
 	ocl.releaseMemChannels(mask);
 	ocl.releaseMemChannels(mask_dc);
 	clReleaseMemObject(cl_block_diff_dc);
@@ -324,7 +324,7 @@ void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	//cl_float *result_tmp = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_diffmap, true, CL_MAP_READ, 0, length, 0, NULL, NULL, &err);
   //err = clFinish(ocl.commandQueue);
 	//FLOAT_COMPARE(result_tmp, diffmap_cmp, xsize * ysize);
-  //clEnqueueUnmapMemObject(ocl.commandQueue, mem_diffmap, result_tmp, length, NULL, NULL);
+  //clEnqueueUnmapMemObject(ocl.commandQueue, mem_diffmap, result_tmp, 0, NULL, NULL);
 	clReleaseMemObject(mem_diffmap);
 }
 
@@ -346,7 +346,7 @@ void tclBlur(float* channel, size_t xsize, size_t ysize, double sigma, double bo
 
     FLOAT_COMPARE(result, r_r, xsize * ysize);
 
-    clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, channel_size, NULL, NULL);
+    clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, 0, NULL, NULL);
     err = clFinish(ocl.commandQueue);
 
     clReleaseMemObject(r);
@@ -383,7 +383,7 @@ void tclConvolution(size_t xsize, size_t ysize,
 
 	FLOAT_COMPARE(result, r_r, dxsize * ysize);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, result_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	clReleaseMemObject(i);
@@ -415,7 +415,7 @@ void tclUpsample(float* image, size_t xsize, size_t ysize,
 
 	FLOAT_COMPARE(result, r_r, xsize * ysize);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, result_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	clReleaseMemObject(img);
@@ -457,9 +457,9 @@ void tclDiffPrecompute(
   ocl.releaseMemChannels(cl_xyb0);
   ocl.releaseMemChannels(cl_xyb1);
   ocl.releaseMemChannels(cl_mask);
-  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.x, r_x, channel_size, NULL, NULL);
-  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.y, r_y, channel_size, NULL, NULL);
-  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.b, r_b, channel_size, NULL, NULL);
+  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.x, r_x, 0, NULL, NULL);
+  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.y, r_y, 0, NULL, NULL);
+  clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.b, r_b, 0, NULL, NULL);
 }
 
 // ian todo
@@ -474,7 +474,7 @@ void tclAverage5x5(int xsize, int ysize, std::vector<float> &diffs_org, std::vec
   err = clFinish(ocl.commandQueue);
   FLOAT_COMPARE(r, diffs_cmp.data(), xsize * ysize);
 
-  clEnqueueUnmapMemObject(ocl.commandQueue, mem_diff, r, xsize * ysize * sizeof(float), NULL, NULL);
+  clEnqueueUnmapMemObject(ocl.commandQueue, mem_diff, r, 0, NULL, NULL);
   clReleaseMemObject(mem_diff);
 }
 
@@ -498,7 +498,7 @@ void tclMinSquareVal(float *img, size_t square_size, size_t offset,
 
 	FLOAT_COMPARE(values, r_r, xsize * ysize);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, img_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	clReleaseMemObject(r);
@@ -517,7 +517,7 @@ void tclScaleImage(double scale, float *result_org, float *result_cmp, size_t le
 
   FLOAT_COMPARE(r_r, result_cmp, length);
 
-  clEnqueueUnmapMemObject(ocl.commandQueue, mem_result_org, r_r, length * sizeof(float), NULL, NULL);
+  clEnqueueUnmapMemObject(ocl.commandQueue, mem_result_org, r_r, 0, NULL, NULL);
   clReleaseMemObject(mem_result_org);
 }
 
@@ -546,9 +546,9 @@ void tclOpsinDynamicsImage(float* r, float* g, float* b, size_t xsize, size_t ys
 	FLOAT_COMPARE(result_g, r_g, xsize * ysize);
 	FLOAT_COMPARE(result_b, r_b, xsize * ysize);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.r, r_r, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.g, r_g, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.b, r_b, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.r, r_r, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.g, r_g, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.b, r_b, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(rgb);
