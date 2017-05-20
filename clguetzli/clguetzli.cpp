@@ -385,9 +385,9 @@ void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float*
 	memcpy(g, result_g, channel_size);
 	memcpy(b, result_b, channel_size);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.r, result_r, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.g, result_g, channel_size, NULL, NULL);
-	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.b, result_b, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.r, result_r, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.g, result_g, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, rgb.b, result_b, 0, NULL, NULL);
 	clFinish(ocl.commandQueue);
 
     ocl.releaseMemChannels(rgb);
@@ -1182,7 +1182,7 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	err = clFinish(ocl.commandQueue);
 	memcpy(result, result_r, channel_size);
 
-	clEnqueueUnmapMemObject(ocl.commandQueue, mem_result, result_r, channel_size, NULL, NULL);
+	clEnqueueUnmapMemObject(ocl.commandQueue, mem_result, result_r, 0, NULL, NULL);
 	clFinish(ocl.commandQueue);
 
 	ocl.releaseMemChannels(xyb1);
@@ -1242,7 +1242,7 @@ void clComputeBlockZeroingOrder(const guetzli::coeff_t *orig_batch,     // ԭʼ�
     err = clFinish(ocl.commandQueue);
     memcpy(output_order_batch, result, sizeof(CoeffData) * item_count);
 
-    clEnqueueUnmapMemObject(ocl.commandQueue, mem_output_order_batch, result, sizeof(CoeffData) * item_count, NULL, NULL);
+    clEnqueueUnmapMemObject(ocl.commandQueue, mem_output_order_batch, result, 0, NULL, NULL);
     clFinish(ocl.commandQueue);
 
     clReleaseMemObject(mem_orig_batch);
