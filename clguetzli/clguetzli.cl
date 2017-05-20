@@ -2953,7 +2953,7 @@ void CalcOpsinDynamicsImage(__private float rgb[3][kDCTBlockSize])
 
 double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private float rgb1_c[3][kDCTBlockSize], const __global float* mask_scale_block)
 {
-    CalcOpsinDynamicsImage(rgb0_c);
+//    CalcOpsinDynamicsImage(rgb0_c);
     CalcOpsinDynamicsImage(rgb1_c);
 
     float rgb0[3][kDCTBlockSize];
