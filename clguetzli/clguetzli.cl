@@ -1,10 +1,6 @@
-//#ifdef cl_khr_fp64
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
-//#elif defined(cl_amd_fp64)
-//#pragma OPENCL EXTENSION cl_amd_fp64 : enable
-//#else
-//#error "Double precision floating point not supported by OpenCL implementation."
-//#endif
+
+#include  "clguetzli\clguetzli.cl.h"
 
 #define kBlockEdge 8
 #define kBlockSize (kBlockEdge * kBlockEdge)
@@ -244,7 +240,7 @@ __kernel void clScaleImage(double scale, __global float *result)
     result[i] *= scale;
 }
 
-kernel void clRemoveBorder(__global float *in, int in_xsize, int s, int s2, __global float *out)
+__kernel void clRemoveBorder(__global float *in, int in_xsize, int s, int s2, __global float *out)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -255,7 +251,7 @@ kernel void clRemoveBorder(__global float *in, int in_xsize, int s, int s2, __gl
     out[y * xsize + x] = in[(y + s2) * (xsize + s) + x + s2];
 }
 
-kernel void clAddBorder(__global float *out, int s, int s2, __global float *in)
+__kernel void clAddBorder(__global float *out, int s, int s2, __global float *in)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -1426,8 +1422,6 @@ typedef struct __IntFloatPair
     int   idx;
     float err;
 }IntFloatPair, DCTScoreData, CoeffData;
-
-typedef short coeff_t;
 
 typedef struct __IntFloatPairList 
 {
@@ -2643,7 +2637,7 @@ void YUVToImage(__private uchar yuv[3 * 8 * 8], float* r, float* g, float* b, in
 
 
 // chrisk todo
-void BlockToImage(__private coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8], int inside_x, int inside_y)
+void BlockToImage(__private const coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8], int inside_x, int inside_y)
 {
 	uchar idct[3][8 * 8];
 	CoeffToIDCT(&block[0], idct[0]);
@@ -2870,70 +2864,58 @@ void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
     float *c1_x, float *c1_y, float *c1_b,
     int xsize, int ysize)
 {
-	for (int x = 0; x < xsize; ++x)
-	{ 
-		for (int y = 0; y < ysize; ++y)
-		{ 
-			size_t ix = y * xsize + x;
-			const double ave[3] = {
-				(c0_x[ix] + c1_x[ix]) * 0.5,
-				(c0_y[ix] + c1_y[ix]) * 0.5,
-				(c0_b[ix] + c1_b[ix]) * 0.5,
-			};
-			double sqr_max_diff = -1;
-			{
-				int offset[4] = { -1, 1, -(int)(xsize), (int)(xsize) };
-				int border[4] = { x == 0, x + 1 == xsize, y == 0, y + 1 == ysize };
-				for (int dir = 0; dir < 4; ++dir) {
-					if (border[dir])
-					{
-						continue;
-					}
-					const int ix2 = ix + offset[dir];
-					double diff = 0.5 * (c0_y[ix2] + c1_y[ix2]) - ave[1];
-					diff *= diff;
-					if (sqr_max_diff < diff)
-					{
-						sqr_max_diff = diff;
-					}
-				}
-			}
-			const double kReductionX = 275.19165240059317;
-			const double kReductionY = 18599.41286306991;
-			const double kReductionZ = 410.8995306951065;
-			const double kChromaBalance = 106.95800948271017;
-			double chroma_scale = kChromaBalance / (ave[1] + kChromaBalance);
-
-			const double mix[3] = {
-				chroma_scale * kReductionX / (sqr_max_diff + kReductionX),
-				kReductionY / (sqr_max_diff + kReductionY),
-				chroma_scale * kReductionZ / (sqr_max_diff + kReductionZ),
-			};
-			// Interpolate lineraly between the average color and the actual
-			// color -- to reduce the importance of this pixel.
-			xyb0_x[ix] = (float)(mix[0] * c0_x[ix] + (1 - mix[0]) * ave[0]);
-			xyb1_x[ix] = (float)(mix[0] * c1_x[ix] + (1 - mix[0]) * ave[0]);
-
-			xyb0_y[ix] = (float)(mix[1] * c0_y[ix] + (1 - mix[1]) * ave[1]);
-			xyb1_y[ix] = (float)(mix[1] * c1_y[ix] + (1 - mix[1]) * ave[1]);
-
-			xyb0_b[ix] = (float)(mix[2] * c0_b[ix] + (1 - mix[2]) * ave[2]);
-			xyb1_b[ix] = (float)(mix[2] * c1_b[ix] + (1 - mix[2]) * ave[2]);
-		}
-	}
-}
-
-typedef union ocl_channels_t
-{
-    struct
+    for (int x = 0; x < xsize; ++x)
     {
-        float * r;
-        float * g;
-        float * b;
-    };
+        for (int y = 0; y < ysize; ++y)
+        {
+            size_t ix = y * xsize + x;
+            const double ave[3] = {
+                (c0_x[ix] + c1_x[ix]) * 0.5,
+                (c0_y[ix] + c1_y[ix]) * 0.5,
+                (c0_b[ix] + c1_b[ix]) * 0.5,
+            };
+            double sqr_max_diff = -1;
+            {
+                int offset[4] = { -1, 1, -(int)(xsize), (int)(xsize) };
+                int border[4] = { x == 0, x + 1 == xsize, y == 0, y + 1 == ysize };
+                for (int dir = 0; dir < 4; ++dir) {
+                    if (border[dir])
+                    {
+                        continue;
+                    }
+                    const int ix2 = ix + offset[dir];
+                    double diff = 0.5 * (c0_y[ix2] + c1_y[ix2]) - ave[1];
+                    diff *= diff;
+                    if (sqr_max_diff < diff)
+                    {
+                        sqr_max_diff = diff;
+                    }
+                }
+            }
+            const double kReductionX = 275.19165240059317;
+            const double kReductionY = 18599.41286306991;
+            const double kReductionZ = 410.8995306951065;
+            const double kChromaBalance = 106.95800948271017;
+            double chroma_scale = kChromaBalance / (ave[1] + kChromaBalance);
 
-    float *ch[3];
-}ocl_channels;
+            const double mix[3] = {
+                chroma_scale * kReductionX / (sqr_max_diff + kReductionX),
+                kReductionY / (sqr_max_diff + kReductionY),
+                chroma_scale * kReductionZ / (sqr_max_diff + kReductionZ),
+            };
+            // Interpolate lineraly between the average color and the actual
+            // color -- to reduce the importance of this pixel.
+            xyb0_x[ix] = (float)(mix[0] * c0_x[ix] + (1 - mix[0]) * ave[0]);
+            xyb1_x[ix] = (float)(mix[0] * c1_x[ix] + (1 - mix[0]) * ave[0]);
+
+            xyb0_y[ix] = (float)(mix[1] * c0_y[ix] + (1 - mix[1]) * ave[1]);
+            xyb1_y[ix] = (float)(mix[1] * c1_y[ix] + (1 - mix[1]) * ave[1]);
+
+            xyb0_b[ix] = (float)(mix[2] * c0_b[ix] + (1 - mix[2]) * ave[2]);
+            xyb1_b[ix] = (float)(mix[2] * c1_b[ix] + (1 - mix[2]) * ave[2]);
+        }
+    }
+}
 
 void floatcopy(float *dst, const float *src, int size)
 {
@@ -3169,15 +3151,6 @@ __kernel void clComputeBlockZeroingOrder(__global const coeff_t *orig_batch,    
         }
     }
 }
-
-typedef struct __channel_info_t
-{
-    int factor;
-    int block_width;
-    int block_height;
-    __global const coeff_t *coeff;
-    __global const ushort *pixel;
-}channel_info;
 
 // return the count of Non-zero item
 int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order)

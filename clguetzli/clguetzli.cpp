@@ -1211,10 +1211,10 @@ void clComputeBlockZeroingOrder(const guetzli::coeff_t *orig_batch,     // ԭʼ�
     cl_int err = 0;
     ocl_args_d_t &ocl = getOcl();
 
-    cl_mem mem_orig_batch         = ocl.allocMem(sizeof(coeff_t) * item_count, orig_batch);
+    cl_mem mem_orig_batch         = ocl.allocMem(sizeof(::coeff_t) * item_count, orig_batch);
     cl_mem mem_orig_image_batch   = ocl.allocMem(sizeof(float) * item_count, orig_image_batch);
     cl_mem mem_mask_scale_batch   = ocl.allocMem(sizeof(float) * 3 * size, orig_mask_scale_batch);
-    cl_mem mem_mayout_batch       = ocl.allocMem(sizeof(coeff_t) * item_count, mayout_batch);
+    cl_mem mem_mayout_batch       = ocl.allocMem(sizeof(::coeff_t) * item_count, mayout_batch);
     cl_mem mem_output_order_batch = ocl.allocMem(sizeof(CoeffData) * item_count);
     cl_float clBlockErrorLimit = BlockErrorLimit;
 
@@ -1280,10 +1280,10 @@ void clComputeBlockZeroingOrderFactor(
     for (int c = 0; c < 3; c++)
     {
         int block_count = orig_channel[c].block_width * orig_channel[c].block_height;
-        mem_orig_coeff[c] = ocl.allocMem(block_count * sizeof(coeff_t) * kDCTBlockSize, orig_channel[c].coeff);
+        mem_orig_coeff[c] = ocl.allocMem(block_count * sizeof(::coeff_t) * kDCTBlockSize, orig_channel[c].coeff);
 
         block_count = mayout_channel[c].block_width * mayout_channel[c].block_height;
-        mem_mayout_coeff[c] = ocl.allocMem(block_count * sizeof(coeff_t) * kDCTBlockSize, mayout_channel[c].coeff);
+        mem_mayout_coeff[c] = ocl.allocMem(block_count * sizeof(::coeff_t) * kDCTBlockSize, mayout_channel[c].coeff);
 
         mem_mayout_pixel[c] = ocl.allocMem(image_width * image_height * sizeof(uint16_t), mayout_channel[c].pixel);
 

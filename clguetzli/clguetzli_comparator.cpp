@@ -276,16 +276,7 @@ void Copy16x16ToChannel(const float rgb16x16[3][16 * 16], float r[8 * 8], float 
         }
     }
 }
-/*
-typedef struct __channel_info_t
-{
-    int factor;
-    int block_width;
-    int block_height;
-    const coeff_t  *coeff;
-    const uint16_t *pixel;
-}channel_info;
-*/
+
 namespace guetzli
 {
 	ButteraugliComparatorEx::ButteraugliComparatorEx(const int width, const int height,

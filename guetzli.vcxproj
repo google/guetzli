@@ -291,8 +291,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="clguetzli\clbutter_comparator.cpp" />
+    <ClCompile Include="clguetzli\clguetzli.cl.cpp" />
     <ClCompile Include="clguetzli\clguetzli.cpp" />
-    <ClCompile Include="clguetzli\clguetzli_comparator.cpp" />
     <ClCompile Include="clguetzli\clguetzli_test.cpp" />
     <ClCompile Include="clguetzli\ocl.cpp" />
     <ClCompile Include="clguetzli\utils.cpp" />
@@ -385,6 +385,7 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </Command>
+      <Include Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"C:\Users\strongtu\Documents\Project\git_strong\guetzli\clguetzli";%(Include)</Include>
     </Intel_OpenCL_Build_Rules>
     <None Include="third_party\libpng\pngwin.def" />
     <None Include="third_party\zlib\inffas32.asm" />

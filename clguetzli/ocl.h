@@ -2,6 +2,7 @@
 
 #include "CL\cl.h"
 #include "utils.h"
+#include "clguetzli.cl.h"
 
 // Macros for OpenCL versions
 #define OPENCL_VERSION_1_2  1.2f
@@ -67,25 +68,6 @@ enum KernelName {
     KERNEL_COMPUTEBLOCKZEROINGORDERFACTOR,
 	KERNEL_COUNT,
 };
-
-typedef union ocl_channels_t
-{
-    struct
-    {
-        cl_mem r;
-        cl_mem g;
-        cl_mem b;
-    };
-
-	struct
-	{
-		cl_mem x;
-		cl_mem y;
-		cl_mem b;
-	};
-
-    cl_mem ch[3];
-}ocl_channels;
 
 struct ocl_args_d_t
 {
