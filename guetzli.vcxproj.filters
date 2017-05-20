@@ -575,10 +575,10 @@
     <ClCompile Include="clguetzli\clguetzli_test.cpp">
       <Filter>clguetzli</Filter>
     </ClCompile>
-    <ClCompile Include="clguetzli\clbutter_comparator.cpp">
+    <ClCompile Include="clguetzli\clguetzli.cl.cpp">
       <Filter>clguetzli</Filter>
     </ClCompile>
-    <ClCompile Include="clguetzli\clguetzli_comparator.cpp">
+    <ClCompile Include="clguetzli\clbutter_comparator.cpp">
       <Filter>clguetzli</Filter>
     </ClCompile>
   </ItemGroup>

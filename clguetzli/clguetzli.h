@@ -4,6 +4,8 @@
 #include "guetzli\processor.h"
 #include "ocl.h"
 
+#include "clguetzli.cl.h"
+
 extern bool g_useOpenCL;
 extern bool g_checkOpenCL;
 
@@ -15,22 +17,13 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
     size_t step,
     float* result);
 
-void clComputeBlockZeroingOrder(const guetzli::coeff_t *orig_batch,
+void clComputeBlockZeroingOrder(const coeff_t *orig_batch,
     const float *orig_image_batch,
     const float* orig_mask_scale_batch,
-    const guetzli::coeff_t *mayout_batch,
+    const coeff_t *mayout_batch,
     int size,
     float BlockErrorLimit,
     guetzli::CoeffData *output_order_batch);
-
-typedef struct __channel_info_t
-{
-    int factor;
-    int block_width;
-    int block_height;
-    const guetzli::coeff_t *coeff;
-    const uint16_t *pixel;
-}channel_info;
 
 void clComputeBlockZeroingOrderFactor(
     const channel_info orig_channel[3],
