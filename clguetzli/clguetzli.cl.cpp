@@ -92,48 +92,38 @@ namespace guetzli
         imgOpsinDynamicsBlockList.clear();
         imgMaskXyzScaleBlockList.clear();
     }
-
-    void ButteraugliComparatorEx::SwitchBlock(int block_x, int block_y, int factor_x, int factor_y)
-    {
-        ButteraugliComparator::SwitchBlock(block_x, block_y, factor_x, factor_y);
-    }
-
+    
     double ButteraugliComparatorEx::CompareBlock(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const
     {
         double err = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block, comp_mask);
-        return err;
         if (g_checkOpenCL)
         {
-            double err1 = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block, comp_mask);
-            if (err1 != err)
+            channel_info mayout_channel[3];
+            for (int c = 0; c < 3; c++)
             {
-                LogError("CHK %s(%d) \r\n", __FUNCTION__, __LINE__);
+                mayout_channel[c].block_height = img.component(c).height_in_blocks();
+                mayout_channel[c].block_width = img.component(c).width_in_blocks();
+                mayout_channel[c].factor = img.component(c).factor_x();
+                mayout_channel[c].pixel = img.component(c).pixels();
+                mayout_channel[c].coeff = img.component(c).coeffs();
+            }
+
+            double err2 = CompareBlockFactor(mayout_channel,
+                candidate_block,
+                block_x_,
+                block_y_,
+                imgOpsinDynamicsBlockList.data(),
+                imgMaskXyzScaleBlockList.data(),
+                width_,
+                height_,
+                factor_x_);
+
+            if (err != err2)
+            {
+                LogError("CompareBlock miss %s(%d) \r\n", __FUNCTION__, __LINE__);
             }
         }
 
         return err;
-    }
-
-    double ButteraugliComparatorEx::CompareBlockEx(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const
-    {
-        channel_info mayout_channel[3];
-        for (int c = 0; c < 3; c++)
-        {
-            mayout_channel[c].block_height = img.component(c).height_in_blocks();
-            mayout_channel[c].block_width = img.component(c).width_in_blocks();
-            mayout_channel[c].factor = img.component(c).factor_x();
-            mayout_channel[c].pixel = img.component(c).pixels();
-            mayout_channel[c].coeff = img.component(c).coeffs();
-        }
-
-        return CompareBlockFactor(mayout_channel,
-            candidate_block,
-            block_x_,
-            block_y_,
-            imgOpsinDynamicsBlockList.data(),
-            imgMaskXyzScaleBlockList.data(),
-            width_,
-            height_,
-            factor_x_);
     }
 }

@@ -309,6 +309,9 @@
     <ClInclude Include="clguetzli\clbutter_comparator.h">
       <Filter>clguetzli</Filter>
     </ClInclude>
+    <ClInclude Include="clguetzli\clguetzli.cl.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="guetzli\butteraugli_comparator.cc">
