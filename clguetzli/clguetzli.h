@@ -17,14 +17,6 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
     size_t step,
     float* result);
 
-void clComputeBlockZeroingOrder(const coeff_t *orig_batch,
-    const float *orig_image_batch,
-    const float* orig_mask_scale_batch,
-    const coeff_t *mayout_batch,
-    int size,
-    float BlockErrorLimit,
-    guetzli::CoeffData *output_order_batch);
-
 void clComputeBlockZeroingOrder(
     const channel_info orig_channel[3],
     const float *orig_image_batch,
@@ -108,10 +100,8 @@ namespace guetzli {
 
         void StartBlockComparisons() override;
         void FinishBlockComparisons() override;
-        void SwitchBlock(int block_x, int block_y, int factor_x, int factor_y) override;
 
         double CompareBlock(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const override;
-        double CompareBlockEx(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const;
     public:
         std::vector<float> imgOpsinDynamicsBlockList;   // [RR..RRGG..GGBB..BB]:blockCount
         std::vector<float> imgMaskXyzScaleBlockList;    // [RGBRGB..RGBRGB]:blockCount

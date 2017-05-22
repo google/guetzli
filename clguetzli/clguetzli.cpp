@@ -1194,63 +1194,6 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	clReleaseMemObject(mem_result);
 }
 
-// batch是指已经二维块展开为了一维块
-void clComputeBlockZeroingOrder(const guetzli::coeff_t *orig_batch,     // 原始图像系数
-                                const float *orig_image_batch,          // 原始图像pregamma后
-                                const float* orig_mask_scale_batch,     // 原始图像的某个神秘参数
-                                const guetzli::coeff_t *mayout_batch,   // 输出备选图的系数
-                                int size,                               //
-                                float BlockErrorLimit,
-                                guetzli::CoeffData *output_order_batch) //
-{
-    using namespace guetzli;
-
-    int item_count = 3 * kDCTBlockSize * size;
-
-    cl_int err = 0;
-    ocl_args_d_t &ocl = getOcl();
-
-    cl_mem mem_orig_batch         = ocl.allocMem(sizeof(::coeff_t) * item_count, orig_batch);
-    cl_mem mem_orig_image_batch   = ocl.allocMem(sizeof(float) * item_count, orig_image_batch);
-    cl_mem mem_mask_scale_batch   = ocl.allocMem(sizeof(float) * 3 * size, orig_mask_scale_batch);
-    cl_mem mem_mayout_batch       = ocl.allocMem(sizeof(::coeff_t) * item_count, mayout_batch);
-    cl_mem mem_output_order_batch = ocl.allocMem(sizeof(CoeffData) * item_count);
-    cl_float clBlockErrorLimit = BlockErrorLimit;
-
-    cl_kernel kernel = 0;// ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER];
-    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mem_orig_batch);
-    clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mem_orig_image_batch);
-    clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&mem_mask_scale_batch);
-    clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&mem_mayout_batch);
-    clSetKernelArg(kernel, 4, sizeof(cl_float), &clBlockErrorLimit);
-    clSetKernelArg(kernel, 5, sizeof(cl_mem), &mem_output_order_batch);
-
-    size_t globalWorkSize[1] = { size };
-    err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clComputeBlockZeroingOrder() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-    }
-    err = clFinish(ocl.commandQueue);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clComputeBlockZeroingOrder() clFinish returned %s.\n", TranslateOpenCLError(err));
-    }
-
-    CoeffData *result = (CoeffData *)clEnqueueMapBuffer(ocl.commandQueue, mem_output_order_batch, true, CL_MAP_READ, 0, sizeof(CoeffData) * item_count, 0, NULL, NULL, &err);
-    err = clFinish(ocl.commandQueue);
-    memcpy(output_order_batch, result, sizeof(CoeffData) * item_count);
-
-    clEnqueueUnmapMemObject(ocl.commandQueue, mem_output_order_batch, result, 0, NULL, NULL);
-    clFinish(ocl.commandQueue);
-
-    clReleaseMemObject(mem_orig_batch);
-    clReleaseMemObject(mem_orig_image_batch);
-    clReleaseMemObject(mem_mask_scale_batch);
-    clReleaseMemObject(mem_mayout_batch);
-    clReleaseMemObject(mem_output_order_batch);
-}
-
 void clComputeBlockZeroingOrder(
     const channel_info orig_channel[3],
     const float *orig_image_batch,

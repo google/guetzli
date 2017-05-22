@@ -196,6 +196,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="clguetzli\clbutter_comparator.h" />
+    <ClInclude Include="clguetzli\clguetzli.cl.h" />
     <ClInclude Include="clguetzli\clguetzli.h" />
     <ClInclude Include="clguetzli\clguetzli_test.h" />
     <ClInclude Include="clguetzli\ocl.h" />
