@@ -321,10 +321,10 @@ void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	cl_mem mem_diffmap = ocl.allocMem(length);
 	clEnqueueWriteBuffer(ocl.commandQueue, mem_diffmap, CL_FALSE, 0, org_len * sizeof(float), diffmap, 0, NULL, NULL);
 	clCalculateDiffmapEx(mem_diffmap, xsize, ysize, step);
-	//cl_float *result_tmp = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_diffmap, true, CL_MAP_READ, 0, length, 0, NULL, NULL, &err);
-  //err = clFinish(ocl.commandQueue);
-	//FLOAT_COMPARE(result_tmp, diffmap_cmp, xsize * ysize);
-  //clEnqueueUnmapMemObject(ocl.commandQueue, mem_diffmap, result_tmp, 0, NULL, NULL);
+	cl_float *result_tmp = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_diffmap, true, CL_MAP_READ, 0, length, 0, NULL, NULL, &err);
+  err = clFinish(ocl.commandQueue);
+	FLOAT_COMPARE(result_tmp, diffmap_cmp, xsize * ysize);
+  clEnqueueUnmapMemObject(ocl.commandQueue, mem_diffmap, result_tmp, 0, NULL, NULL);
 	clReleaseMemObject(mem_diffmap);
 }
 
