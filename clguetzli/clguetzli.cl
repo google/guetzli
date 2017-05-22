@@ -1,6 +1,6 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
-#include  "clguetzli\clguetzli.cl.h"
+#include  "clguetzli/clguetzli.cl.h"
 
 #define kBlockEdge      8
 #define kBlockSize      (kBlockEdge * kBlockEdge)

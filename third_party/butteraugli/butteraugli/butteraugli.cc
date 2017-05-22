@@ -40,9 +40,9 @@
 #include <algorithm>
 #include <array>
 
-#include "clguetzli\clbutter_comparator.h"
-#include "clguetzli\clguetzli.h"
-#include "clguetzli\clguetzli_test.h"
+#include "clguetzli/clbutter_comparator.h"
+#include "clguetzli/clguetzli.h"
+#include "clguetzli/clguetzli_test.h"
 
 // Restricted pointers speed up Convolution(); MSVC uses a different keyword.
 #ifdef _MSC_VER

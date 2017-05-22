@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "butteraugli\butteraugli.h"
+#include "butteraugli/butteraugli.h"
 
 #define __restrict__
 
