@@ -462,15 +462,15 @@ __kernel void clDoMask(
     __global const double *lut_x, __global const double *lut_y, __global const double *lut_b,
     __global const double *lut_dc_x, __global const double *lut_dc_y, __global const double *lut_dc_b)
 {
-    const double w00 = 232.206464018;
-    const double w11 = 22.9455222245;
-    const double w22 = 503.962310606;
-
     const int x = get_global_id(0);
     const int y = get_global_id(1);
 
     const int xsize = get_global_size(0);
     const int ysize = get_global_size(1);
+
+	const double w00 = 232.206464018;
+	const double w11 = 22.9455222245;
+	const double w22 = 503.962310606;
 
     const size_t idx = y * xsize + x;
     const double s0 = mask_x[idx];
@@ -636,6 +636,8 @@ __kernel void clUpsampleSquareRoot(__global const float *diffmap, int xsize, int
     }
 }
 
+#define Average5x5_w 0.679144890667f
+__constant float Average5x5_scale = 1.0f / (5.0f + 4 * Average5x5_w);
 __kernel void clAverage5x5(__global float *img, __global const float *img_org)
 {
     const int x = get_global_id(0);
@@ -643,8 +645,6 @@ __kernel void clAverage5x5(__global float *img, __global const float *img_org)
     const int xsize = get_global_size(0);
     const int ysize = get_global_size(1);
 
-	const float w = 0.679144890667f;
-	const float scale = 1.0f / (5.0f + 4 * w);
     const int row0 = y * xsize;
 	if (x - 1 >= 0) {
 		img[row0 + x] += img_org[row0 + x - 1];
@@ -656,26 +656,26 @@ __kernel void clAverage5x5(__global float *img, __global const float *img_org)
 	if (y > 0) {
 		const int rowd1 = row0 - xsize;
 		if (x - 1 >= 0) {
-			img[row0 + x] += img_org[rowd1 + x - 1] * w;
+			img[row0 + x] += img_org[rowd1 + x - 1] * Average5x5_w;
 		}
 		img[row0 + x] += img_org[rowd1 + x];
 		if (x + 1 < xsize) {
-			img[row0 + x] += img_org[rowd1 + x + 1] * w;
+			img[row0 + x] += img_org[rowd1 + x + 1] * Average5x5_w;
 		}
 	}
 
 	if (y + 1 < ysize) {
 		const int rowu1 = row0 + xsize;
 		if (x - 1 >= 0) {
-			img[row0 + x] += img_org[rowu1 + x - 1] * w;
+			img[row0 + x] += img_org[rowu1 + x - 1] * Average5x5_w;
 		}
 		img[row0 + x] += img_org[rowu1 + x];
 		if (x + 1 < xsize) {
-			img[row0 + x] += img_org[rowu1 + x + 1] * w;
+			img[row0 + x] += img_org[rowu1 + x + 1] * Average5x5_w;
 		}
 	}
 
-	img[row0 + x] *= scale;
+	img[row0 + x] *= Average5x5_scale;
 }
 
 void Butteraugli8x8CornerEdgeDetectorDiff(
