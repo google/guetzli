@@ -3167,8 +3167,8 @@ __kernel void clComputeBlockZeroingOrder(
     __global const coeff_t *orig_batch_2,       // 原始图像系数
     __global const float   *orig_image_batch,   // 原始图像pregamma
     __global const float   *mask_scale,         // 原始图像的某个神秘参数
-    int                    image_width,
-    int                    image_height,
+    const int              image_width,
+    const int              image_height,
 
     __global const coeff_t *mayout_batch_0,     // 输出备选图的系数
     __global const coeff_t *mayout_batch_1,     // 输出备选图的系数
@@ -3177,12 +3177,12 @@ __kernel void clComputeBlockZeroingOrder(
     __global const ushort  *mayout_pixel_1,
     __global const ushort  *mayout_pixel_2,
 
-    channel_info            mayout_channel_0,
-    channel_info            mayout_channel_1,
-    channel_info            mayout_channel_2,
-    int factor,                                 // 当前参与运算的factor
-    int comp_mask,                              // 当前参与运算的channel
-    float BlockErrorLimit,
+    const channel_info     mayout_channel_0,
+    const channel_info     mayout_channel_1,
+    const channel_info     mayout_channel_2,
+    const int factor,                                 // 当前参与运算的factor
+    const int comp_mask,                              // 当前参与运算的channel
+    const float BlockErrorLimit,
     __global CoeffData *output_order_list/*out*/)
 {
     const int block_x = get_global_id(0);
