@@ -13,7 +13,7 @@ double InterpolateClampNegative(__global const double *array, int size, double s
 void   XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
                                        double r1, double g1, double b1,
                                        double factor, double res[3]);
-double DotProduct(__global float u[3], double v[3]);
+double DotProduct(__global const float u[3], const double v[3]);
 void   OpsinAbsorbance(const double in[3], double out[3]);
 void   RgbToXyb(double r, double g, double b, double *valx, double *valy, double *valz);
 double Gamma(double v);
@@ -27,13 +27,13 @@ void Butteraugli8x8CornerEdgeDetectorDiff(
     int pos_y,
     int xsize,
     int ysize,
-    __global float *r, __global float *g, __global float* b,
-    __global float *r2, __global float* g2, __global float *b2,
+    __global const float *r, __global const float *g, __global const float* b,
+    __global const float *r2, __global const float* g2, __global const float *b2,
     double* diff_xyb);
 
 __kernel void clOpsinDynamicsImage(
     __global float *r, __global float *g, __global float *b,
-    __global float *r_blurred, __global float *g_blurred, __global float *b_blurred,
+    __global const float *r_blurred, __global const float *g_blurred, __global const float *b_blurred,
     int size)
 {
     const int i = get_global_id(0);
@@ -60,7 +60,7 @@ __kernel void clOpsinDynamicsImage(
     b[i] = z;
 }
 
-__kernel void clMinSquareVal(__global float* pA, __global float* pC, int square_size, int offset)
+__kernel void clMinSquareVal(__global const float* pA, __global float* pC, int square_size, int offset)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -87,7 +87,7 @@ __kernel void clMinSquareVal(__global float* pA, __global float* pC, int square_
     pC[y * width + x] = minValue;
 }
 
-__kernel void clConvolutionX(__global float* multipliers, __global float* inp, __global float* result,
+__kernel void clConvolutionX(__global const float* multipliers, __global const float* inp, __global float* result,
     int step, int len, int offset, float border_ratio)
 {
     const int x = get_global_id(0);
@@ -125,7 +125,7 @@ __kernel void clConvolutionX(__global float* multipliers, __global float* inp, _
     result[y * xsize + x] = sum * scale;
 }
 
-__kernel void clConvolutionY(__global float* multipliers, __global float* inp, __global float* result,
+__kernel void clConvolutionY(__global const float* multipliers, __global const float* inp, __global float* result,
     int step, int len, int offset, float border_ratio)
 {
     const int x = get_global_id(0);
@@ -164,7 +164,7 @@ __kernel void clConvolutionY(__global float* multipliers, __global float* inp, _
     result[y * xsize + x] = sum * scale;
 }
 
-__kernel void clConvolution(__global float* multipliers, __global float* inp, __global float* result,
+__kernel void clConvolution(__global const float* multipliers, __global const float* inp, __global float* result,
     int xsize, int xstep, int len, int offset, float border_ratio)
 {
     const int ox = get_global_id(0);
@@ -202,7 +202,7 @@ __kernel void clConvolution(__global float* multipliers, __global float* inp, __
     result[ox * ysize + y] = sum * scale;
 }
 
-__kernel void clSquareSample(__global float* pA, __global float* pC, int xstep, int ystep)
+__kernel void clSquareSample(__global const float* pA, __global float* pC, int xstep, int ystep)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -218,7 +218,7 @@ __kernel void clSquareSample(__global float* pA, __global float* pC, int xstep, 
     pC[y * xsize + x] = pA[y_sample * xsize + x_sample];
 }
 
-__kernel void clDownSample(__global float* pA, __global float* pC, int xstep, int ystep)
+__kernel void clDownSample(__global const float* pA, __global float* pC, int xstep, int ystep)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -240,7 +240,7 @@ __kernel void clScaleImage(double scale, __global float *result)
     result[i] *= scale;
 }
 
-__kernel void clRemoveBorder(__global float *in, int in_xsize, int s, int s2, __global float *out)
+__kernel void clRemoveBorder(__global const float *in, int in_xsize, int s, int s2, __global float *out)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -251,7 +251,7 @@ __kernel void clRemoveBorder(__global float *in, int in_xsize, int s, int s2, __
     out[y * xsize + x] = in[(y + s2) * (xsize + s) + x + s2];
 }
 
-__kernel void clAddBorder(__global float *out, int s, int s2, __global float *in)
+__kernel void clAddBorder(__global float *out, int s, int s2, __global const float *in)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -264,10 +264,10 @@ __kernel void clAddBorder(__global float *out, int s, int s2, __global float *in
 }
 
 __kernel void clCombineChannels(
-    __global float *mask_x, __global float *mask_y, __global float *mask_b,
-    __global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b,
-    __global float *block_diff_dc,
-    __global float *block_diff_ac,
+    __global const float *mask_x, __global const float *mask_y, __global const float *mask_b,
+    __global const float *mask_dc_x, __global const float *mask_dc_y, __global const float *mask_dc_b,
+    __global const float *block_diff_dc,
+    __global const float *block_diff_ac,
     __global float *edge_detector_map,
     int xsize, int ysize,
     int res_xsize,
@@ -296,8 +296,8 @@ __kernel void clCombineChannels(
 }
 
 __kernel void clDiffPrecompute(
-    __global float *xyb0_x, __global float *xyb0_y, __global float *xyb0_b,
-    __global float *xyb1_x, __global float *xyb1_y, __global float *xyb1_b,
+    __global const float *xyb0_x, __global const float *xyb0_y, __global const float *xyb0_b,
+    __global const float *xyb1_x, __global const float *xyb1_y, __global const float *xyb1_b,
     __global float *mask_x, __global float *mask_y, __global float *mask_b)
 {
     const int x = get_global_id(0);
@@ -362,8 +362,8 @@ __kernel void clDiffPrecompute(
 }
 
 __kernel void clEdgeDetectorMap(__global float *result,
-    __global float *r, __global float *g, __global float* b,
-    __global float *r2, __global float* g2, __global float *b2,
+    __global const float *r, __global const float *g, __global const float* b,
+    __global const float *r2, __global const float* g2, __global const float *b2,
     int xsize, int ysize, int step)
 {
     const int res_x = get_global_id(0);
@@ -394,8 +394,8 @@ __kernel void clEdgeDetectorMap(__global float *result,
 }
 
 __kernel void clEdgeDetectorLowFreq(__global float *result,
-    __global float *r, __global float *g, __global float* b,
-    __global float *r2, __global float* g2, __global float *b2,
+    __global const float *r, __global const float *g, __global const float* b,
+    __global const float *r2, __global const float* g2, __global const float *b2,
     int xsize, int ysize, int step)
 {
     const int res_x = get_global_id(0);
@@ -415,8 +415,8 @@ __kernel void clEdgeDetectorLowFreq(__global float *result,
     int ix = pos_y * xsize + pos_x;
 
     double diff[4][3];
-    __global float* blurred0[3] = { r, g, b };
-    __global float* blurred1[3] = { r2, g2, b2 };
+    __global const float* blurred0[3] = { r, g, b };
+    __global const float* blurred1[3] = { r2, g2, b2 };
 
     for (int i = 0; i < 3; ++i) {
         int ix2 = ix + 8;
@@ -459,8 +459,8 @@ __kernel void clEdgeDetectorLowFreq(__global float *result,
 __kernel void clDoMask(
     __global float *mask_x, __global float *mask_y, __global float *mask_b,
     __global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b,
-    __global double *lut_x, __global double *lut_y, __global double *lut_b,
-    __global double *lut_dc_x, __global double *lut_dc_y, __global double *lut_dc_b)
+    __global const double *lut_x, __global const double *lut_y, __global const double *lut_b,
+    __global const double *lut_dc_x, __global const double *lut_dc_y, __global const double *lut_dc_b)
 {
     const double w00 = 232.206464018;
     const double w11 = 22.9455222245;
@@ -489,8 +489,8 @@ __kernel void clDoMask(
 
 }
 
-__kernel void clBlockDiffMap(__global float* r, __global float* g, __global float* b,
-    __global float* r2, __global float* g2, __global float* b2,
+__kernel void clBlockDiffMap(__global const float* r, __global const float* g, __global const float* b,
+    __global const float* r2, __global const float* g2, __global const float* b2,
     __global float* block_diff_dc, __global float* block_diff_ac,
     int xsize, int ysize, int step)
 {
@@ -549,8 +549,8 @@ __kernel void clBlockDiffMap(__global float* r, __global float* g, __global floa
 __kernel void clMaskHighIntensityChange(
     __global float *xyb0_x, __global float *xyb0_y, __global float *xyb0_b,
     __global float *xyb1_x, __global float *xyb1_y, __global float *xyb1_b,
-    __global float *c0_x, __global float *c0_y, __global float *c0_b,
-    __global float *c1_x, __global float *c1_y, __global float *c1_b
+    __global const float *c0_x, __global const float *c0_y, __global const float *c0_b,
+    __global const float *c1_x, __global const float *c1_y, __global const float *c1_b
 )
 {
     const int x = get_global_id(0);
@@ -603,7 +603,7 @@ __kernel void clMaskHighIntensityChange(
     xyb1_b[ix] = (float)(mix[2] * c1_b[ix] + (1 - mix[2]) * ave[2]);
 }
 
-__kernel void clUpsampleSquareRoot(__global float *diffmap, int xsize, int ysize, int step, __global float *diffmap_out)
+__kernel void clUpsampleSquareRoot(__global const float *diffmap, int xsize, int ysize, int step, __global float *diffmap_out)
 {
     const int res_x = get_global_id(0);
     const int res_y = get_global_id(1);
@@ -636,7 +636,7 @@ __kernel void clUpsampleSquareRoot(__global float *diffmap, int xsize, int ysize
     }
 }
 
-__kernel void clAverageAddImage(__global float *img, __global float *tmp0, __global float *tmp1)
+__kernel void clAverageAddImage(__global float *img, __global const float *tmp0, __global const float *tmp1)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -694,18 +694,13 @@ __kernel void clAverageAddImage(__global float *img, __global float *tmp0, __glo
     }
 }
 
-
-
-
-
-
 void Butteraugli8x8CornerEdgeDetectorDiff(
     int pos_x,
     int pos_y,
     int xsize,
     int ysize,
-    __global float *r, __global float *g, __global float* b,
-    __global float *r2, __global float* g2, __global float *b2,
+    __global const float *r, __global const float *g, __global const float* b,
+    __global const float *r2, __global const float* g2, __global const float *b2,
     double* diff_xyb)
 {
     int local_count = 0;
@@ -755,13 +750,11 @@ void Butteraugli8x8CornerEdgeDetectorDiff(
     }
 }
 
-
-
-double DotProduct(__global float u[3], double v[3]) {
+double DotProduct(__global const float u[3], const double v[3]) {
     return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
 }
 
-double Interpolate(__constant double *array, int size, double sx) {
+double Interpolate(__constant const double *array, const int size, const double sx) {
     double ix = fabs(sx);
 
     int baseix = (int)(ix);
@@ -843,7 +836,6 @@ void XybToVals(
     *valz = zmul * z;
 }
 
-
 #define XybLowFreqToVals_inc 5.2511644570349185
 __constant double XybLowFreqToVals_lut[21] = {
     0,
@@ -881,7 +873,6 @@ void XybLowFreqToVals(double x, double y, double z,
     *valx = x * xmul;
     *valy = Interpolate(&XybLowFreqToVals_lut[0], 21, y * ymul);
 }
-
 
 double InterpolateClampNegative(__global const double *array,
 	int size, double sx) {
@@ -931,7 +922,6 @@ typedef struct __Complex
 	double real;
 	double imag;
 }Complex;
-
 
 __constant double kSqrtHalf = 0.70710678118654752440084436210484903;
 void RealFFT8(const double* in, Complex* out) {
@@ -1411,10 +1401,6 @@ void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *
     *valy = a2 * r + a3 * g;
     *valz = b;
 }
-
-
-///==================================================
-// 各位，以下这些函数就是为了实现ButteraugliComparatorEx::CompareBlockEx
 
 // IntFloatPair是为了模拟output_order input_order的vector，但是大小固定为8x8
 typedef struct __IntFloatPair
@@ -2015,7 +2001,6 @@ void CoeffToIDCT(__private const coeff_t block[8*8], uchar out[8*8])
 	}
 }
 
-
 void IDCTToPixel8x8(const uchar idct[8 * 8], ushort pixels_[8 * 8])
 {
     const int block_x = 0;
@@ -2033,28 +2018,6 @@ void IDCTToPixel8x8(const uchar idct[8 * 8], ushort pixels_[8 * 8])
         }
     }
 }
-/*
-void IDCTToPixel(const uchar idct[8*8], ushort pixels_[8*8])
-{
-	const int block_x = 0;
-	const int block_y = 0;
-	const int width_ = 8;
-	const int height_ = 8;
-
-	for (int iy = 0; iy < 8; ++iy)
-	{
-		for (int ix = 0; ix < 8; ++ix)
-		{
-			int x = 8 * block_x + ix;
-			int y = 8 * block_y + iy;
-			if (x >= width_ || y >= height_) continue;
-			int p = y * width_ + x;
-			pixels_[p] = idct[8 * iy + ix] << 4;
-		}
-	}
-}
-*/
-
 
 void IDCTToPixel16x16(const uchar idct[8 * 8], ushort pixels_out[16 * 16], __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
 {
@@ -2770,8 +2733,8 @@ void Copy16x16ToChannel(const float rgb16x16[3][16 * 16], float r[8 * 8], float 
 
 void Convolution(size_t xsize, size_t ysize,
                  int xstep, int len, int offset,
-                 float* multipliers,
-                 float* inp,
+                 const float* multipliers,
+                 const float* inp,
                  float border_ratio,
                  float* result)
 {
@@ -2802,7 +2765,7 @@ void Convolution(size_t xsize, size_t ysize,
 
 // ian todo
 // 计算结果输出到output
-void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, float *output)
+void BlurEx(const float *r, int xsize, int ysize, double kSigma, double border_ratio, float *output)
 {
     // 参考clBlurEx2的实现，sigma = 1.1，这时step、diff都将特化为固定值
 	const double sigma = 1.1;
@@ -2826,10 +2789,9 @@ void BlurEx(float *r, int xsize, int ysize, double kSigma, double border_ratio, 
               border_ratio, output);
 }
 
-
 // ian todo
 void OpsinDynamicsImageBlock(__private float *r, __private float *g, __private float *b,
-                            __private float *r_blurred, __private float *g_blurred, __private float *b_blurred,
+                            __private const float *r_blurred, __private const float *g_blurred, __private const float *b_blurred,
                             int size)
 {
   for (size_t i = 0; i < size; ++i) {
@@ -2860,8 +2822,8 @@ void OpsinDynamicsImageBlock(__private float *r, __private float *g, __private f
 // chrisk todo
 void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
     float *xyb1_x, float *xyb1_y, float *xyb1_b,
-    float *c0_x, float *c0_y, float *c0_b,
-    float *c1_x, float *c1_y, float *c1_b,
+    const float *c0_x, const float *c0_y, const float *c0_b,
+    const float *c1_x, const float *c1_y, const float *c1_b,
     int xsize, int ysize)
 {
     for (int x = 0; x < xsize; ++x)
@@ -2925,7 +2887,7 @@ void floatcopy(float *dst, const float *src, int size)
     }
 }
 
-void coeffcopy_g(coeff_t *dst, const __global coeff_t *src, int size)
+void coeffcopy_g(coeff_t *dst, __global const coeff_t *src, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -3015,8 +2977,7 @@ int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8]
 
 int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
                  const __global float *orig_image_batch,
-                 int width_,
-                 int height_,
+                 int width_, int height_,
                  int block_x, int block_y,
                  int factor,
                  int off_x, int off_y)
