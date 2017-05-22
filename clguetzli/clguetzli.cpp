@@ -59,7 +59,7 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "clUpsampleSquareRoot", &err);
 	ocl.kernel[KERNEL_ADDBORDER] = clCreateKernel(ocl.program, "clAddBorder", &err);
 	ocl.kernel[KERNEL_REMOVEBORDER] = clCreateKernel(ocl.program, "clRemoveBorder", &err);
-	ocl.kernel[KERNEL_AVERAGEADDIMAGE] = clCreateKernel(ocl.program, "clAverageAddImage", &err);
+	ocl.kernel[KERNEL_AVERAGE5X5] = clCreateKernel(ocl.program, "clAverage5x5", &err);
 	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMap", &err);
 	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMap", &err);
 	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreq", &err);
@@ -642,29 +642,6 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w)
 	}
 }
 
-void clAverageAddImage(cl_mem img, cl_mem tmp0, cl_mem tmp1, size_t xsize, size_t ysize)
-{
-	cl_int err = CL_SUCCESS;
-	ocl_args_d_t &ocl = getOcl();
-
-	cl_kernel kernel = ocl.kernel[KERNEL_AVERAGEADDIMAGE];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&tmp0);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&tmp1);
-
-	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clAverageAddImage() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
-	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clAverageAddImage() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
-}
-
 void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
 {
 	if (xsize < 4 || ysize < 4) {
@@ -677,30 +654,25 @@ void clAverage5x5Ex(cl_mem img/*in,out*/, size_t xsize, size_t ysize)
 
 	size_t len = xsize * ysize * sizeof(float);
 	ocl.allocA(len);
-	ocl.allocB(len);
-	ocl.allocC(len);
-	cl_mem result = ocl.srcA;
-	cl_mem tmp0 = ocl.srcB;
-	cl_mem tmp1 = ocl.dstMem;
+	cl_mem tmp = ocl.srcA;
 
-	err = clEnqueueCopyBuffer(ocl.commandQueue, img, result, 0, 0, len, 0, NULL, NULL);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, img, tmp0, 0, 0, len, 0, NULL, NULL);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, img, tmp1, 0, 0, len, 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, img, tmp, 0, 0, len, 0, NULL, NULL);
 
-	static const float w = 0.679144890667f;
-	static const float scale = 1.0f / (5.0f + 4 * w);
+  cl_kernel kernel = ocl.kernel[KERNEL_AVERAGE5X5];
+  clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
+  clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&tmp);
 
-	clScaleImageEx(tmp1, xsize * ysize, w);
-	clAverageAddImage(result, tmp0, tmp1, xsize, ysize);
-
-	err = clEnqueueCopyBuffer(ocl.commandQueue, result, img, 0, 0, len, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clAverage5x5Ex() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
-	}
-	err = clFinish(ocl.commandQueue);
-
-	clScaleImageEx(img, xsize * ysize, scale);
+  size_t globalWorkSize[2] = { xsize, ysize };
+  err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+  if (CL_SUCCESS != err)
+  {
+    LogError("Error: clAverage5x5Ex() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
+  }
+  err = clFinish(ocl.commandQueue);
+  if (CL_SUCCESS != err)
+  {
+    LogError("Error: clAverage5x5Ex() clFinish returned %s.\n", TranslateOpenCLError(err));
+  }
 }
 
 void clMinSquareValEx(cl_mem img/*in,out*/, size_t xsize, size_t ysize, size_t square_size, size_t offset)

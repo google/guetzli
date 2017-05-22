@@ -636,42 +636,46 @@ __kernel void clUpsampleSquareRoot(__global const float *diffmap, int xsize, int
     }
 }
 
-__kernel void clAverageAddImage(__global float *img, __global const float *tmp0, __global const float *tmp1)
+__kernel void clAverage5x5(__global float *img, __global const float *img_org)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
     const int xsize = get_global_size(0);
     const int ysize = get_global_size(1);
 	
+	const float w = 0.679144890667f;
+	const float scale = 1.0f / (5.0f + 4 * w);
     const int row0 = y * xsize;
 	if (x - 1 >= 0) {
-		img[row0 + x] += tmp0[row0 + x - 1];
+		img[row0 + x] += img_org[row0 + x - 1];
 	}
 	if (x + 1 < xsize) {
-		img[row0 + x] += tmp0[row0 + x + 1];
+		img[row0 + x] += img_org[row0 + x + 1];
 	}
 
 	if (y > 0) {
 		const int rowd1 = row0 - xsize;
 		if (x - 1 >= 0) {
-			img[row0 + x] += tmp1[rowd1 + x - 1];
+			img[row0 + x] += img_org[rowd1 + x - 1] * w;
 		}
-		img[row0 + x] += tmp0[rowd1 + x];
+		img[row0 + x] += img_org[rowd1 + x];
 		if (x + 1 < xsize) {
-			img[row0 + x] += tmp1[rowd1 + x + 1];
+			img[row0 + x] += img_org[rowd1 + x + 1] * w;
 		}
 	}
 
 	if (y + 1 < ysize) {
 		const int rowu1 = row0 + xsize;
 		if (x - 1 >= 0) {
-			img[row0 + x] += tmp1[rowu1 + x - 1];
+			img[row0 + x] += img_org[rowu1 + x - 1] * w;
 		}
-		img[row0 + x] += tmp0[rowu1 + x];
+		img[row0 + x] += img_org[rowu1 + x];
 		if (x + 1 < xsize) {
-			img[row0 + x] += tmp1[rowu1 + x + 1];
+			img[row0 + x] += img_org[rowu1 + x + 1] * w;
 		}
 	}
+
+	img[row0 + x] *= scale;
 }
 
 void Butteraugli8x8CornerEdgeDetectorDiff(
