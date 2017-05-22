@@ -454,12 +454,12 @@ void tclDiffPrecompute(
   FLOAT_COMPARE(r_y, (*mask_cmp)[1].data(), xsize * ysize);
   FLOAT_COMPARE(r_b, (*mask_cmp)[2].data(), xsize * ysize);
 
-  ocl.releaseMemChannels(cl_xyb0);
-  ocl.releaseMemChannels(cl_xyb1);
-  ocl.releaseMemChannels(cl_mask);
   clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.x, r_x, 0, NULL, NULL);
   clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.y, r_y, 0, NULL, NULL);
   clEnqueueUnmapMemObject(ocl.commandQueue, cl_mask.b, r_b, 0, NULL, NULL);
+  ocl.releaseMemChannels(cl_xyb0);
+  ocl.releaseMemChannels(cl_xyb1);
+  ocl.releaseMemChannels(cl_mask);
 }
 
 // ian todo
