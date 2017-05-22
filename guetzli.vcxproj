@@ -129,7 +129,8 @@
     </CustomBuild>
     <Intel_OpenCL_Build_Rules />
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)\clguetzli\clguetzli.cl $(ProjectDir)\clguetzli.cl</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -171,7 +172,8 @@
       <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x64</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)\clguetzli\clguetzli.cl $(ProjectDir)\clguetzli.cl</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -384,7 +386,6 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </Command>
-      <Include Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"C:\Users\strongtu\Documents\Project\git_strong\guetzli\clguetzli";%(Include)</Include>
     </Intel_OpenCL_Build_Rules>
     <None Include="third_party\libpng\pngwin.def" />
     <None Include="third_party\zlib\inffas32.asm" />
