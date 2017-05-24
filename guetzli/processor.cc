@@ -588,16 +588,16 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
         output_order_gpu.resize(num_blocks * kBlockSize);
         output_order = output_order_gpu.data();
 
-        clComputeBlockZeroingOrder(orig_channel,
-                                        comp->imgOpsinDynamicsBlockList.data(),
-                                        comp->imgMaskXyzScaleBlockList.data(),
-                                        width,
-                                        height,
-                                        mayout_channel,
-                                        factor_x,
-                                        comp_mask,
-                                        comp->BlockErrorLimit(),
-                                        output_order);
+        clComputeBlockZeroingOrder(output_order,
+                                    orig_channel,
+                                    comp->imgOpsinDynamicsBlockList.data(),
+                                    comp->imgMaskXyzScaleBlockList.data(),
+                                    width,
+                                    height,
+                                    mayout_channel,
+                                    factor_x,
+                                    comp_mask,
+                                    comp->BlockErrorLimit());
 
     }
     if (!g_useOpenCL || g_checkOpenCL)

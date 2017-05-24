@@ -17,8 +17,8 @@ namespace butteraugli
         if (g_useOpenCL && xsize_ > 100 && ysize_ > 100)
         {
             result.resize(xsize_ * ysize_);
-            clDiffmapOpsinDynamicsImage(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-                xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_, result.data());
+            clDiffmapOpsinDynamicsImage(result.data(), xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+                xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_);
         }
         else
         {
@@ -163,11 +163,12 @@ namespace butteraugli
                 (*mask)[i].resize(xsize * ysize);
                 (*mask_dc)[i].resize(xsize * ysize);
             }
-            clMask(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
-                xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
+            clMask((*mask)[0].data(), (*mask)[1].data(), (*mask)[2].data(),
+                (*mask_dc)[0].data(), (*mask_dc)[1].data(), (*mask_dc)[2].data(),
                 xsize, ysize,
-                (*mask)[0].data(), (*mask)[1].data(), (*mask)[2].data(),
-                (*mask_dc)[0].data(), (*mask_dc)[1].data(), (*mask_dc)[2].data());
+                xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+                xyb1[0].data(), xyb1[1].data(), xyb1[2].data()
+                );
             return;
         }
 
@@ -279,7 +280,7 @@ namespace butteraugli
             float * g = rgb[1].data();
             float * b = rgb[2].data();
 
-            clOpsinDynamicsImage(xsize, ysize, r, g, b);
+            clOpsinDynamicsImage(r, g, b, xsize, ysize);
         }
         else
         {
