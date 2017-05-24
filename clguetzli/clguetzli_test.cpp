@@ -330,34 +330,6 @@ void tclConvolution(size_t xsize, size_t ysize,
 	clReleaseMemObject(m);
 }
 
-// chirsk todo
-void tclUpsample(float* image, size_t xsize, size_t ysize,
-	size_t xstep, size_t ystep,
-	float* result)
-{
-	int dxsize = (xsize + xstep - 1) / xstep;
-	int dysize = (ysize + ystep - 1) / ystep;
-	size_t img_size = dxsize * dysize * sizeof(float);
-	size_t result_size = xsize * ysize * sizeof(float);
-	cl_int err = 0;
-	ocl_args_d_t &ocl = getOcl();
-	cl_mem img = ocl.allocMem(img_size, image);
-	ocl.allocA(result_size);
-	cl_mem r = ocl.srcA;
-
-	clUpsampleEx(r, img, xsize, ysize, xstep, ystep);
-
-	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, r, true, CL_MAP_READ, 0, result_size, 0, NULL, NULL, &err);
-	err = clFinish(ocl.commandQueue);
-
-	FLOAT_COMPARE(result, r_r, xsize * ysize);
-
-	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
-
-	clReleaseMemObject(img);
-}
-
 // ian todo
 void tclDiffPrecompute(
   const const std::vector<std::vector<float> > &xyb0,

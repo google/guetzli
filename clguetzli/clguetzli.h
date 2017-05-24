@@ -58,7 +58,7 @@ void clConvolutionY(
     const cl_mem multipliers, size_t len,
     int xstep, int offset, double border_ratio);
 
-void clUpsampleEx2(
+void clSquareSampleEx(
     cl_mem result/*out*/,
     const cl_mem image, size_t xsize, size_t ysize,
     size_t xstep, size_t ystep);

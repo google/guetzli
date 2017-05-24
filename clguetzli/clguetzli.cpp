@@ -49,7 +49,6 @@ ocl_args_d_t& getOcl(void)
 	ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "clConvolutionX", &err);
 	ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "clConvolutionY", &err);
 	ocl.kernel[KERNEL_SQUARESAMPLE] = clCreateKernel(ocl.program, "clSquareSample", &err);
-	ocl.kernel[KERNEL_DOWNSAMPLE] =   clCreateKernel(ocl.program, "clDownSample", &err);
 	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "clOpsinDynamicsImage", &err);
 	ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "clDoMask", &err);
 	ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "clScaleImage", &err);
@@ -313,12 +312,12 @@ void clConvolutionEx(
 	cl_float clborder_ratio = border_ratio;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTION];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&multipliers);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&result);
-	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clxsize);
-	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&clxstep);
-	clSetKernelArg(kernel, 5, sizeof(cl_int), (void*)&cllen);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&result);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
+    clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clxsize);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&multipliers);
+    clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&cllen);
+	clSetKernelArg(kernel, 5, sizeof(cl_int), (void*)&clxstep);
 	clSetKernelArg(kernel, 6, sizeof(cl_int), (void*)&cloffset);
 	clSetKernelArg(kernel, 7, sizeof(cl_float), (void*)&clborder_ratio);
 
@@ -350,11 +349,11 @@ void clConvolutionX(
 	cl_float clborder_ratio = border_ratio;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTIONX];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&multipliers);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&result);
-	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&xstep);
-	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&cllen);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&result);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&multipliers);
+    clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&cllen);
+	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&xstep);
 	clSetKernelArg(kernel, 5, sizeof(cl_int), (void*)&cloffset);
 	clSetKernelArg(kernel, 6, sizeof(cl_float), (void*)&clborder_ratio);
 
@@ -387,11 +386,11 @@ void clConvolutionY(
 	cl_float clborder_ratio = border_ratio;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTIONY];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&multipliers);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&result);
-	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&xstep);
-	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&cllen);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&result);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&inp);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&multipliers);
+    clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&cllen);
+	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&xstep);
 	clSetKernelArg(kernel, 5, sizeof(cl_int), (void*)&cloffset);
 	clSetKernelArg(kernel, 6, sizeof(cl_float), (void*)&clborder_ratio);
 
@@ -408,7 +407,7 @@ void clConvolutionY(
 	}
 }
 
-void clUpsampleEx2(
+void clSquareSampleEx(
     cl_mem result/*out*/,
     const cl_mem image, size_t xsize, size_t ysize,
 	size_t xstep, size_t ystep)
@@ -419,38 +418,8 @@ void clUpsampleEx2(
 	cl_int clxstep = xstep;
 	cl_int clystep = ystep;
 	cl_kernel kernel = ocl.kernel[KERNEL_SQUARESAMPLE];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&image);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&result);
-	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clxstep);
-	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clystep);
-
-	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clUpsampleEx clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
-	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clUpsampleEx clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
-}
-
-void clUpsampleEx(
-    cl_mem result/*out*/,
-    const cl_mem image,
-    const size_t xsize, const size_t ysize,
-    const size_t xstep, const size_t ystep)
-{
-	cl_int err = CL_SUCCESS;
-	ocl_args_d_t &ocl = getOcl();
-
-	cl_int clxstep = xstep;
-	cl_int clystep = ystep;
-	cl_kernel kernel = ocl.kernel[KERNEL_DOWNSAMPLE];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&image);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&result);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&image);
 	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clxstep);
 	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clystep);
 
@@ -537,7 +506,7 @@ void clBlurEx2(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
 		ocl.allocA(sizeof(cl_float) * xsize * ysize);
 		clConvolutionX(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
 		clConvolutionY(result ? result : image, ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-		clUpsampleEx2(result ? result : image, result ? result : image, xsize, ysize, xstep, xstep);
+        clSquareSampleEx(result ? result : image, result ? result : image, xsize, ysize, xstep, xstep);
 	}
 	else
 	{
@@ -563,7 +532,6 @@ void clOpsinDynamicsImageEx(ocl_channels &rgb, const size_t xsize, const size_t 
 	clBlurEx(rgb.g, xsize, ysize, kSigma, 0.0, rgb_blurred.g);
 	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0, rgb_blurred.b);
 
-	cl_int clSize = xsize * ysize;
 	cl_kernel kernel = ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&rgb.r);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&rgb.g);
@@ -571,7 +539,6 @@ void clOpsinDynamicsImageEx(ocl_channels &rgb, const size_t xsize, const size_t 
 	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&rgb_blurred.r);
 	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&rgb_blurred.g);
 	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&rgb_blurred.b);
-	clSetKernelArg(kernel, 6, sizeof(cl_int), (void*)&clSize);
 
 	size_t globalWorkSize[1] = { xsize * ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -710,14 +677,14 @@ void clBlockDiffMapEx(
 	cl_int clstep = step;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_BLOCKDIFFMAP];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), &rgb.r);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), &rgb.g);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), &rgb.b);
-	clSetKernelArg(kernel, 3, sizeof(cl_mem), &rgb2.r);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), &rgb2.g);
-	clSetKernelArg(kernel, 5, sizeof(cl_mem), &rgb2.b);
-	clSetKernelArg(kernel, 6, sizeof(cl_mem), &block_diff_dc);
-	clSetKernelArg(kernel, 7, sizeof(cl_mem), &block_diff_ac);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &block_diff_dc);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), &block_diff_ac);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), &rgb.r);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), &rgb.g);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), &rgb.b);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), &rgb2.r);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), &rgb2.g);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), &rgb2.b);
 	clSetKernelArg(kernel, 8, sizeof(cl_int), &clxsize);
 	clSetKernelArg(kernel, 9, sizeof(cl_int), &clysize);
 	clSetKernelArg(kernel, 10, sizeof(cl_int), &clstep);
@@ -802,15 +769,15 @@ void clDiffPrecomputeEx(
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_DIFFPRECOMPUTE];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.x);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&xyb0.y);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&xyb0.b);
-	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb1.x);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb1.y);
-	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&xyb1.b);
-	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&mask.x);
-	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&mask.y);
-	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&mask.b);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mask.x);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mask.y);
+    clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&mask.b);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&xyb0.x);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&xyb0.y);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&xyb0.b);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&xyb1.x);
+	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&xyb1.y);
+	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&xyb1.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -833,8 +800,8 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w)
 	cl_double clscale = w;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_SCALEIMAGE];
-	clSetKernelArg(kernel, 0, sizeof(cl_double), (void*)&clscale);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&img);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
+	clSetKernelArg(kernel, 1, sizeof(cl_double), (void*)&clscale);
 
 	size_t globalWorkSize[1] = { size };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -851,35 +818,35 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w)
 
 void clAverage5x5Ex(cl_mem img/*in,out*/, const size_t xsize, const size_t ysize)
 {
-	if (xsize < 4 || ysize < 4) {
-		// TODO: Make this work for small dimensions as well.
-		return;
-	}
+    if (xsize < 4 || ysize < 4) {
+	    // TODO: Make this work for small dimensions as well.
+	    return;
+    }
 
-	cl_int err = CL_SUCCESS;
-	ocl_args_d_t &ocl = getOcl();
+    cl_int err = CL_SUCCESS;
+    ocl_args_d_t &ocl = getOcl();
 
-	size_t len = xsize * ysize * sizeof(float);
-	ocl.allocA(len);
-	cl_mem tmp = ocl.srcA;
+    size_t len = xsize * ysize * sizeof(float);
+    ocl.allocA(len);
+    cl_mem img_org = ocl.srcA;
 
-	err = clEnqueueCopyBuffer(ocl.commandQueue, img, tmp, 0, 0, len, 0, NULL, NULL);
+    err = clEnqueueCopyBuffer(ocl.commandQueue, img, img_org, 0, 0, len, 0, NULL, NULL);
 
-  cl_kernel kernel = ocl.kernel[KERNEL_AVERAGE5X5];
-  clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
-  clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&tmp);
+    cl_kernel kernel = ocl.kernel[KERNEL_AVERAGE5X5];
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&img_org);
 
-  size_t globalWorkSize[2] = { xsize, ysize };
-  err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-  if (CL_SUCCESS != err)
-  {
+    size_t globalWorkSize[2] = { xsize, ysize };
+    err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    if (CL_SUCCESS != err)
+    {
     LogError("Error: clAverage5x5Ex() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-  }
-  err = clFinish(ocl.commandQueue);
-  if (CL_SUCCESS != err)
-  {
+    }
+    err = clFinish(ocl.commandQueue);
+    if (CL_SUCCESS != err)
+    {
     LogError("Error: clAverage5x5Ex() clFinish returned %s.\n", TranslateOpenCLError(err));
-  }
+    }
 }
 
 void clMinSquareValEx(
@@ -895,8 +862,8 @@ void clMinSquareValEx(
 	ocl.allocA(sizeof(cl_float) * xsize * ysize);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_MINSQUAREVAL];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&ocl.srcA);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&ocl.srcA);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&img);
 	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clsquare_size);
 	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&cloffset);
 
@@ -1105,20 +1072,20 @@ void clCombineChannelsEx(
 	cl_int clstep = step;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_COMBINECHANNELS];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mask.r);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mask.g);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&mask.b);
-	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&mask_dc.r);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&mask_dc.g);
-	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&mask_dc.b);
-	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&block_diff_dc);
-	clSetKernelArg(kernel, 7, sizeof(cl_mem), (void*)&block_diff_ac);
-	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&edge_detector_map);
-	clSetKernelArg(kernel, 9, sizeof(cl_int), (void*)&clxsize);
-	clSetKernelArg(kernel, 10, sizeof(cl_int), (void*)&clysize);
-	clSetKernelArg(kernel, 11, sizeof(cl_int), (void*)&clres_size);
-	clSetKernelArg(kernel, 12, sizeof(cl_int), (void*)&clstep);
-	clSetKernelArg(kernel, 13, sizeof(cl_mem), (void*)&result);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&result);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mask.r);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&mask.g);
+	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&mask.b);
+	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&mask_dc.r);
+	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&mask_dc.g);
+	clSetKernelArg(kernel, 6, sizeof(cl_mem), (void*)&mask_dc.b);
+    clSetKernelArg(kernel, 7, sizeof(cl_int), (void*)&clxsize);
+    clSetKernelArg(kernel, 8, sizeof(cl_int), (void*)&clysize);
+	clSetKernelArg(kernel, 9, sizeof(cl_mem), (void*)&block_diff_dc);
+	clSetKernelArg(kernel, 10, sizeof(cl_mem), (void*)&block_diff_ac);
+	clSetKernelArg(kernel, 11, sizeof(cl_mem), (void*)&edge_detector_map);
+	clSetKernelArg(kernel, 12, sizeof(cl_int), (void*)&clres_size);
+	clSetKernelArg(kernel, 13, sizeof(cl_int), (void*)&clstep);
 
 	size_t globalWorkSize[2] = { work_xsize, work_ysize };
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
