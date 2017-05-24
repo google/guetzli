@@ -72,7 +72,3 @@ void tclOpsinDynamicsImage(const float* r, const float* g, const float* b, size_
 void tclMinSquareVal(const float *img, size_t square_size, size_t offset,
 	size_t xsize, size_t ysize,
 	const float *result);
-
-void tclUpsample(const float* image, size_t xsize, size_t ysize,
-	size_t xstep, size_t ystep,
-	const float* result);
