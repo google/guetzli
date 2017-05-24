@@ -9,12 +9,12 @@
 extern bool g_useOpenCL;
 extern bool g_checkOpenCL;
 
-void clOpsinDynamicsImage(size_t xsize, size_t ysize, float* r, float* g, float* b);
+void clOpsinDynamicsImage(const size_t xsize, const size_t ysize, float* r, float* g, float* b);
 
 void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
-    float* r2, float* g2, float* b2,
-    size_t xsize, size_t ysize,
-    size_t step,
+    const float* r2, const float* g2, const float* b2,
+    const size_t xsize, const size_t ysize,
+    const size_t step,
     float* result);
 
 void clComputeBlockZeroingOrder(
@@ -31,35 +31,36 @@ void clComputeBlockZeroingOrder(
 
 void clMask(const float* r, const float* g, const float* b,
     const float* r2, const float* g2, const float* b2,
-    size_t xsize, size_t ysize,
+    const size_t xsize, const size_t ysize,
     float* mask_r, float* mask_g, float* mask_b,
     float* maskdc_r, float* maskdc_g, float* maskdc_b);
 
-void clMaskHighIntensityChangeEx(ocl_channels xyb0/*in,out*/,
-	ocl_channels xyb1/*in,out*/,
-	size_t xsize, size_t ysize);
+void clMaskHighIntensityChangeEx(ocl_channels &xyb0/*in,out*/,
+	ocl_channels &xyb1/*in,out*/,
+	const size_t xsize, const size_t ysize);
 
-void clMaskEx(ocl_channels rgb, ocl_channels rgb2,
-	size_t xsize, size_t ysize,
+void clMaskEx(const ocl_channels &rgb, const ocl_channels &rgb2,
+	const size_t xsize, const size_t ysize,
 	ocl_channels mask/*out*/, ocl_channels mask_dc/*out*/);
 
-void clEdgeDetectorMapEx(ocl_channels rgb, ocl_channels rgb2, size_t xsize, size_t ysize, size_t step, cl_mem result/*out*/);
+void clEdgeDetectorMapEx(const ocl_channels &rgb, const ocl_channels &rgb2,
+    const size_t xsize, const size_t ysize, const size_t step, cl_mem result/*out*/);
 
-void clBlockDiffMapEx(ocl_channels rgb, ocl_channels rgb2,
-	size_t xsize, size_t ysize, size_t step,
+void clBlockDiffMapEx(const ocl_channels &rgb, const ocl_channels &rgb2,
+	const size_t xsize, const size_t ysize, const size_t step,
 	cl_mem block_diff_dc/*out*/, cl_mem block_diff_ac/*out*/);
 
-void clEdgeDetectorLowFreqEx(ocl_channels rgb, ocl_channels rgb2,
-	size_t xsize, size_t ysize, size_t step,
+void clEdgeDetectorLowFreqEx(const ocl_channels &rgb, const ocl_channels &rgb2,
+	const size_t xsize, const size_t ysize, const size_t step,
 	cl_mem block_diff_ac/*in,out*/);
 
-void clBlurEx(cl_mem image, size_t xsize, size_t ysize, double sigma, double border_ratio, cl_mem result = nullptr);
+void clBlurEx(cl_mem image, const size_t xsize, const size_t ysize, const double sigma, const double border_ratio, cl_mem result = nullptr);
 
-void clOpsinDynamicsImageEx(ocl_channels rgb/*in,out*/, size_t xsize, size_t ysize);
+void clOpsinDynamicsImageEx(ocl_channels &rgb/*in,out*/, const size_t xsize, const size_t ysize);
 
 void clCombineChannelsEx(
-	ocl_channels mask,
-	ocl_channels mask_dc,
+	const ocl_channels &mask,
+	const ocl_channels &mask_dc,
 	cl_mem block_diff_dc,
 	cl_mem block_diff_ac,
 	cl_mem edge_detector_map,

@@ -267,8 +267,8 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 	size_t xsize, size_t ysize,
 	size_t res_xsize, size_t res_ysize,
 	size_t step,
-	float *init_result,
-	float *result)
+	const float *init_result,
+	const float *result)
 {
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
@@ -311,8 +311,8 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 // ian todo
 void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	const size_t step,
-	float *diffmap, size_t org_len,
-	float *diffmap_cmp)
+	const float *diffmap, size_t org_len,
+	const float *diffmap_cmp)
 {
 	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
@@ -329,7 +329,7 @@ void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 }
 
 // chrisk todo
-void tclBlur(float* channel, size_t xsize, size_t ysize, double sigma, double border_ratio, float* result)
+void tclBlur(const float* channel, size_t xsize, size_t ysize, double sigma, double border_ratio, const float* result)
 {
     size_t channel_size = xsize * ysize * sizeof(float);
     cl_int err = 0;
@@ -423,10 +423,10 @@ void tclUpsample(float* image, size_t xsize, size_t ysize,
 
 // ian todo
 void tclDiffPrecompute(
-  const std::vector<std::vector<float> > &xyb0,
-  const std::vector<std::vector<float> > &xyb1,
-	size_t xsize, size_t ysize,
-  std::vector<std::vector<float> > *mask_cmp)
+  const const std::vector<std::vector<float> > &xyb0,
+  const const std::vector<std::vector<float> > &xyb1,
+  size_t xsize, size_t ysize,
+  const std::vector<std::vector<float> > *mask_cmp)
 {
   cl_int err = 0;
   ocl_args_d_t &ocl = getOcl();
@@ -463,7 +463,7 @@ void tclDiffPrecompute(
 }
 
 // ian todo
-void tclAverage5x5(int xsize, int ysize, std::vector<float> &diffs_org, std::vector<float> &diffs_cmp)
+void tclAverage5x5(int xsize, int ysize, const std::vector<float> &diffs_org, const std::vector<float> &diffs_cmp)
 {
   cl_int err = 0;
   ocl_args_d_t &ocl = getOcl();
@@ -479,9 +479,9 @@ void tclAverage5x5(int xsize, int ysize, std::vector<float> &diffs_org, std::vec
 }
 
 // chrisk todo
-void tclMinSquareVal(float *img, size_t square_size, size_t offset,
+void tclMinSquareVal(const float *img, size_t square_size, size_t offset,
 	size_t xsize, size_t ysize,
-	float *values)
+	const float *result)
 {
 	size_t img_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
@@ -496,7 +496,7 @@ void tclMinSquareVal(float *img, size_t square_size, size_t offset,
 	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, r, true, CL_MAP_READ, 0, img_size, 0, NULL, NULL, &err);
 	err = clFinish(ocl.commandQueue);
 
-	FLOAT_COMPARE(values, r_r, xsize * ysize);
+	FLOAT_COMPARE(result, r_r, xsize * ysize);
 
 	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
@@ -504,7 +504,7 @@ void tclMinSquareVal(float *img, size_t square_size, size_t offset,
 	clReleaseMemObject(r);
 }
 
-void tclScaleImage(double scale, float *result_org, float *result_cmp, size_t length)
+void tclScaleImage(double scale, const float *result_org, const float *result_cmp, size_t length)
 {
   cl_int err = 0;
   ocl_args_d_t &ocl = getOcl();
@@ -522,8 +522,8 @@ void tclScaleImage(double scale, float *result_org, float *result_cmp, size_t le
 }
 
 // strong todo
-void tclOpsinDynamicsImage(float* r, float* g, float* b, size_t xsize, size_t ysize,
-	float* result_r, float* result_g, float* result_b)
+void tclOpsinDynamicsImage(const float* r, const float* g, const float* b, size_t xsize, size_t ysize,
+	const float* result_r, const float* result_g, const float* result_b)
 {
 	size_t channel_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
