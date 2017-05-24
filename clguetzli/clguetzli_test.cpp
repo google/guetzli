@@ -34,16 +34,8 @@ void tclMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	size_t channel_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
-	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
+	ocl_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
 
 	clMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
 
@@ -87,17 +79,9 @@ void tclEdgeDetectorMap(const float* r, const float* g, const float* b,
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
-	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
+	ocl_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
 	cl_mem edge = ocl.allocMem(edgemap_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
 
 	clEdgeDetectorMapEx(xyb0, xyb1, xsize, ysize, step, edge);
 
@@ -127,19 +111,11 @@ void tclBlockDiffMap(const float* r, const float* g, const float* b,
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
-	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
+	ocl_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
 	
 	cl_mem block_diff_dc = ocl.allocMem(reschannel_size);
 	cl_mem block_diff_ac = ocl.allocMem(reschannel_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
 
 	clBlockDiffMapEx(xyb0, xyb1, xsize, ysize, step, block_diff_dc, block_diff_ac);
 
@@ -175,20 +151,10 @@ void tclEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	ocl_channels xyb0 = ocl.allocMemChannels(channel_size);
-	ocl_channels xyb1 = ocl.allocMemChannels(channel_size);
+	ocl_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
+	ocl_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
 
-	cl_mem block_diff_ac = ocl.allocMem(reschannel_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb0.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb1.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-    clEnqueueWriteBuffer(ocl.commandQueue, block_diff_ac, CL_FALSE, 0, reschannel_size, orign_ac, 0, NULL, NULL);
-
-	err = clFinish(ocl.commandQueue);
+	cl_mem block_diff_ac = ocl.allocMem(reschannel_size, orign_ac);
 
 	clEdgeDetectorLowFreqEx(xyb0, xyb1, xsize, ysize, step, block_diff_ac);
 
@@ -215,20 +181,12 @@ void tclMask(const float* r, const float* g, const float* b,
 	size_t channel_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	ocl_channels rgb = ocl.allocMemChannels(channel_size);
-	ocl_channels rgb2 = ocl.allocMemChannels(channel_size);
+	ocl_channels rgb = ocl.allocMemChannels(channel_size, r, g, b);
+	ocl_channels rgb2 = ocl.allocMemChannels(channel_size, r2, g2, b2);
 
 	ocl_channels mask = ocl.allocMemChannels(channel_size);
 	ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb2.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb2.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb2.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
-	
+    	
 	clMaskEx(rgb, rgb2, xsize, ysize, mask/*out*/, mask_dc/*out*/);
 
 	cl_float *r0_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);
@@ -274,24 +232,13 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 	ocl_args_d_t &ocl = getOcl();
 
 	size_t channel_size = xsize * ysize * sizeof(float);
-	ocl_channels mask = ocl.allocMemChannels(channel_size);
-	ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
-	cl_mem cl_block_diff_dc = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
-	cl_mem cl_block_diff_ac = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
-	cl_mem cl_edge_detector_map = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float));
-	cl_mem cl_result = ocl.allocMem(res_xsize * res_ysize * sizeof(float));
-
-	clEnqueueWriteBuffer(ocl.commandQueue, mask.x, CL_FALSE, 0, channel_size, mask_xyb_x, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mask.y, CL_FALSE, 0, channel_size, mask_xyb_y, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mask.b, CL_FALSE, 0, channel_size, mask_xyb_b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mask_dc.x, CL_FALSE, 0, channel_size, mask_xyb_dc_x, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mask_dc.y, CL_FALSE, 0, channel_size, mask_xyb_dc_y, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mask_dc.b, CL_FALSE, 0, channel_size, mask_xyb_dc_b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, cl_block_diff_dc, CL_FALSE, 0, 3 * res_xsize * res_ysize * sizeof(float), block_diff_dc, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, cl_block_diff_ac, CL_FALSE, 0, 3 * res_xsize * res_ysize * sizeof(float), block_diff_ac, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, cl_edge_detector_map, CL_FALSE, 0, 3 * res_xsize * res_ysize * sizeof(float), edge_detector_map, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, cl_result, CL_FALSE, 0, res_xsize * res_ysize * sizeof(float), init_result, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
+    size_t res_channel_size = res_xsize * res_ysize * sizeof(float);
+	ocl_channels mask = ocl.allocMemChannels(channel_size, mask_xyb_x, mask_xyb_y, mask_xyb_b);
+	ocl_channels mask_dc = ocl.allocMemChannels(channel_size, mask_xyb_dc_x, mask_xyb_dc_y, mask_xyb_dc_b);
+	cl_mem cl_block_diff_dc = ocl.allocMem(3 * res_channel_size, block_diff_dc);
+	cl_mem cl_block_diff_ac = ocl.allocMem(3 * res_channel_size, block_diff_ac);
+	cl_mem cl_edge_detector_map = ocl.allocMem(3 * res_xsize * res_ysize * sizeof(float), edge_detector_map);
+	cl_mem cl_result = ocl.allocMem(res_xsize * res_ysize * sizeof(float), init_result);
 
 	clCombineChannelsEx(mask, mask_dc, cl_block_diff_dc, cl_block_diff_ac, cl_edge_detector_map, xsize, ysize, res_xsize, step, cl_result);
 
@@ -299,7 +246,7 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 
 	FLOAT_COMPARE(result_tmp, result, res_xsize * res_ysize);
 
-  clEnqueueUnmapMemObject(ocl.commandQueue, cl_result, result_tmp, 0, NULL, NULL);
+    clEnqueueUnmapMemObject(ocl.commandQueue, cl_result, result_tmp, 0, NULL, NULL);
 	ocl.releaseMemChannels(mask);
 	ocl.releaseMemChannels(mask_dc);
 	clReleaseMemObject(cl_block_diff_dc);
@@ -322,9 +269,9 @@ void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	clEnqueueWriteBuffer(ocl.commandQueue, mem_diffmap, CL_FALSE, 0, org_len * sizeof(float), diffmap, 0, NULL, NULL);
 	clCalculateDiffmapEx(mem_diffmap, xsize, ysize, step);
 	cl_float *result_tmp = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_diffmap, true, CL_MAP_READ, 0, length, 0, NULL, NULL, &err);
-  err = clFinish(ocl.commandQueue);
+    err = clFinish(ocl.commandQueue);
 	FLOAT_COMPARE(result_tmp, diffmap_cmp, xsize * ysize);
-  clEnqueueUnmapMemObject(ocl.commandQueue, mem_diffmap, result_tmp, 0, NULL, NULL);
+    clEnqueueUnmapMemObject(ocl.commandQueue, mem_diffmap, result_tmp, 0, NULL, NULL);
 	clReleaseMemObject(mem_diffmap);
 }
 
@@ -334,10 +281,7 @@ void tclBlur(const float* channel, size_t xsize, size_t ysize, double sigma, dou
     size_t channel_size = xsize * ysize * sizeof(float);
     cl_int err = 0;
     ocl_args_d_t &ocl = getOcl();
-    cl_mem r = ocl.allocMem(channel_size);
-
-    clEnqueueWriteBuffer(ocl.commandQueue, r, CL_FALSE, 0, channel_size, channel, 0, NULL, NULL);
-    err = clFinish(ocl.commandQueue);
+    cl_mem r = ocl.allocMem(channel_size, channel);
 
     clBlurEx(r, xsize, ysize, sigma, border_ratio, r);
 
@@ -369,12 +313,8 @@ void tclConvolution(size_t xsize, size_t ysize,
 	ocl_args_d_t &ocl = getOcl();
 	ocl.allocA(result_size);
 	cl_mem r = ocl.srcA;
-	cl_mem i = ocl.allocMem(inp_size);
-	cl_mem m = ocl.allocMem(multipliers_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, i, CL_FALSE, 0, inp_size, inp, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, m, CL_FALSE, 0, multipliers_size, multipliers, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
+	cl_mem i = ocl.allocMem(inp_size, inp);
+	cl_mem m = ocl.allocMem(multipliers_size, multipliers);
 
 	clConvolutionEx(i, xsize, ysize, m, len, xstep, offset, border_ratio, r);
 
@@ -401,12 +341,9 @@ void tclUpsample(float* image, size_t xsize, size_t ysize,
 	size_t result_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	cl_mem img = ocl.allocMem(img_size);
+	cl_mem img = ocl.allocMem(img_size, image);
 	ocl.allocA(result_size);
 	cl_mem r = ocl.srcA;
-
-	clEnqueueWriteBuffer(ocl.commandQueue, img, CL_FALSE, 0, img_size, image, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
 
 	clUpsampleEx(img, xsize, ysize, xstep, ystep, r);
 
@@ -431,17 +368,9 @@ void tclDiffPrecompute(
   cl_int err = 0;
   ocl_args_d_t &ocl = getOcl();
   size_t channel_size = xsize * ysize * sizeof(float);
-  ocl_channels cl_xyb0 = ocl.allocMemChannels(channel_size);
-  ocl_channels cl_xyb1 = ocl.allocMemChannels(channel_size);
+  ocl_channels cl_xyb0 = ocl.allocMemChannels(channel_size, xyb0[0].data(), xyb0[1].data(), xyb0[2].data());
+  ocl_channels cl_xyb1 = ocl.allocMemChannels(channel_size, xyb1[0].data(), xyb1[1].data(), xyb1[2].data());
   ocl_channels cl_mask = ocl.allocMemChannels(channel_size);
-
-  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb0.x, CL_FALSE, 0, channel_size, xyb0[0].data(), 0, NULL, NULL);
-  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb0.y, CL_FALSE, 0, channel_size, xyb0[1].data(), 0, NULL, NULL);
-  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb0.b, CL_FALSE, 0, channel_size, xyb0[2].data(), 0, NULL, NULL);
-  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb1.x, CL_FALSE, 0, channel_size, xyb1[0].data(), 0, NULL, NULL);
-  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb1.y, CL_FALSE, 0, channel_size, xyb1[1].data(), 0, NULL, NULL);
-  clEnqueueWriteBuffer(ocl.commandQueue, cl_xyb1.b, CL_FALSE, 0, channel_size, xyb1[2].data(), 0, NULL, NULL);
-
 
   clDiffPrecomputeEx(cl_xyb0, cl_xyb1, xsize, ysize, cl_mask);
 
@@ -467,8 +396,8 @@ void tclAverage5x5(int xsize, int ysize, const std::vector<float> &diffs_org, co
 {
   cl_int err = 0;
   ocl_args_d_t &ocl = getOcl();
-  cl_mem mem_diff = ocl.allocMem(xsize * ysize * sizeof(float));
-  clEnqueueWriteBuffer(ocl.commandQueue, mem_diff, CL_FALSE, 0, xsize * ysize * sizeof(float), diffs_org.data(), 0, NULL, NULL);
+  cl_mem mem_diff = ocl.allocMem(xsize * ysize * sizeof(float), diffs_org.data());
+
   clAverage5x5Ex(mem_diff, xsize, ysize);
   cl_float *r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_diff, true, CL_MAP_READ, 0, xsize * ysize * sizeof(float), 0, NULL, NULL, &err);
   err = clFinish(ocl.commandQueue);
@@ -486,10 +415,7 @@ void tclMinSquareVal(const float *img, size_t square_size, size_t offset,
 	size_t img_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	cl_mem r = ocl.allocMem(img_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, r, CL_FALSE, 0, img_size, img, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
+	cl_mem r = ocl.allocMem(img_size, img);
 
 	clMinSquareValEx(r, xsize, ysize, square_size, offset);
 
@@ -508,8 +434,8 @@ void tclScaleImage(double scale, const float *result_org, const float *result_cm
 {
   cl_int err = 0;
   ocl_args_d_t &ocl = getOcl();
-  cl_mem mem_result_org = ocl.allocMem(length * sizeof(float));
-  clEnqueueWriteBuffer(ocl.commandQueue, mem_result_org, CL_FALSE, 0, length * sizeof(float), result_org, 0, NULL, NULL);
+  cl_mem mem_result_org = ocl.allocMem(length * sizeof(float), result_org);
+
   clScaleImageEx(mem_result_org, length, scale);
 
   cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result_org, true, CL_MAP_READ, 0, length * sizeof(float), 0, NULL, NULL, &err);
@@ -528,12 +454,7 @@ void tclOpsinDynamicsImage(const float* r, const float* g, const float* b, size_
 	size_t channel_size = xsize * ysize * sizeof(float);
 	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
-	ocl_channels rgb = ocl.allocMemChannels(channel_size);
-
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, rgb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
+	ocl_channels rgb = ocl.allocMemChannels(channel_size, r, g, b);
 
 	clOpsinDynamicsImageEx(rgb, xsize, ysize);
 
