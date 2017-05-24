@@ -9,15 +9,19 @@
 extern bool g_useOpenCL;
 extern bool g_checkOpenCL;
 
-void clOpsinDynamicsImage(const size_t xsize, const size_t ysize, float* r, float* g, float* b);
+void clOpsinDynamicsImage(
+    float *r, float *g, float *b,
+    const size_t xsize, const size_t ysize);
 
-void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
+void clDiffmapOpsinDynamicsImage(
+    float* result,
+    const float* r,  const float* g,  const float* b,
     const float* r2, const float* g2, const float* b2,
     const size_t xsize, const size_t ysize,
-    const size_t step,
-    float* result);
+    const size_t step);
 
 void clComputeBlockZeroingOrder(
+    guetzli::CoeffData *output_order_batch,
     const channel_info orig_channel[3],
     const float *orig_image_batch,
     const float *mask_scale,
@@ -26,14 +30,15 @@ void clComputeBlockZeroingOrder(
     const channel_info mayout_channel[3],
     const int factor,
     const int comp_mask,
-    const float BlockErrorLimit,
-    guetzli::CoeffData *output_order_batch);
+    const float BlockErrorLimit
+    );
 
-void clMask(const float* r, const float* g, const float* b,
-    const float* r2, const float* g2, const float* b2,
+void clMask(
+    float* mask_r,   float* mask_g,   float* mask_b,
+    float* maskdc_r, float* maskdc_g, float* maskdc_b,
     const size_t xsize, const size_t ysize,
-    float* mask_r, float* mask_g, float* mask_b,
-    float* maskdc_r, float* maskdc_g, float* maskdc_b);
+    const float* r,  const float* g,  const float* b,
+    const float* r2, const float* g2, const float* b2);
 
 void clMaskHighIntensityChangeEx(ocl_channels &xyb0/*in,out*/,
 	ocl_channels &xyb1/*in,out*/,
