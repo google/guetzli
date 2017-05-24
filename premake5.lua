@@ -2,7 +2,8 @@ workspace "guetzli"
   configurations { "Release", "Debug" }
   language "C++"
   flags { "C++11" }
-  includedirs { ".", "third_party/butteraugli" }
+  includedirs { ".", "third_party/butteraugli", "clguetzli", "$(OPENCL_INC)" }
+  libdirs { "$(OPENCL_LIB)" }
 
   filter "action:vs*"
     platforms { "x86_64", "x86" }
@@ -29,7 +30,9 @@ workspace "guetzli"
         "guetzli/*.cc",
         "guetzli/*.h",
         "third_party/butteraugli/butteraugli/butteraugli.cc",
-        "third_party/butteraugli/butteraugli/butteraugli.h"
+        "third_party/butteraugli/butteraugli/butteraugli.h",
+        "clguetzli/*.cpp",
+        "clguetzli/*.h"
       }
     removefiles "guetzli/guetzli.cc"
     filter "action:gmake"
@@ -41,6 +44,7 @@ workspace "guetzli"
     filter "action:gmake"
       linkoptions { "`pkg-config --libs libpng || libpng-config --ldflags`" }
       buildoptions { "`pkg-config --cflags libpng || libpng-config --cflags`" }
+      links { "OpenCL" }
     filter "action:vs*"
       links { "shlwapi" }
     filter {}
@@ -49,5 +53,7 @@ workspace "guetzli"
         "guetzli/*.cc",
         "guetzli/*.h",
         "third_party/butteraugli/butteraugli/butteraugli.cc",
-        "third_party/butteraugli/butteraugli/butteraugli.h"
+        "third_party/butteraugli/butteraugli/butteraugli.h",
+        "clguetzli/*.cpp",
+        "clguetzli/*.h"
       }

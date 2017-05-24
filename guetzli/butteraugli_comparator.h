@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "butteraugli/butteraugli.h"
-#include "clguetzli\clbutter_comparator.h"
+#include "clguetzli/clbutter_comparator.h"
 #include "guetzli/comparator.h"
 #include "guetzli/jpeg_data.h"
 #include "guetzli/output_image.h"

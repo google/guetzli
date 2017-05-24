@@ -41,7 +41,7 @@
             {
                 cl_mem x;
                 cl_mem y;
-                cl_mem b;
+                cl_mem b_;
             };
             union
             {

@@ -22,11 +22,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <tchar.h>
 #include <memory.h>
-#include <windows.h>
-#include "CL\cl.h"
-#include "CL\cl_ext.h"
+#include <stdarg.h>
+#include "CL/cl.h"
+#include "CL/cl_ext.h"
 #include "utils.h"
 #include <assert.h>
 
@@ -70,7 +69,11 @@ int ReadSourceFromFile(const char* fileName, char** source, size_t* sourceSize)
     int errorCode = CL_SUCCESS;
 
     FILE* fp = NULL;
+#ifdef __linux__
+    fp = fopen(fileName, "rb");
+#else
     fopen_s(&fp, fileName, "rb");
+#endif
     if (fp == NULL)
     {
         LogError("Error: Couldn't find program source file '%s'.\n", fileName);
