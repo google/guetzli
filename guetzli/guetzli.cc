@@ -28,7 +28,7 @@
 #include "guetzli/processor.h"
 #include "guetzli/quality.h"
 #include "guetzli/stats.h"
-#include "clguetzli\clguetzli.h"
+#include "clguetzli/clguetzli.h"
 
 namespace {
 

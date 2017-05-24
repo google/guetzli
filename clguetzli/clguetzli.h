@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
-#include "CL\cl.h"
-#include "guetzli\processor.h"
-#include "guetzli\butteraugli_comparator.h"
+#include "CL/cl.h"
+#include "guetzli/processor.h"
+#include "guetzli/butteraugli_comparator.h"
 #include "ocl.h"
 #include "clguetzli.cl.h"
 

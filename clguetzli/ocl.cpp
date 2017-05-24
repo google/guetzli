@@ -1,4 +1,10 @@
 #include "ocl.h"
+#include <string.h>
+#ifdef __linux__
+#include <malloc.h>
+#define _aligned_malloc memalign
+#define _aligned_free free
+#endif
 #include <vector>
 
 
