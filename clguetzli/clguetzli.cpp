@@ -1060,7 +1060,7 @@ void clAddBorderEx(cl_mem out, size_t xsize, size_t ysize, int step, cl_mem in)
 	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&cls2);
 	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&in);
 
-	size_t globalWorkSize[2] = { xsize - cls, ysize - cls };
+	size_t globalWorkSize[2] = { xsize, ysize};
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{

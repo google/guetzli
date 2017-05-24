@@ -258,6 +258,12 @@ __kernel void clAddBorder(__global float *out, int s, int s2, __global const flo
     const int xsize = get_global_size(0);
     const int ysize = get_global_size(1);
 
+	if (x >= xsize - s ||
+	    y >= ysize - s)
+	{ 
+		return;
+	}
+
     const double mul1 = 24.8235314874;
     out[(y + s2) * xsize + x + s2] += (float)(mul1) * in[y * (xsize - s) + x];
 
