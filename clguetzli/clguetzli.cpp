@@ -801,14 +801,8 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
     }
 
 	size_t channel_size = 512 * 3 * sizeof(double);
-	ocl_channels xyb = ocl.allocMemChannels(channel_size);
-	ocl_channels xyb_dc = ocl.allocMemChannels(channel_size);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb.x, CL_FALSE, 0, channel_size, lut_x, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb.y, CL_FALSE, 0, channel_size, lut_y, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb.b, CL_FALSE, 0, channel_size, lut_b, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb_dc.x, CL_FALSE, 0, channel_size, lut_dcx, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb_dc.y, CL_FALSE, 0, channel_size, lut_dcy, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, xyb_dc.b, CL_FALSE, 0, channel_size, lut_dcb, 0, NULL, NULL);
+	ocl_channels xyb = ocl.allocMemChannels(channel_size, lut_x, lut_y, lut_b);
+    ocl_channels xyb_dc = ocl.allocMemChannels(channel_size, lut_dcx, lut_dcy, lut_dcb);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_DOMASK];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mask.r);
@@ -880,18 +874,10 @@ void clMask(const float* r, const float* g, const float* b,
 
     cl_int channel_size = xsize * ysize * sizeof(float);
 
-    ocl_channels rgb = ocl.allocMemChannels(channel_size);
-    ocl_channels rgb2 = ocl.allocMemChannels(channel_size);
+    ocl_channels rgb = ocl.allocMemChannels(channel_size, r, g, b);
+    ocl_channels rgb2 = ocl.allocMemChannels(channel_size, r2, g2, b2);
     ocl_channels mask = ocl.allocMemChannels(channel_size);
     ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
-
-    clEnqueueWriteBuffer(ocl.commandQueue, rgb.r, CL_FALSE, 0, channel_size, r, 0, NULL, NULL);
-    clEnqueueWriteBuffer(ocl.commandQueue, rgb.g, CL_FALSE, 0, channel_size, g, 0, NULL, NULL);
-    clEnqueueWriteBuffer(ocl.commandQueue, rgb.b, CL_FALSE, 0, channel_size, b, 0, NULL, NULL);
-    clEnqueueWriteBuffer(ocl.commandQueue, rgb2.r, CL_FALSE, 0, channel_size, r2, 0, NULL, NULL);
-    clEnqueueWriteBuffer(ocl.commandQueue, rgb2.g, CL_FALSE, 0, channel_size, g2, 0, NULL, NULL);
-    clEnqueueWriteBuffer(ocl.commandQueue, rgb2.b, CL_FALSE, 0, channel_size, b2, 0, NULL, NULL);
-    err = clFinish(ocl.commandQueue);
 
     clMaskEx(rgb, rgb2, xsize, ysize, mask, mask_dc);
 
@@ -1105,10 +1091,7 @@ void clDiffmapOpsinDynamicsImage(const float* r, const float* g, const float* b,
 	ocl_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
 	ocl_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
 
-    cl_mem mem_result = ocl.allocMem(channel_size);
-	const float pattern = 0;
-	clEnqueueFillBuffer(ocl.commandQueue, mem_result, &pattern, sizeof(float), 0, res_xsize * res_ysize, 0, NULL, NULL);
-	clEnqueueWriteBuffer(ocl.commandQueue, mem_result, CL_FALSE, 0, channel_step_size, result, 0, NULL, NULL);
+    cl_mem mem_result = ocl.allocMem(channel_size, result);
 
 	cl_mem edge_detector_map = ocl.allocMem(3 * channel_step_size);
 	cl_mem block_diff_dc	 = ocl.allocMem(3 * channel_step_size);
