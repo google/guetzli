@@ -9,7 +9,7 @@ void tclMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	const float* result_r, const float* result_g, const float* result_b,
 	const float* result_r2, const float* result_g2, const float* result_b2);
 
-void tclBlur(float* channel, size_t xsize, size_t ysize, double sigma, double border_ratio, float* result);
+void tclBlur(const float* channel, size_t xsize, size_t ysize, double sigma, double border_ratio, const float* result);
 
 void tclEdgeDetectorMap(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
@@ -40,13 +40,13 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 	size_t xsize, size_t ysize,
 	size_t res_xsize, size_t res_ysize,
 	size_t step,
-	float *init_result,
-	float *result);
+	const float *init_result,
+	const float *result);
 
 void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	const size_t step,
-	float *diffmap, size_t org_len,
-	float *diffmap_cmp);
+	const float *diffmap, size_t org_len,
+	const float *diffmap_cmp);
 
 void tclConvolution(size_t xsize, size_t ysize,
 	size_t xstep,
@@ -56,26 +56,23 @@ void tclConvolution(size_t xsize, size_t ysize,
 	float border_ratio,
 	float* result);
 
-void tclBlur(size_t xsize, size_t ysize, float* channel, double sigma,
-	double border_ratio);
-
 void tclDiffPrecompute(
   const std::vector<std::vector<float> > &xyb0,
   const std::vector<std::vector<float> > &xyb1,
+  size_t xsize, size_t ysize,
+  const std::vector<std::vector<float> > *mask_cmp);
+
+void tclAverage5x5(int xsize, int ysize, const std::vector<float> &diffs_org, const std::vector<float> &diffs_cmp);
+
+void tclScaleImage(double scale, const float *result_org, const float *result_cmp, size_t length);
+
+void tclOpsinDynamicsImage(const float* r, const float* g, const float* b, size_t xsize, size_t ysize,
+	const float* result_r, const float* result_g, const float* result_b);
+
+void tclMinSquareVal(const float *img, size_t square_size, size_t offset,
 	size_t xsize, size_t ysize,
-  std::vector<std::vector<float> > *mask_cmp);
+	const float *result);
 
-void tclAverage5x5(int xsize, int ysize, std::vector<float> &diffs_org, std::vector<float> &diffs_cmp);
-
-void tclScaleImage(double scale, float *result_org, float *result_cmp, size_t length);
-
-void tclOpsinDynamicsImage(float* r, float* g, float* b, size_t xsize, size_t ysize,
-	float* result_r, float* result_g, float* result_b);
-
-void tclMinSquareVal(float *img, size_t square_size, size_t offset,
-	size_t xsize, size_t ysize,
-	float *values);
-
-void tclUpsample(float* image, size_t xsize, size_t ysize,
+void tclUpsample(const float* image, size_t xsize, size_t ysize,
 	size_t xstep, size_t ystep,
-	float* result);
+	const float* result);

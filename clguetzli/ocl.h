@@ -60,7 +60,7 @@ enum KernelName {
 	KERNEL_UPSAMPLESQUAREROOT,
 	KERNEL_ADDBORDER,
 	KERNEL_REMOVEBORDER,
-  KERNEL_AVERAGE5X5,
+    KERNEL_AVERAGE5X5,
 	KERNEL_EDGEDETECTOR,
 	KERNEL_BLOCKDIFFMAP,
 	KERNEL_EDGEDETECTORLOWFREQ,
@@ -78,7 +78,7 @@ struct ocl_args_d_t
 	void* allocC(size_t s);
 
 	cl_mem allocMem(size_t s, const void *init = NULL);
-	ocl_channels allocMemChannels(size_t s);
+	ocl_channels allocMemChannels(size_t s, const void *c0 = NULL, const void *c1 = NULL, const void *c2 = NULL);
     void releaseMemChannels(ocl_channels rgb);
 
 	// Regular OpenCL objects:
