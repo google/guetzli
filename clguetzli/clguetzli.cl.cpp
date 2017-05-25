@@ -118,7 +118,7 @@ namespace guetzli
                 height_,
                 factor_x_);
 
-            if (err != err2)
+            if (fabs(err - err2) > 0.0001)
             {
                 LogError("CompareBlock miss %s(%d) \r\n", __FUNCTION__, __LINE__);
             }

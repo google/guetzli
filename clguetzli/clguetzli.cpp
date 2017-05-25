@@ -120,6 +120,11 @@ void clDiffmapOpsinDynamicsImage(
     cl_mem block_diff_dc = ocl.allocMem(3 * channel_step_size);
     cl_mem block_diff_ac = ocl.allocMem(3 * channel_step_size);
 
+	std::vector<uchar> buf(3 * channel_step_size);
+	clEnqueueWriteBuffer(ocl.commandQueue, edge_detector_map, CL_FALSE, 0, 3 * channel_step_size, buf.data(), 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, block_diff_dc, CL_FALSE, 0, 3 * channel_step_size, buf.data(), 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, block_diff_dc, CL_FALSE, 0, 3 * channel_step_size, buf.data(), 0, NULL, NULL);
+
     clMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
 
     clEdgeDetectorMapEx(edge_detector_map, xyb0, xyb1, xsize, ysize, step);

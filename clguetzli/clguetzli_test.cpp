@@ -83,6 +83,9 @@ void tclEdgeDetectorMap(const float* r, const float* g, const float* b,
 	ocl_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
 	cl_mem edge = ocl.allocMem(edgemap_size);
 
+	std::vector<uchar> buf(edgemap_size);
+	clEnqueueWriteBuffer(ocl.commandQueue, edge, CL_FALSE, 0, edgemap_size, buf.data(), 0, NULL, NULL);
+
 	clEdgeDetectorMapEx(edge, xyb0, xyb1, xsize, ysize, step);
 
 	cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, edge, true, CL_MAP_READ, 0, edgemap_size, 0, NULL, NULL, &err);
@@ -116,6 +119,10 @@ void tclBlockDiffMap(const float* r, const float* g, const float* b,
 	
 	cl_mem block_diff_dc = ocl.allocMem(reschannel_size);
 	cl_mem block_diff_ac = ocl.allocMem(reschannel_size);
+
+	std::vector<uchar> buf(reschannel_size);
+	clEnqueueWriteBuffer(ocl.commandQueue, block_diff_dc, CL_FALSE, 0, reschannel_size, buf.data(), 0, NULL, NULL);
+	clEnqueueWriteBuffer(ocl.commandQueue, block_diff_ac, CL_FALSE, 0, reschannel_size, buf.data(), 0, NULL, NULL);
 
 	clBlockDiffMapEx(block_diff_dc, block_diff_ac, xyb0, xyb1, xsize, ysize, step);
 

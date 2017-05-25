@@ -198,6 +198,7 @@ namespace butteraugli
 
         if (g_checkOpenCL && xsize > 8 && ysize > 8)
         {
+			diffmap_org.resize(xsize * ysize);
             tclCalculateDiffmap(xsize, ysize, step, diffmap_org.data(), diffmap_org.size(), (*diffmap).data());
         }
     }
