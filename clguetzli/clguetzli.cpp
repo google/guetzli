@@ -443,6 +443,7 @@ void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
     clBlurEx2(image, xsize, ysize, sigma, border_ratio, result);
 
     return;
+/*
     double m = 2.25;  // Accuracy increases when m is increased.
     const double scaler = -1.0 / (2 * sigma * sigma);
     // For m = 9.0: exp(-scaler * diff * diff) < 2^ {-52}
@@ -479,6 +480,7 @@ void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
     }
 
     clReleaseMemObject(mem_expn);
+*/
 }
 
 void clBlurEx2(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
