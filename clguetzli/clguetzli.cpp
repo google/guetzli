@@ -44,25 +44,25 @@ ocl_args_d_t& getOcl(void)
             LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
         }
 	}
-	ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "clMinSquareVal", &err);
-	ocl.kernel[KERNEL_CONVOLUTION] =  clCreateKernel(ocl.program, "clConvolution", &err);
-	ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "clConvolutionX", &err);
-	ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "clConvolutionY", &err);
-	ocl.kernel[KERNEL_SQUARESAMPLE] = clCreateKernel(ocl.program, "clSquareSample", &err);
-	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "clOpsinDynamicsImage", &err);
-	ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "clDoMask", &err);
-	ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "clScaleImage", &err);
-	ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "clCombineChannels", &err);
-	ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "clMaskHighIntensityChange", &err);
-	ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "clDiffPrecompute", &err);
-	ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "clUpsampleSquareRoot", &err);
-	ocl.kernel[KERNEL_ADDBORDER] = clCreateKernel(ocl.program, "clAddBorder", &err);
-	ocl.kernel[KERNEL_REMOVEBORDER] = clCreateKernel(ocl.program, "clRemoveBorder", &err);
-	ocl.kernel[KERNEL_AVERAGE5X5] = clCreateKernel(ocl.program, "clAverage5x5", &err);
-	ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMap", &err);
-	ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMap", &err);
-	ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreq", &err);
-    ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrder", &err);
+    ocl.kernel[KERNEL_CONVOLUTION] = clCreateKernel(ocl.program, "clConvolutionEx", &err);
+    ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "clConvolutionXEx", &err);
+    ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "clConvolutionYEx", &err);
+    ocl.kernel[KERNEL_SQUARESAMPLE] = clCreateKernel(ocl.program, "clSquareSampleEx", &err);
+	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "clOpsinDynamicsImageEx", &err);
+    ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "clMaskHighIntensityChangeEx", &err);
+    ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMapEx", &err);
+    ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMapEx", &err);
+    ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreqEx", &err);
+    ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "clDiffPrecomputeEx", &err);
+    ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "clScaleImageEx", &err);
+    ocl.kernel[KERNEL_AVERAGE5X5] = clCreateKernel(ocl.program, "clAverage5x5Ex", &err);
+    ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "clMinSquareValEx", &err);
+    ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "clDoMaskEx", &err);
+    ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "clCombineChannelsEx", &err);
+    ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "clUpsampleSquareRootEx", &err);
+    ocl.kernel[KERNEL_REMOVEBORDER] = clCreateKernel(ocl.program, "clRemoveBorderEx", &err);
+    ocl.kernel[KERNEL_ADDBORDER] = clCreateKernel(ocl.program, "clAddBorderEx", &err);
+    ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrderEx", &err);
 
 	return ocl;
 }
@@ -1114,14 +1114,14 @@ void clUpsampleSquareRootEx(cl_mem diffmap, const size_t xsize, const size_t ysi
 	cl_int clysize = ysize;
 	cl_int clstep = step;
 
-    cl_mem mem_diffmap = ocl.allocMem(xsize * ysize * sizeof(float));
+    cl_mem diffmap_out = ocl.allocMem(xsize * ysize * sizeof(float));
 
 	cl_kernel kernel = ocl.kernel[KERNEL_UPSAMPLESQUAREROOT];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&diffmap);
-	clSetKernelArg(kernel, 1, sizeof(cl_int), (void*)&xsize);
-	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&ysize);
-	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&step);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&mem_diffmap);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&diffmap_out);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&diffmap);
+	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&xsize);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&ysize);
+	clSetKernelArg(kernel, 4, sizeof(cl_int), (void*)&step);
 
 	const size_t res_xsize = (xsize + step - 1) / step;
 	const size_t res_ysize = (ysize + step - 1) / step;
@@ -1133,7 +1133,7 @@ void clUpsampleSquareRootEx(cl_mem diffmap, const size_t xsize, const size_t ysi
 		LogError("Error: clUpsampleSquareRootEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
 	}
 	err = clFinish(ocl.commandQueue);
-	err = clEnqueueCopyBuffer(ocl.commandQueue, mem_diffmap, diffmap, 0, 0, xsize * ysize * sizeof(float), 0, NULL, NULL);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, diffmap_out, diffmap, 0, 0, xsize * ysize * sizeof(float), 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clUpsampleSquareRootEx() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
@@ -1144,7 +1144,7 @@ void clUpsampleSquareRootEx(cl_mem diffmap, const size_t xsize, const size_t ysi
 		LogError("Error: clUpsampleSquareRootEx() clFinish returned %s.\n", TranslateOpenCLError(err));
 	}
 
-    clReleaseMemObject(mem_diffmap);
+    clReleaseMemObject(diffmap_out);
 }
 
 void clRemoveBorderEx(cl_mem out, const cl_mem in, const size_t xsize, const size_t ysize, const int step)
@@ -1156,11 +1156,11 @@ void clRemoveBorderEx(cl_mem out, const cl_mem in, const size_t xsize, const siz
 	cl_int cls2 = (8 - step) / 2;
     cl_int clxsize = xsize;
 	cl_kernel kernel = ocl.kernel[KERNEL_REMOVEBORDER];
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), &in);
-    clSetKernelArg(kernel, 1, sizeof(cl_int), &clxsize);
-	clSetKernelArg(kernel, 2, sizeof(cl_int), &cls);
-	clSetKernelArg(kernel, 3, sizeof(cl_int), &cls2);
-	clSetKernelArg(kernel, 4, sizeof(cl_mem), &out);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &out);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), &in);
+    clSetKernelArg(kernel, 2, sizeof(cl_int), &clxsize);
+	clSetKernelArg(kernel, 3, sizeof(cl_int), &cls);
+	clSetKernelArg(kernel, 4, sizeof(cl_int), &cls2);
 
 	size_t globalWorkSize[2] = { xsize - cls, ysize - cls};
 	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
