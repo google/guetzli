@@ -96,6 +96,7 @@ namespace guetzli
     double ButteraugliComparatorEx::CompareBlock(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const
     {
         double err = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block, comp_mask);
+/*
         if (g_checkOpenCL)
         {
             channel_info mayout_channel[3];
@@ -118,12 +119,12 @@ namespace guetzli
                 height_,
                 factor_x_);
 
-            if (err != err2)
+            if (fabs(err - err2) > 0.001)
             {
                 LogError("CompareBlock miss %s(%d) \r\n", __FUNCTION__, __LINE__);
             }
         }
-
+*/
         return err;
     }
 }
