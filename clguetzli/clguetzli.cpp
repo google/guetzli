@@ -1119,7 +1119,10 @@ void clUpsampleSquareRootEx(cl_mem diffmap, const size_t xsize, const size_t ysi
 	cl_int clysize = ysize;
 	cl_int clstep = step;
 
-    cl_mem diffmap_out = ocl.allocMem(xsize * ysize * sizeof(float));
+	size_t out_size = xsize * ysize * sizeof(float);
+    cl_mem diffmap_out = ocl.allocMem(out_size);
+	std::vector<uchar> buf(out_size);
+	clEnqueueWriteBuffer(ocl.commandQueue, diffmap_out, CL_FALSE, 0, out_size, buf.data(), 0, NULL, NULL);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_UPSAMPLESQUAREROOT];
     clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&diffmap_out);
