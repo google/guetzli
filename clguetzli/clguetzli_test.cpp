@@ -332,8 +332,8 @@ void tclConvolution(size_t xsize, size_t ysize,
 
 // ian todo
 void tclDiffPrecompute(
-  const const std::vector<std::vector<float> > &xyb0,
-  const const std::vector<std::vector<float> > &xyb1,
+  const std::vector<std::vector<float> > &xyb0,
+  const std::vector<std::vector<float> > &xyb1,
   size_t xsize, size_t ysize,
   const std::vector<std::vector<float> > *mask_cmp)
 {

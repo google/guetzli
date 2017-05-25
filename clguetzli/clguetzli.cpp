@@ -200,6 +200,9 @@ void clComputeBlockZeroingOrder(
     cl_int clFactor = factor;
     cl_int clMask = comp_mask;
 
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_output_order_batch, CL_FALSE, 0, output_order_batch_size, output_order_batch, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
     cl_kernel kernel = ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER];
     clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mem_orig_coeff[0]);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mem_orig_coeff[1]);
