@@ -200,6 +200,9 @@ void clComputeBlockZeroingOrder(
     cl_int clFactor = factor;
     cl_int clMask = comp_mask;
 
+	clEnqueueWriteBuffer(ocl.commandQueue, mem_output_order_batch, CL_FALSE, 0, output_order_batch_size, output_order_batch, 0, NULL, NULL);
+	err = clFinish(ocl.commandQueue);
+
     cl_kernel kernel = ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER];
     clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&mem_orig_coeff[0]);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&mem_orig_coeff[1]);
@@ -443,6 +446,7 @@ void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
     clBlurEx2(image, xsize, ysize, sigma, border_ratio, result);
 
     return;
+/*
     double m = 2.25;  // Accuracy increases when m is increased.
     const double scaler = -1.0 / (2 * sigma * sigma);
     // For m = 9.0: exp(-scaler * diff * diff) < 2^ {-52}
@@ -479,6 +483,7 @@ void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
     }
 
     clReleaseMemObject(mem_expn);
+*/
 }
 
 void clBlurEx2(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
