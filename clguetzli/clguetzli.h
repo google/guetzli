@@ -46,13 +46,13 @@ void clConvolutionEx(
     const cl_mem multipliers, size_t len,
     int xstep, int offset, double border_ratio);
 
-void clConvolutionX(
+void clConvolutionXEx(
     cl_mem result/*out*/,
     const cl_mem inp, size_t xsize, size_t ysize,
     const cl_mem multipliers, size_t len,
     int xstep, int offset, double border_ratio);
 
-void clConvolutionY(
+void clConvolutionYEx(
     cl_mem result/*out*/,
     const cl_mem inp, size_t xsize, size_t ysize,
     const cl_mem multipliers, size_t len,
@@ -62,12 +62,6 @@ void clSquareSampleEx(
     cl_mem result/*out*/,
     const cl_mem image, size_t xsize, size_t ysize,
     size_t xstep, size_t ystep);
-
-void clUpsampleEx(
-    cl_mem result/*out*/,
-    const cl_mem image,
-    const size_t xsize, const size_t ysize,
-    const size_t xstep, const size_t ystep);
 
 void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
     const double sigma, const double border_ratio,

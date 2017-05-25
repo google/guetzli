@@ -9,6 +9,19 @@
 #define kBlockHalf      (kBlockEdge * kBlockEdgeHalf)
 #define kComputeBlockSize (kBlockSize * 3)
 
+// IntFloatPair是为了模拟output_order input_order的vector
+typedef struct __IntFloatPair
+{
+    int   idx;
+    float err;
+}IntFloatPair, DCTScoreData, CoeffData;
+
+typedef struct __IntFloatPairList
+{
+    int size;
+    IntFloatPair *pData;
+}IntFloatPairList;
+
 void   XybToVals(double x, double y, double z, double *valx, double *valy, double *valz);
 double InterpolateClampNegative(__global const double *array, int size, double sx);
 void   XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
@@ -32,7 +45,25 @@ void Butteraugli8x8CornerEdgeDetectorDiff(
     __global const float *r2, __global const float* g2, __global const float *b2,
     double* diff_xyb);
 
-__kernel void clConvolution(
+int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order);
+
+double CompareBlockFactor(const channel_info mayout_channel[3],
+                        const coeff_t* candidate_block,
+                        const int block_x,
+                        const int block_y,
+                        __global const float *orig_image_batch,
+                        __global const float *mask_scale,
+                        const int image_width,
+                        const int image_height,
+                        const int factor);
+
+void floatcopy(float *dst, const float *src, int size);
+void coeffcopy(coeff_t *dst, const coeff_t *src, int size);
+void coeffcopy_g(coeff_t *dst, __global const coeff_t *src, int size);
+int list_erase(IntFloatPairList* list, int idx);
+int list_push_back(IntFloatPairList* list, int i, float f);
+
+__kernel void clConvolutionEx(
 	__global float* result,
 	__global const float* inp, const int xsize,
 	__global const float* multipliers, const int len,
@@ -73,7 +104,7 @@ __kernel void clConvolution(
     result[ox * ysize + y] = sum * scale;
 }
 
-__kernel void clConvolutionX(
+__kernel void clConvolutionXEx(
 	__global float* result,
 	__global const float* inp,
 	__global const float* multipliers, const int len,
@@ -114,7 +145,7 @@ __kernel void clConvolutionX(
     result[y * xsize + x] = sum * scale;
 }
 
-__kernel void clConvolutionY(
+__kernel void clConvolutionYEx(
 	__global float* result,
 	__global const float* inp,
 	__global const float* multipliers, const int len,
@@ -156,7 +187,7 @@ __kernel void clConvolutionY(
     result[y * xsize + x] = sum * scale;
 }
 
-__kernel void clSquareSample(
+__kernel void clSquareSampleEx(
 	__global float* result,
 	__global const float* image,
 	const int xstep, const int ystep)
@@ -175,7 +206,7 @@ __kernel void clSquareSample(
     result[y * xsize + x] = image[y_sample * xsize + x_sample];
 }
 
-__kernel void clOpsinDynamicsImage(
+__kernel void clOpsinDynamicsImageEx(
     __global float *r, __global float *g, __global float *b,
     __global const float *r_blurred, __global const float *g_blurred, __global const float *b_blurred)
 {
@@ -203,7 +234,7 @@ __kernel void clOpsinDynamicsImage(
     b[i] = z;
 }
 
-__kernel void clMaskHighIntensityChange(
+__kernel void clMaskHighIntensityChangeEx(
     __global float *xyb0_x, __global float *xyb0_y, __global float *xyb0_b,
     __global float *xyb1_x, __global float *xyb1_y, __global float *xyb1_b,
     __global const float *c0_x, __global const float *c0_y, __global const float *c0_b,
@@ -260,7 +291,7 @@ __kernel void clMaskHighIntensityChange(
     xyb1_b[ix] = (float)(mix[2] * c1_b[ix] + (1 - mix[2]) * ave[2]);
 }
 
-__kernel void clEdgeDetectorMap(
+__kernel void clEdgeDetectorMapEx(
 	__global float *result,
     __global const float *r, __global const float *g, __global const float* b,
     __global const float *r2, __global const float* g2, __global const float *b2,
@@ -294,7 +325,7 @@ __kernel void clEdgeDetectorMap(
 }
 
 
-__kernel void clBlockDiffMap(
+__kernel void clBlockDiffMapEx(
 	__global float* block_diff_dc, __global float* block_diff_ac,
 	__global const float* r, __global const float* g, __global const float* b,
     __global const float* r2, __global const float* g2, __global const float* b2,
@@ -352,7 +383,7 @@ __kernel void clBlockDiffMap(
     }
 }
 
-__kernel void clEdgeDetectorLowFreq(
+__kernel void clEdgeDetectorLowFreqEx(
 	__global float *block_diff_ac,
     __global const float *r, __global const float *g, __global const float* b,
     __global const float *r2, __global const float* g2, __global const float *b2,
@@ -416,7 +447,7 @@ __kernel void clEdgeDetectorLowFreq(
     block_diff_ac[res_ix * 3 + 2] += max_diff_xyb[2] * kMul;
 }
 
-__kernel void clDiffPrecompute(
+__kernel void clDiffPrecomputeEx(
     __global float *mask_x, __global float *mask_y, __global float *mask_b,
     __global const float *xyb0_x, __global const float *xyb0_y, __global const float *xyb0_b,
     __global const float *xyb1_x, __global const float *xyb1_y, __global const float *xyb1_b)
@@ -482,7 +513,7 @@ __kernel void clDiffPrecompute(
     mask_b[ix] = (float)(m);
 }
 
-__kernel void clScaleImage(__global float *img, double scale)
+__kernel void clScaleImageEx(__global float *img, double scale)
 {
     const int i = get_global_id(0);
     img[i] *= scale;
@@ -490,7 +521,7 @@ __kernel void clScaleImage(__global float *img, double scale)
 
 #define Average5x5_w 0.679144890667f
 __constant float Average5x5_scale = 1.0f / (5.0f + 4 * Average5x5_w);
-__kernel void clAverage5x5(__global float *img, __global const float *img_org)
+__kernel void clAverage5x5Ex(__global float *img, __global const float *img_org)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -530,7 +561,7 @@ __kernel void clAverage5x5(__global float *img, __global const float *img_org)
 	img[row0 + x] *= Average5x5_scale;
 }
 
-__kernel void clMinSquareVal(__global float* result, __global const float* img,  int square_size, int offset)
+__kernel void clMinSquareValEx(__global float* result, __global const float* img,  int square_size, int offset)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -557,7 +588,7 @@ __kernel void clMinSquareVal(__global float* result, __global const float* img, 
     result[y * width + x] = minValue;
 }
 
-__kernel void clDoMask(
+__kernel void clDoMaskEx(
     __global float *mask_x, __global float *mask_y, __global float *mask_b,
     __global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b,
     __global const double *lut_x, __global const double *lut_y, __global const double *lut_b,
@@ -590,7 +621,7 @@ __kernel void clDoMask(
 
 }
 
-__kernel void clCombineChannels(
+__kernel void clCombineChannelsEx(
     __global float *result,
     __global const float *mask_x, __global const float *mask_y, __global const float *mask_b,
     __global const float *mask_dc_x, __global const float *mask_dc_y, __global const float *mask_dc_b,
@@ -622,36 +653,7 @@ __kernel void clCombineChannels(
         DotProduct(&edge_detector_map[3 * res_ix], mask));
 }
 
-__kernel void clRemoveBorder(__global const float *in, int in_xsize, int s, int s2, __global float *out)
-{
-    const int x = get_global_id(0);
-    const int y = get_global_id(1);
-
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
-
-    out[y * xsize + x] = in[(y + s2) * (xsize + s) + x + s2];
-}
-
-__kernel void clAddBorder(__global float *out, int s, int s2, __global const float *in)
-{
-    const int x = get_global_id(0);
-    const int y = get_global_id(1);
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
-
-	if (x >= xsize - s ||
-	    y >= ysize - s)
-	{
-		return;
-	}
-
-    const double mul1 = 24.8235314874;
-    out[(y + s2) * xsize + x + s2] += (float)(mul1) * in[y * (xsize - s) + x];
-
-}
-
-__kernel void clUpsampleSquareRoot(__global const float *diffmap, int xsize, int ysize, int step, __global float *diffmap_out)
+__kernel void clUpsampleSquareRootEx(__global float *diffmap_out, __global const float *diffmap, int xsize, int ysize, int step)
 {
     const int res_x = get_global_id(0);
     const int res_y = get_global_id(1);
@@ -684,7 +686,160 @@ __kernel void clUpsampleSquareRoot(__global const float *diffmap, int xsize, int
     }
 }
 
+__kernel void clRemoveBorderEx(__global float *out, __global const float *in, int in_xsize, int s, int s2)
+{
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
 
+    const int xsize = get_global_size(0);
+    const int ysize = get_global_size(1);
+
+    out[y * xsize + x] = in[(y + s2) * (xsize + s) + x + s2];
+}
+
+__kernel void clAddBorderEx(__global float *out, int s, int s2, __global const float *in)
+{
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
+    const int xsize = get_global_size(0);
+    const int ysize = get_global_size(1);
+
+	if (x >= xsize - s ||
+	    y >= ysize - s)
+	{
+		return;
+	}
+
+    const double mul1 = 24.8235314874;
+    out[(y + s2) * xsize + x + s2] += (float)(mul1) * in[y * (xsize - s) + x];
+
+}
+
+// batch是指已经二维块展开为了一维块
+__kernel void clComputeBlockZeroingOrderEx(
+    __global const coeff_t *orig_batch_0,       // 原始图像系数
+    __global const coeff_t *orig_batch_1,       // 原始图像系数
+    __global const coeff_t *orig_batch_2,       // 原始图像系数
+    __global const float   *orig_image_batch,   // 原始图像pregamma
+    __global const float   *mask_scale,         // 原始图像的某个神秘参数
+    const int              image_width,
+    const int              image_height,
+
+    __global const coeff_t *mayout_batch_0,     // 输出备选图的系数
+    __global const coeff_t *mayout_batch_1,     // 输出备选图的系数
+    __global const coeff_t *mayout_batch_2,     // 输出备选图的系数
+    __global const ushort  *mayout_pixel_0,
+    __global const ushort  *mayout_pixel_1,
+    __global const ushort  *mayout_pixel_2,
+
+    const channel_info     mayout_channel_0,
+    const channel_info     mayout_channel_1,
+    const channel_info     mayout_channel_2,
+    const int factor,                                 // 当前参与运算的factor
+    const int comp_mask,                              // 当前参与运算的channel
+    const float BlockErrorLimit,
+    __global CoeffData *output_order_list/*out*/)
+{
+    const int block_x = get_global_id(0);
+    const int block_y = get_global_id(1);
+
+    channel_info orig_channel[3];
+    orig_channel[0].coeff = orig_batch_0;
+    orig_channel[1].coeff = orig_batch_1;
+    orig_channel[2].coeff = orig_batch_2;
+
+    channel_info mayout_channel[3] = { mayout_channel_0, mayout_channel_1, mayout_channel_2 };
+    mayout_channel[0].coeff = mayout_batch_0;
+    mayout_channel[1].coeff = mayout_batch_1;
+    mayout_channel[2].coeff = mayout_batch_2;
+    mayout_channel[0].pixel = mayout_pixel_0;
+    mayout_channel[1].pixel = mayout_pixel_1;
+    mayout_channel[2].pixel = mayout_pixel_2;
+
+    int block_idx = 0;        // 根据下面mask命中的channel来计算indx
+
+    coeff_t mayout_block[kComputeBlockSize] = { 0 };
+    coeff_t orig_block[kComputeBlockSize]   = { 0 };
+
+    for (int c = 0; c < 3; c++) {
+        if (comp_mask & (1<<c)) {
+            block_idx = block_y * mayout_channel[c].block_width + block_x;
+            coeffcopy_g(&mayout_block[c * kBlockSize],
+                mayout_channel[c].coeff + block_idx * kBlockSize,
+                kBlockSize);
+            coeffcopy_g(&orig_block[c * kBlockSize],
+                orig_channel[c].coeff + block_idx * kBlockSize,
+                kBlockSize);
+        }
+    }
+
+    DCTScoreData input_order_data[kComputeBlockSize];
+    CoeffData    output_order_data[kComputeBlockSize];
+
+    IntFloatPairList input_order = { 0, input_order_data };
+    IntFloatPairList output_order = { 0, output_order_data };
+
+    int count = MakeInputOrderEx(mayout_block, orig_block, &input_order);
+
+    coeff_t processed_block[kComputeBlockSize];
+    coeffcopy(processed_block, mayout_block, kComputeBlockSize);
+
+    while (input_order.size > 0)
+    {
+        float best_err = 1e17f;
+        int best_i = 0;
+        for (int i = 0; i < min(3, input_order.size); i++)
+        {
+            coeff_t candidate_block[kComputeBlockSize];
+            coeffcopy(candidate_block, processed_block, kComputeBlockSize);
+
+            const int idx = input_order.pData[i].idx;
+            candidate_block[idx] = 0;
+
+            float max_err = CompareBlockFactor(mayout_channel,
+                                               candidate_block,
+                                               block_x,
+                                               block_y,
+                                               orig_image_batch,
+                                               mask_scale,
+                                               image_width,
+                                               image_height,
+                                               factor);
+            if (max_err < best_err)
+            {
+                best_err = max_err;
+                best_i = i;
+            }
+        }
+
+        int idx = input_order.pData[best_i].idx;
+        processed_block[idx] = 0;
+        list_erase(&input_order, best_i);
+
+        list_push_back(&output_order, idx, best_err);
+    }
+
+    // 注意output_order这里的resize就是把尾部的置位0
+    float min_err = 1e10;
+    for (int i = output_order.size - 1; i >= 0; --i) {
+        min_err = min(min_err, output_order.pData[i].err);
+        output_order.pData[i].err = min_err;
+    }
+
+    __global CoeffData *output_block = output_order_list + block_idx * kComputeBlockSize;
+
+    int out_count = 0;
+    for (int i = 0; i < kComputeBlockSize && i < output_order.size; i++)
+    {
+        // 过滤较大的err，这部分进入后端计算没有意义
+        if (output_order.pData[i].err <= BlockErrorLimit)
+        {
+            output_block[out_count].idx = output_order.pData[i].idx;
+            output_block[out_count].err = output_order.pData[i].err;
+            out_count++;
+        }
+    }
+}
 
 void Butteraugli8x8CornerEdgeDetectorDiff(
     int pos_x,
@@ -1393,19 +1548,6 @@ void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *
     *valy = a2 * r + a3 * g;
     *valz = b;
 }
-
-// IntFloatPair是为了模拟output_order input_order的vector，但是大小固定为8x8
-typedef struct __IntFloatPair
-{
-    int   idx;
-    float err;
-}IntFloatPair, DCTScoreData, CoeffData;
-
-typedef struct __IntFloatPairList
-{
-    int size;
-    IntFloatPair *pData;
-}IntFloatPairList;
 
 // chrisk todo
 // return size
@@ -3113,128 +3255,3 @@ double CompareBlockFactor(const channel_info mayout_channel[3],
     }
 }
 
-// batch是指已经二维块展开为了一维块
-__kernel void clComputeBlockZeroingOrder(
-    __global const coeff_t *orig_batch_0,       // 原始图像系数
-    __global const coeff_t *orig_batch_1,       // 原始图像系数
-    __global const coeff_t *orig_batch_2,       // 原始图像系数
-    __global const float   *orig_image_batch,   // 原始图像pregamma
-    __global const float   *mask_scale,         // 原始图像的某个神秘参数
-    const int              image_width,
-    const int              image_height,
-
-    __global const coeff_t *mayout_batch_0,     // 输出备选图的系数
-    __global const coeff_t *mayout_batch_1,     // 输出备选图的系数
-    __global const coeff_t *mayout_batch_2,     // 输出备选图的系数
-    __global const ushort  *mayout_pixel_0,
-    __global const ushort  *mayout_pixel_1,
-    __global const ushort  *mayout_pixel_2,
-
-    const channel_info     mayout_channel_0,
-    const channel_info     mayout_channel_1,
-    const channel_info     mayout_channel_2,
-    const int factor,                                 // 当前参与运算的factor
-    const int comp_mask,                              // 当前参与运算的channel
-    const float BlockErrorLimit,
-    __global CoeffData *output_order_list/*out*/)
-{
-    const int block_x = get_global_id(0);
-    const int block_y = get_global_id(1);
-
-    channel_info orig_channel[3];
-    orig_channel[0].coeff = orig_batch_0;
-    orig_channel[1].coeff = orig_batch_1;
-    orig_channel[2].coeff = orig_batch_2;
-
-    channel_info mayout_channel[3] = { mayout_channel_0, mayout_channel_1, mayout_channel_2 };
-    mayout_channel[0].coeff = mayout_batch_0;
-    mayout_channel[1].coeff = mayout_batch_1;
-    mayout_channel[2].coeff = mayout_batch_2;
-    mayout_channel[0].pixel = mayout_pixel_0;
-    mayout_channel[1].pixel = mayout_pixel_1;
-    mayout_channel[2].pixel = mayout_pixel_2;
-
-    int block_idx = 0;        // 根据下面mask命中的channel来计算indx
-
-    coeff_t mayout_block[kComputeBlockSize] = { 0 };
-    coeff_t orig_block[kComputeBlockSize]   = { 0 };
-
-    for (int c = 0; c < 3; c++) {
-        if (comp_mask & (1<<c)) {
-            block_idx = block_y * mayout_channel[c].block_width + block_x;
-            coeffcopy_g(&mayout_block[c * kBlockSize],
-                mayout_channel[c].coeff + block_idx * kBlockSize,
-                kBlockSize);
-            coeffcopy_g(&orig_block[c * kBlockSize],
-                orig_channel[c].coeff + block_idx * kBlockSize,
-                kBlockSize);
-        }
-    }
-
-    DCTScoreData input_order_data[kComputeBlockSize];
-    CoeffData    output_order_data[kComputeBlockSize];
-
-    IntFloatPairList input_order = { 0, input_order_data };
-    IntFloatPairList output_order = { 0, output_order_data };
-
-    int count = MakeInputOrderEx(mayout_block, orig_block, &input_order);
-
-    coeff_t processed_block[kComputeBlockSize];
-    coeffcopy(processed_block, mayout_block, kComputeBlockSize);
-
-    while (input_order.size > 0)
-    {
-        float best_err = 1e17f;
-        int best_i = 0;
-        for (int i = 0; i < min(3, input_order.size); i++)
-        {
-            coeff_t candidate_block[kComputeBlockSize];
-            coeffcopy(candidate_block, processed_block, kComputeBlockSize);
-
-            const int idx = input_order.pData[i].idx;
-            candidate_block[idx] = 0;
-
-            float max_err = CompareBlockFactor(mayout_channel,
-                                               candidate_block,
-                                               block_x,
-                                               block_y,
-                                               orig_image_batch,
-                                               mask_scale,
-                                               image_width,
-                                               image_height,
-                                               factor);
-            if (max_err < best_err)
-            {
-                best_err = max_err;
-                best_i = i;
-            }
-        }
-
-        int idx = input_order.pData[best_i].idx;
-        processed_block[idx] = 0;
-        list_erase(&input_order, best_i);
-
-        list_push_back(&output_order, idx, best_err);
-    }
-
-    // 注意output_order这里的resize就是把尾部的置位0
-    float min_err = 1e10;
-    for (int i = output_order.size - 1; i >= 0; --i) {
-        min_err = min(min_err, output_order.pData[i].err);
-        output_order.pData[i].err = min_err;
-    }
-
-    __global CoeffData *output_block = output_order_list + block_idx * kComputeBlockSize;
-
-    int out_count = 0;
-    for (int i = 0; i < kComputeBlockSize && i < output_order.size; i++)
-    {
-        // 过滤较大的err，这部分进入后端计算没有意义
-        if (output_order.pData[i].err <= BlockErrorLimit)
-        {
-            output_block[out_count].idx = output_order.pData[i].idx;
-            output_block[out_count].err = output_order.pData[i].err;
-            out_count++;
-        }
-    }
-}
