@@ -649,7 +649,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
         }
         if (count > 0)
         {
-            LogError("CHK %s(%d) %d:%d\r\n", __FUNCTION__, __LINE__, count, check_size);
+            LogError("CHK %s(%d) %d:%d\r\n", "SelectFrequencyMasking", __LINE__, count, check_size);
         }
     }
 
