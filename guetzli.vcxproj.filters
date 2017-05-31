@@ -312,6 +312,9 @@
     <ClInclude Include="clguetzli\clguetzli.cl.h">
       <Filter>clguetzli</Filter>
     </ClInclude>
+    <ClInclude Include="clguetzli\ocu.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="guetzli\butteraugli_comparator.cc">
@@ -581,6 +584,9 @@
     <ClCompile Include="clguetzli\clbutter_comparator.cpp">
       <Filter>clguetzli</Filter>
     </ClCompile>
+    <ClCompile Include="clguetzli\ocu.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="third_party\libpng\pngwin.def">
@@ -597,6 +603,9 @@
     </None>
     <None Include="third_party\zlib\zlib.def">
       <Filter>third_party\zlib</Filter>
+    </None>
+    <None Include="clguetzli\clguetzli.cu">
+      <Filter>clguetzli</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

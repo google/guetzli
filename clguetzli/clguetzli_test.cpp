@@ -5,6 +5,7 @@
 #include "clguetzli_test.h"
 #include "clguetzli.h"
 #include "ocl.h"
+#include "ocu.h"
 
 #define FLOAT_COMPARE(a, b, c)  floatCompare((a), (b), (c), __FUNCTION__, __LINE__ )
 
@@ -404,19 +405,26 @@ void tclMinSquareVal(const float *img, size_t square_size, size_t offset,
 
 void tclScaleImage(double scale, const float *result_org, const float *result_cmp, size_t length)
 {
-  cl_int err = 0;
-  ocl_args_d_t &ocl = getOcl();
-  cl_mem mem_result_org = ocl.allocMem(length * sizeof(float), result_org);
+/*
+    ocu_args_d_t &ocu = getOcu();
+    CUdeviceptr m = ocu.allocMem(length * sizeof(float), result_org);
+    cuLaunchKernel(ocu.kernel[KERNEL_SCALEIMAGE],
+    cuMemFree(m);
+    return;
+*/
+    cl_int err = 0;
+    ocl_args_d_t &ocl = getOcl();
+    cl_mem mem_result_org = ocl.allocMem(length * sizeof(float), result_org);
 
-  clScaleImageEx(mem_result_org, length, scale);
+    clScaleImageEx(mem_result_org, length, scale);
 
-  cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result_org, true, CL_MAP_READ, 0, length * sizeof(float), 0, NULL, NULL, &err);
-  err = clFinish(ocl.commandQueue);
+    cl_float *r_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mem_result_org, true, CL_MAP_READ, 0, length * sizeof(float), 0, NULL, NULL, &err);
+    err = clFinish(ocl.commandQueue);
 
-  FLOAT_COMPARE(r_r, result_cmp, length);
+    FLOAT_COMPARE(r_r, result_cmp, length);
 
-  clEnqueueUnmapMemObject(ocl.commandQueue, mem_result_org, r_r, 0, NULL, NULL);
-  clReleaseMemObject(mem_result_org);
+    clEnqueueUnmapMemObject(ocl.commandQueue, mem_result_org, r_r, 0, NULL, NULL);
+    clReleaseMemObject(mem_result_org);
 }
 
 // strong todo
