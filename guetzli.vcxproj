@@ -102,7 +102,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;$(INTELOCLSDKROOT)include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -114,9 +114,9 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
     </Link>
     <CustomBuild>
       <Command>"$(INTELOCLSDKROOT)bin\x64\ioc64.exe" -cmd=build -input="%(FullPath)" -output="x64\Release\%(Filename).out" -VS -device=GPU -simd=default -targetos=current            -bo="           "</Command>
@@ -128,16 +128,19 @@
       <LinkObjects>false</LinkObjects>
     </CustomBuild>
     <Intel_OpenCL_Build_Rules />
+    <PostBuildEvent />
+    <PreBuildEvent />
+    <PreBuildEvent />
+    <PreBuildEvent />
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>compile.bat</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;$(INTELOCLSDKROOT)include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
@@ -149,17 +152,20 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>shlwapi.lib;OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <ForceSymbolReferences>__tcmalloc</ForceSymbolReferences>
-      <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>compile.bat</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;$(INTELOCLSDKROOT)include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>ENABLE_OPENCL;ENABLE_OPENCL_CHECK;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -167,20 +173,19 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>compile.bat</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;$(INTELOCLSDKROOT)include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>PERFTOOLS_DLL_DECL=;ENABLE_OPENCL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -188,11 +193,14 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>shlwapi.lib;OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <ForceSymbolReferences>__tcmalloc</ForceSymbolReferences>
-      <AdditionalLibraryDirectories>$(INTELOCLSDKROOT)lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>compile.bat</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="clguetzli\clbutter_comparator.h" />
@@ -200,6 +208,7 @@
     <ClInclude Include="clguetzli\clguetzli.h" />
     <ClInclude Include="clguetzli\clguetzli_test.h" />
     <ClInclude Include="clguetzli\ocl.h" />
+    <ClInclude Include="clguetzli\ocu.h" />
     <ClInclude Include="clguetzli\utils.h" />
     <ClInclude Include="guetzli\butteraugli_comparator.h" />
     <ClInclude Include="guetzli\color_transform.h" />
@@ -297,6 +306,7 @@
     <ClCompile Include="clguetzli\clguetzli.cpp" />
     <ClCompile Include="clguetzli\clguetzli_test.cpp" />
     <ClCompile Include="clguetzli\ocl.cpp" />
+    <ClCompile Include="clguetzli\ocu.cpp" />
     <ClCompile Include="clguetzli\utils.cpp" />
     <ClCompile Include="guetzli\butteraugli_comparator.cc" />
     <ClCompile Include="guetzli\dct_double.cc" />
@@ -388,6 +398,12 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </Command>
     </Intel_OpenCL_Build_Rules>
+    <None Include="clguetzli\clguetzli.cu">
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CUDA Code Builder</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)clguetzli\compile.bat</Command>
+    </None>
     <None Include="third_party\libpng\pngwin.def" />
     <None Include="third_party\zlib\inffas32.asm" />
     <None Include="third_party\zlib\match32.asm" />
