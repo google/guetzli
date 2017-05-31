@@ -387,23 +387,24 @@ __kernel void clEdgeDetectorLowFreqEx(
 	__global float *block_diff_ac,
     __global const float *r, __global const float *g, __global const float* b,
     __global const float *r2, __global const float* g2, __global const float *b2,
-    int xsize, int ysize, int step)
+    int xsize, int ysize, int step_)
 {
     const int res_x = get_global_id(0);
     const int res_y = get_global_id(1);
 
-    if (res_x < 8 / step) return;
+	const int step = 8;
+    if (res_x < step / step_) return;
 
     const int res_xsize = get_global_size(0);
     const int res_ysize = get_global_size(1);
 
-    int pos_x = (res_x - (8 / step)) * step;
-    int pos_y = res_y * step;
+    int x = (res_x - (step / step_)) * step_;
+    int y = res_y * step_;
 
-    if (pos_x + 8 >= xsize) return;
-    if (pos_y + 8 >= ysize) return;
+    if (x + step >= xsize) return;
+    if (y + step >= ysize) return;
 
-    int ix = pos_y * xsize + pos_x;
+    int ix = y * xsize + x;
 
     double diff[4][3];
     __global const float* blurred0[3] = { r, g, b };
@@ -423,7 +424,7 @@ __kernel void clEdgeDetectorLowFreqEx(
             ((blurred1[i][ix] - blurred0[i][ix]) +
             (blurred0[i][ix2] - blurred1[i][ix2]));
         ix2 = ix + 6 * xsize - 6;
-        diff[3][i] = pos_x < 8 ? 0 :
+        diff[3][i] = x < step ? 0 :
             ((blurred1[i][ix] - blurred0[i][ix]) +
             (blurred0[i][ix2] - blurred1[i][ix2]));
     }

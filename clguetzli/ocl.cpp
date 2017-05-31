@@ -203,7 +203,10 @@ cl_mem ocl_args_d_t::allocMem(size_t s, const void *init)
 	{
 		LogError("Error: allocMem() for buffer returned %s.\n", TranslateOpenCLError(err));
 	}
-    if (mem && init)
+    if (!mem) return NULL;
+    
+    // init memory
+    if (init)
     {
         err = clEnqueueWriteBuffer(this->commandQueue, mem, CL_FALSE, 0, s, init, 0, NULL, NULL);
         if (CL_SUCCESS != err)
@@ -213,7 +216,21 @@ cl_mem ocl_args_d_t::allocMem(size_t s, const void *init)
         err = clFinish(this->commandQueue);
         if (CL_SUCCESS != err)
         {
-            LogError("Error: allocMem() clFinish return %s.\n", TranslateOpenCLError(err));
+            LogError("Error: allocMem() clEnqueueWriteBuffer/clFinish return %s.\n", TranslateOpenCLError(err));
+        }
+    }
+    else
+    {
+        cl_char cc = 0;
+        err = clEnqueueFillBuffer(this->commandQueue, mem, &cc, sizeof(cc), 0, s / sizeof(cc), 0, NULL, NULL);
+        if (CL_SUCCESS != err)
+        {
+            LogError("Error: allocMem() clEnqueueFillBuffer return %s.\n", TranslateOpenCLError(err));
+        }
+        err = clFinish(this->commandQueue);
+        if (CL_SUCCESS != err)
+        {
+            LogError("Error: allocMem() clEnqueueFillBuffer/clFinish return %s.\n", TranslateOpenCLError(err));
         }
     }
 
