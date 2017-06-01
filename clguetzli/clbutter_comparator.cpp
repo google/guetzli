@@ -229,7 +229,14 @@ namespace butteraugli
             result_org = *result;
         }
 
-        _ScaleImage(scale, result);
+        if (g_useCuda)
+        {
+            cuScaleImage(result->data(), result->size(), scale);
+        }
+        else
+        {
+            _ScaleImage(scale, result);
+        }
 
         if (g_checkOpenCL && result->size() > 64)
         {

@@ -2,8 +2,10 @@
 #include <algorithm>
 #include <vector>
 #include "clguetzli.h"
+#include "ocu.h"
 
 extern bool g_useOpenCL = false;
+extern bool g_useCuda = false;
 extern bool g_checkOpenCL = false;
 
 ocl_args_d_t& getOcl(void)
@@ -1225,3 +1227,23 @@ void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, const size_t xsize, const si
 	clReleaseMemObject(blurred);
 }
 
+void cuScaleImage(float *img, size_t length, double scale)
+{
+	ocu_args_d_t &ocu = getOcu();
+	CUdeviceptr m = ocu.allocMem(length * sizeof(float), img);
+
+	void *args[2] = { &m, &scale};
+
+	CUresult r = cuLaunchKernel(ocu.kernel[KERNEL_SCALEIMAGE], 
+                   1, 1, 1, 
+                   length, 1, 1,
+                   0,
+                   ocu.stream, args, NULL);
+
+    r = cuStreamSynchronize(ocu.stream);
+
+    cuMemcpyDtoH(img, m, length * sizeof(float));
+
+	cuMemFree(m);
+	return;
+}
