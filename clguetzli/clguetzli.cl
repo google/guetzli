@@ -22,21 +22,21 @@ typedef struct __IntFloatPairList
     IntFloatPair *pData;
 }IntFloatPairList;
 
-void   XybToVals(double x, double y, double z, double *valx, double *valy, double *valz);
-double InterpolateClampNegative(__global const double *array, int size, double sx);
-void   XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
+__device__ void   XybToVals(double x, double y, double z, double *valx, double *valy, double *valz);
+__device__ double InterpolateClampNegative(__global const double *array, int size, double sx);
+__device__ void   XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
                                        double r1, double g1, double b1,
                                        double factor, double res[3]);
-double DotProduct(__global const float u[3], const double v[3]);
-void   OpsinAbsorbance(const double in[3], double out[3]);
-void   RgbToXyb(double r, double g, double b, double *valx, double *valy, double *valz);
-double Gamma(double v);
-void   ButteraugliBlockDiff(__private double xyb0[3 * kBlockSize],
+__device__ double DotProduct(__global const float u[3], const double v[3]);
+__device__ void   OpsinAbsorbance(const double in[3], double out[3]);
+__device__ void   RgbToXyb(double r, double g, double b, double *valx, double *valy, double *valz);
+__device__ double Gamma(double v);
+__device__ void   ButteraugliBlockDiff(__private double xyb0[3 * kBlockSize],
     __private double xyb1[3 * kBlockSize],
     double diff_xyb_dc[3],
     double diff_xyb_ac[3],
     double diff_xyb_edge_dc[3]);
-void Butteraugli8x8CornerEdgeDetectorDiff(
+__device__ void Butteraugli8x8CornerEdgeDetectorDiff(
     int pos_x,
     int pos_y,
     int xsize,
@@ -45,9 +45,9 @@ void Butteraugli8x8CornerEdgeDetectorDiff(
     __global const float *r2, __global const float* g2, __global const float *b2,
     double* diff_xyb);
 
-int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order);
+__device__ int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order);
 
-double CompareBlockFactor(const channel_info mayout_channel[3], 
+__device__ double CompareBlockFactor(const channel_info mayout_channel[3],
                         const coeff_t* candidate_block, 
                         const int block_x, 
                         const int block_y, 
@@ -57,11 +57,11 @@ double CompareBlockFactor(const channel_info mayout_channel[3],
                         const int image_height,
                         const int factor);
 
-void floatcopy(float *dst, const float *src, int size);
-void coeffcopy(coeff_t *dst, const coeff_t *src, int size);
-void coeffcopy_g(coeff_t *dst, __global const coeff_t *src, int size);
-int list_erase(IntFloatPairList* list, int idx);
-int list_push_back(IntFloatPairList* list, int i, float f);
+__device__ void floatcopy(float *dst, const float *src, int size);
+__device__ void coeffcopy(coeff_t *dst, const coeff_t *src, int size);
+__device__ void coeffcopy_g(coeff_t *dst, __global const coeff_t *src, int size);
+__device__ int list_erase(IntFloatPairList* list, int idx);
+__device__ int list_push_back(IntFloatPairList* list, int i, float f);
 
 __kernel void clConvolutionEx(
 	__global float* result,
@@ -842,7 +842,7 @@ __kernel void clComputeBlockZeroingOrderEx(
     }
 }
 
-void Butteraugli8x8CornerEdgeDetectorDiff(
+__device__ void Butteraugli8x8CornerEdgeDetectorDiff(
     int pos_x,
     int pos_y,
     int xsize,
@@ -898,11 +898,11 @@ void Butteraugli8x8CornerEdgeDetectorDiff(
     }
 }
 
-double DotProduct(__global const float u[3], const double v[3]) {
+__device__ double DotProduct(__global const float u[3], const double v[3]) {
     return u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
 }
 
-double Interpolate(__constant const double *array, const int size, const double sx) {
+__device__ double Interpolate(__constant_ex const double *array, const int size, const double sx) {
     double ix = fabs(sx);
 
     int baseix = (int)(ix);
@@ -971,7 +971,7 @@ __constant double XybToVals_lut_y[21] = {
     XybToVals_off_y + 19 * XybToVals_inc_y,
 };
 
-void XybToVals(
+__device__ void XybToVals(
     double x, double y, double z,
     double *valx, double *valy, double *valz)
 {
@@ -1009,7 +1009,7 @@ __constant double XybLowFreqToVals_lut[21] = {
     20 * XybLowFreqToVals_inc,
 };
 
-void XybLowFreqToVals(double x, double y, double z,
+__device__ void XybLowFreqToVals(double x, double y, double z,
     double *valx, double *valy, double *valz) {
     const double xmul = 6.64482198135;
     const double ymul = 0.837846224276;
@@ -1022,7 +1022,7 @@ void XybLowFreqToVals(double x, double y, double z,
     *valy = Interpolate(&XybLowFreqToVals_lut[0], 21, y * ymul);
 }
 
-double InterpolateClampNegative(__global const double *array,
+__device__ double InterpolateClampNegative(__global const double *array,
 	int size, double sx) {
 	if (sx < 0) {
 		sx = 0;
@@ -1041,7 +1041,7 @@ double InterpolateClampNegative(__global const double *array,
 	return res;
 }
 
-void XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
+__device__ void XybDiffLowFreqSquaredAccumulate(double r0, double g0, double b0,
 	double r1, double g1, double b1,
 	double factor, double res[3]) {
 	double valx0, valy0, valz0;
@@ -1072,7 +1072,7 @@ typedef struct __Complex
 }Complex;
 
 __constant double kSqrtHalf = 0.70710678118654752440084436210484903;
-void RealFFT8(const double* in, Complex* out) {
+__device__ void RealFFT8(const double* in, Complex* out) {
 	double t1, t2, t3, t5, t6, t7, t8;
 	t8 = in[6];
 	t5 = in[2] - t8;
@@ -1145,7 +1145,7 @@ void RealFFT8(const double* in, Complex* out) {
 	out[6] = tmp;
 }
 
-void TransposeBlock(Complex data[kBlockSize]) {
+__device__ void TransposeBlock(Complex data[kBlockSize]) {
 	for (int i = 0; i < kBlockEdge; i++) {
 		for (int j = 0; j < i; j++) {
 			Complex tmp = data[kBlockEdge * i + j];
@@ -1156,7 +1156,7 @@ void TransposeBlock(Complex data[kBlockSize]) {
 }
 
 //  D. J. Bernstein's Fast Fourier Transform algorithm on 4 elements.
-inline void FFT4(Complex* a) {
+__device__ inline void FFT4(Complex* a) {
 	double t1, t2, t3, t4, t5, t6, t7, t8;
 	t5 = a[2].real;
 	t1 = a[0].real - t5;
@@ -1186,7 +1186,7 @@ inline void FFT4(Complex* a) {
 }
 
 //  D. J. Bernstein's Fast Fourier Transform algorithm on 8 elements.
-void FFT8(Complex* a) {
+__device__ void FFT8(Complex* a) {
 	const double kSqrtHalf = 0.70710678118654752440084436210484903;
 	double t1, t2, t3, t4, t5, t6, t7, t8;
 
@@ -1280,11 +1280,11 @@ void FFT8(Complex* a) {
 	a[6] = tmp;
 }
 
-double abssq(const Complex c) {
+__device__ double abssq(const Complex c) {
 	return c.real * c.real + c.imag * c.imag;
 }
 
-void ButteraugliFFTSquared(__private double block[kBlockSize]) {
+__device__ void ButteraugliFFTSquared(__private double block[kBlockSize]) {
 	double global_mul = 0.000064;
 	Complex block_c[kBlockSize];
 
@@ -1309,7 +1309,7 @@ void ButteraugliFFTSquared(__private double block[kBlockSize]) {
 	}
 }
 
-double RemoveRangeAroundZero(double v, double range) {
+__device__ double RemoveRangeAroundZero(double v, double range) {
 	if (v >= -range && v < range) {
 		return 0;
 	}
@@ -1390,7 +1390,7 @@ __constant double csf8x8[kBlockHalf + kBlockEdgeHalf + 1] = {
 // Computes 8x8 FFT of each channel of xyb0 and xyb1 and adds the total squared
 // 3-dimensional xybdiff of the two blocks to diff_xyb_{dc,ac} and the average
 // diff on the edges to diff_xyb_edge_dc.
-void ButteraugliBlockDiff(__private double xyb0[3 * kBlockSize],
+__device__ void ButteraugliBlockDiff(__private double xyb0[3 * kBlockSize],
 	__private double xyb1[3 * kBlockSize],
 	double diff_xyb_dc[3],
 	double diff_xyb_ac[3],
@@ -1488,14 +1488,14 @@ __constant static float g_mix[12] = {
     10.6524069248,
 };
 
-void OpsinAbsorbance(const double in[3], double out[3])
+__device__ void OpsinAbsorbance(const double in[3], double out[3])
 {
     out[0] = g_mix[0] * in[0] + g_mix[1] * in[1] + g_mix[2] * in[2] + g_mix[3];
     out[1] = g_mix[4] * in[0] + g_mix[5] * in[1] + g_mix[6] * in[2] + g_mix[7];
     out[2] = g_mix[8] * in[0] + g_mix[9] * in[1] + g_mix[10] * in[2] + g_mix[11];
 }
 
-double EvaluatePolynomial(const double x, __constant const double *coefficients, int n)
+__device__ double EvaluatePolynomial(const double x, __constant_ex const double *coefficients, int n)
 {
     double b1 = 0.0;
     double b2 = 0.0;
@@ -1526,7 +1526,7 @@ static __constant double g_gamma_q[5 + 1] = {
     4.711532733641639, 0.899112889751053, 0.035662329617191,
 };
 
-double Gamma(double v)
+__device__ double Gamma(double v)
 {
     const double min_value = 0.770000000000000;
     const double max_value = 274.579999999999984;
@@ -1539,7 +1539,7 @@ double Gamma(double v)
     return (float)(yp / yq);
 }
 
-void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *valz)
+__device__ void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *valz)
 {
     const double a0 = 1.01611726948;
     const double a1 = 0.982482243696;
@@ -1552,7 +1552,7 @@ void RgbToXyb(double r, double g, double b, double *valx, double *valy, double *
 
 // chrisk todo
 // return size
-int list_push_back(IntFloatPairList* list, int i, float f)
+__device__ int list_push_back(IntFloatPairList* list, int i, float f)
 {
 	list->pData[list->size].idx = i;
 	list->pData[list->size].err = f;
@@ -1561,7 +1561,7 @@ int list_push_back(IntFloatPairList* list, int i, float f)
 
 // chrisk todo
 // remove idx and return size
-int list_erase(IntFloatPairList* list, int idx)
+__device__ int list_erase(IntFloatPairList* list, int idx)
 {
 	for (int i = idx; i < list->size - 1; i++)
 	{
@@ -1572,7 +1572,7 @@ int list_erase(IntFloatPairList* list, int idx)
 }
 
 // chrisk todo
-int SortInputOrder(DCTScoreData* input_order, int size)
+__device__  int SortInputOrder(DCTScoreData* input_order, int size)
 {
 	int i, j;
 	DCTScoreData tmp;
@@ -1984,7 +1984,7 @@ __constant static float bias[192] = {
 
 // chrisk todo
 // return the count of Non-zero item
-int MakeInputOrder(__global const coeff_t *block, __global const coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
+__device__ int MakeInputOrder(__global const coeff_t *block, __global const coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
 {
 	int size = 0;
 	for (int c = 0; c < 3; ++c) {
@@ -2011,7 +2011,7 @@ __constant static int kIDCTMatrix[kDCTBlockSize] = {
 };
 
 // Computes out[x] = sum{kIDCTMatrix[8*x+u]*in[u*stride]; for u in [0..7]}
-void Compute1dIDCT(const coeff_t* in, const int stride, int out[8]) {
+__device__ void Compute1dIDCT(const coeff_t* in, const int stride, int out[8]) {
 	int tmp0, tmp1, tmp2, tmp3, tmp4;
 
 	tmp1 = kIDCTMatrix[0] * in[0];
@@ -2109,7 +2109,7 @@ void Compute1dIDCT(const coeff_t* in, const int stride, int out[8]) {
 	out[7] -= tmp1;
 }
 
-void CoeffToIDCT(__private const coeff_t block[8*8], uchar out[8*8])
+__device__ void CoeffToIDCT(__private const coeff_t block[8*8], uchar out[8*8])
 {
 	coeff_t colidcts[kDCTBlockSize];
 	const int kColScale = 11;
@@ -2136,7 +2136,7 @@ void CoeffToIDCT(__private const coeff_t block[8*8], uchar out[8*8])
 	}
 }
 
-void IDCTToPixel8x8(const uchar idct[8 * 8], ushort pixels_[8 * 8])
+__device__ void IDCTToPixel8x8(const uchar idct[8 * 8], ushort pixels_[8 * 8])
 {
     const int block_x = 0;
     const int block_y = 0;
@@ -2154,7 +2154,7 @@ void IDCTToPixel8x8(const uchar idct[8 * 8], ushort pixels_[8 * 8])
     }
 }
 
-void IDCTToPixel16x16(const uchar idct[8 * 8], ushort pixels_out[16 * 16], __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
+__device__ void IDCTToPixel16x16(const uchar idct[8 * 8], ushort pixels_out[16 * 16], __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
 {
     // Fill in the 10x10 pixel area in the subsampled image that will be the
     // basis of the upsampling. This area is enough to hold the 3x3 kernel of
@@ -2223,7 +2223,7 @@ void IDCTToPixel16x16(const uchar idct[8 * 8], ushort pixels_out[16 * 16], __glo
 }
 
 // out = [YUVYUV....YUVYUV]
-void PixelToYUV(ushort pixels_[8 * 8], uchar out[8 * 8], int xsize/* = 8*/, int ysize/* = 8*/)
+__device__ void PixelToYUV(ushort pixels_[8 * 8], uchar out[8 * 8], int xsize/* = 8*/, int ysize/* = 8*/)
 {
     const int stride = 3;
 
@@ -2423,9 +2423,10 @@ __constant static uchar kRangeLimitLut[4 * 256] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
-void YUVToRGB(__private uchar pixelBlock[3*8*8], int size /*= 8 * 8*/)
+__device__ void YUVToRGB(__private uchar pixelBlock[3*8*8], int size /*= 8 * 8*/)
 {
-	__constant uchar* kRangeLimit = kRangeLimitLut + 384;
+    __constant_ex uchar* kRangeLimit = kRangeLimitLut + 384;
+
 	for (int i = 0; i < size; i++)
 	{
 		uchar *pixel = &pixelBlock[i * 3];
@@ -2698,12 +2699,12 @@ __constant static double kSrgb8ToLinearTable[256] = {
 	255.000000,
 };
 
-
-void YUVToImage(__private uchar yuv[3 * 8 * 8], float* r, float* g, float* b, int xsize/* = 8*/, int ysize/* = 8*/, int inside_x/* = 8*/, int inside_y/* = 8*/)
+__device__ void YUVToImage(__private uchar yuv[3 * 8 * 8], float* r, float* g, float* b, int xsize/* = 8*/, int ysize/* = 8*/, int inside_x/* = 8*/, int inside_y/* = 8*/)
 {
     YUVToRGB(yuv, xsize * ysize);
 
-    const __constant double* lut = kSrgb8ToLinearTable;
+#define lut kSrgb8ToLinearTable
+//    const __constant double* lut = kSrgb8ToLinearTable;
 
     for (int i = 0; i < xsize * ysize; i++)
     {
@@ -2731,11 +2732,11 @@ void YUVToImage(__private uchar yuv[3 * 8 * 8], float* r, float* g, float* b, in
             b[y * xsize + x] = b[idx];
         }
     }
+#undef lut
 }
 
-
 // chrisk todo
-void BlockToImage(__private const coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8], int inside_x, int inside_y)
+__device__ void BlockToImage(__private const coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8], int inside_x, int inside_y)
 {
 	uchar idct[3][8 * 8];
 	CoeffToIDCT(&block[0], idct[0]);
@@ -2782,7 +2783,7 @@ void BlockToImage(__private const coeff_t block[8*8*3], float r[8*8], float g[8*
     }
 }
 
-void CoeffToYUV16x16(__private const coeff_t block[8 * 8], uchar *yuv, __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
+__device__ void CoeffToYUV16x16(__private const coeff_t block[8 * 8], uchar *yuv, __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
 {
     uchar idct[8 * 8];
     CoeffToIDCT(&block[0], &idct[0]);
@@ -2793,7 +2794,7 @@ void CoeffToYUV16x16(__private const coeff_t block[8 * 8], uchar *yuv, __global 
     PixelToYUV(pixels, yuv, 16, 16);
 }
 
-void CoeffToYUV16x16_g(__global const coeff_t block[8 * 8], uchar *yuv, __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
+__device__ void CoeffToYUV16x16_g(__global const coeff_t block[8 * 8], uchar *yuv, __global const ushort *pixel_orig, int block_x, int block_y, int width_, int height_)
 {
     coeff_t b[8 * 8];
     for (int i = 0; i < 8 * 8; i++)
@@ -2803,7 +2804,7 @@ void CoeffToYUV16x16_g(__global const coeff_t block[8 * 8], uchar *yuv, __global
     CoeffToYUV16x16(b, yuv, pixel_orig, block_x, block_y, width_, height_);
 }
 
-void CoeffToYUV8x8(__private const coeff_t block[8 * 8], uchar *yuv)
+__device__ void CoeffToYUV8x8(__private const coeff_t block[8 * 8], uchar *yuv)
 {
     uchar idct[8 * 8];
     CoeffToIDCT(&block[0], &idct[0]);
@@ -2814,7 +2815,7 @@ void CoeffToYUV8x8(__private const coeff_t block[8 * 8], uchar *yuv)
     PixelToYUV(pixels, yuv, 8, 8);
 }
 
-void CoeffToYUV8x8_g(__global const coeff_t block[8 * 8], uchar *yuv)
+__device__ void CoeffToYUV8x8_g(__global const coeff_t block[8 * 8], uchar *yuv)
 {
     coeff_t b[8 * 8];
     for (int i = 0; i < 8 * 8; i++)
@@ -2825,7 +2826,7 @@ void CoeffToYUV8x8_g(__global const coeff_t block[8 * 8], uchar *yuv)
     CoeffToYUV8x8(b, yuv);
 }
 
-void Copy8x8To16x16(const uchar yuv8x8[3 * 8 * 8], uchar yuv16x16[3 * 16 * 16], int off_x, int off_y)
+__device__ void Copy8x8To16x16(const uchar yuv8x8[3 * 8 * 8], uchar yuv16x16[3 * 16 * 16], int off_x, int off_y)
 {
     for (int y = 0; y < 8; y++)
     {
@@ -2838,7 +2839,7 @@ void Copy8x8To16x16(const uchar yuv8x8[3 * 8 * 8], uchar yuv16x16[3 * 16 * 16], 
     }
 }
 
-void Copy16x16To8x8(const uchar yuv16x16[3 * 16 * 16], uchar yuv8x8[3 * 8 * 8], int off_x, int off_y)
+__device__ void Copy16x16To8x8(const uchar yuv16x16[3 * 16 * 16], uchar yuv8x8[3 * 8 * 8], int off_x, int off_y)
 {
     for (int y = 0; y < 8; y++)
     {
@@ -2851,7 +2852,7 @@ void Copy16x16To8x8(const uchar yuv16x16[3 * 16 * 16], uchar yuv8x8[3 * 8 * 8], 
     }
 }
 
-void Copy16x16ToChannel(const float rgb16x16[3][16 * 16], float r[8 * 8], float g[8 * 8], float b[8 * 8], int off_x, int off_y)
+__device__ void Copy16x16ToChannel(const float rgb16x16[3][16 * 16], float r[8 * 8], float g[8 * 8], float b[8 * 8], int off_x, int off_y)
 {
     for (int y = 0; y < 8; y++)
     {
@@ -2866,7 +2867,7 @@ void Copy16x16ToChannel(const float rgb16x16[3][16 * 16], float r[8 * 8], float 
     }
 }
 
-void Convolution(size_t xsize, size_t ysize, 
+__device__ void Convolution(size_t xsize, size_t ysize,
                  int xstep, int len, int offset, 
                  const float* multipliers, 
                  const float* inp, 
@@ -2900,7 +2901,7 @@ void Convolution(size_t xsize, size_t ysize,
 
 // ian todo
 // 计算结果输出到output
-void BlurEx(const float *r, int xsize, int ysize, double kSigma, double border_ratio, float *output)
+__device__ void BlurEx(const float *r, int xsize, int ysize, double kSigma, double border_ratio, float *output)
 {
     // 参考clBlurEx2的实现，sigma = 1.1，这时step、diff都将特化为固定值
 	const double sigma = 1.1;
@@ -2925,7 +2926,7 @@ void BlurEx(const float *r, int xsize, int ysize, double kSigma, double border_r
 }
 
 // ian todo
-void OpsinDynamicsImageBlock(__private float *r, __private float *g, __private float *b, 
+__device__ void OpsinDynamicsImageBlock(__private float *r, __private float *g, __private float *b,
                             __private const float *r_blurred, __private const float *g_blurred, __private const float *b_blurred,
                             int size)
 {
@@ -2955,7 +2956,7 @@ void OpsinDynamicsImageBlock(__private float *r, __private float *g, __private f
 }
 
 // chrisk todo
-void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
+__device__ void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
     float *xyb1_x, float *xyb1_y, float *xyb1_b,
     const float *c0_x, const float *c0_y, const float *c0_b,
     const float *c1_x, const float *c1_y, const float *c1_b,
@@ -3014,7 +3015,7 @@ void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
     }
 }
 
-void floatcopy(float *dst, const float *src, int size)
+__device__ void floatcopy(float *dst, const float *src, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -3022,7 +3023,7 @@ void floatcopy(float *dst, const float *src, int size)
     }
 }
 
-void coeffcopy_g(coeff_t *dst, __global const coeff_t *src, int size)
+__device__ void coeffcopy_g(coeff_t *dst, __global const coeff_t *src, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -3030,7 +3031,7 @@ void coeffcopy_g(coeff_t *dst, __global const coeff_t *src, int size)
     }
 }
 
-void coeffcopy(coeff_t *dst, const coeff_t *src, int size)
+__device__ void coeffcopy(coeff_t *dst, const coeff_t *src, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -3038,7 +3039,7 @@ void coeffcopy(coeff_t *dst, const coeff_t *src, int size)
     }
 }
 
-void CalcOpsinDynamicsImage(__private float rgb[3][kDCTBlockSize])
+__device__ void CalcOpsinDynamicsImage(__private float rgb[3][kDCTBlockSize])
 {
     float rgb_blurred[3][kDCTBlockSize];
     for (int i = 0; i < 3; i++)
@@ -3048,7 +3049,7 @@ void CalcOpsinDynamicsImage(__private float rgb[3][kDCTBlockSize])
     OpsinDynamicsImageBlock(rgb[0], rgb[1], rgb[2], rgb_blurred[0], rgb_blurred[1], rgb_blurred[2], kDCTBlockSize);
 }
 
-double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private float rgb1_c[3][kDCTBlockSize], const __global float* mask_scale_block)
+__device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private float rgb1_c[3][kDCTBlockSize], const __global float* mask_scale_block)
 { 
 //    CalcOpsinDynamicsImage(rgb0_c);
     CalcOpsinDynamicsImage(rgb1_c);
@@ -3093,7 +3094,7 @@ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private 
 }
 
 // return the count of Non-zero item
-int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order)
+__device__ int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order)
 {
     const int block_size = 64;
     int size = 0;
@@ -3110,7 +3111,7 @@ int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8]
     return SortInputOrder(input_order->pData, size);
 }
 
-int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
+__device__ int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
                  const __global float *orig_image_batch, 
                  int width_, int height_,
                  int block_x, int block_y, 
@@ -3135,7 +3136,7 @@ int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
     return block_ix;
 }
 
-double CompareBlockFactor(const channel_info mayout_channel[3], 
+__device__ double CompareBlockFactor(const channel_info mayout_channel[3],
                           const coeff_t* candidate_block, 
                           const int block_x, 
                           const int block_y, 

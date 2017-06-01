@@ -1,7 +1,5 @@
-#include "clguetzli\clguetzli.cl.h"
+#include "clguetzli\clguetzli.cl"
 
-#ifdef __CUDACC__
-//#ifdef __OPENCL_VERSION__
 __device__ int get_global_id(int dim)
 {
     switch (dim)
@@ -16,11 +14,8 @@ __device__ int get_global_id(int dim)
         return threadIdx.x;
     }
 }
-#endif
 
-
-extern "C" __global__ void clScaleImageEx(float * img, double scale)
+__device__ int get_global_size(int dim)
 {
-    const int i = get_global_id(0);
-    img[i] = 0.0001;
+    return 0;
 }

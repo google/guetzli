@@ -604,13 +604,15 @@
     <None Include="third_party\zlib\zlib.def">
       <Filter>third_party\zlib</Filter>
     </None>
-    <None Include="clguetzli\clguetzli.cu">
-      <Filter>clguetzli</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Intel_OpenCL_Build_Rules Include="clguetzli\clguetzli.cl">
       <Filter>clguetzli</Filter>
     </Intel_OpenCL_Build_Rules>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="clguetzli\clguetzli.cu">
+      <Filter>clguetzli</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
