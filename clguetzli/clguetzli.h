@@ -7,6 +7,7 @@
 #include "clguetzli.cl.h"
 
 extern bool g_useOpenCL;
+extern bool g_useCuda;
 extern bool g_checkOpenCL;
 
 void clOpsinDynamicsImage(
@@ -133,6 +134,8 @@ void clRemoveBorderEx(cl_mem out, const cl_mem in, const size_t xsize, const siz
 void clAddBorderEx(cl_mem out, const size_t xsize, const size_t ysize, const int step, const cl_mem in);
 
 void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step);
+
+void cuScaleImage(float *img, size_t length, double scale);
 
 class guetzli::OutputImage;
 
