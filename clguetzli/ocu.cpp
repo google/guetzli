@@ -48,6 +48,7 @@ ocu_args_d_t& getOcu(void)
     char *ptx = new char[ptxSize];
     nvrtcGetPTX(prog, ptx);
 
+    nvrtcDestroyProgram(&prog);
     LogError("BuildInfo:\r\n%s\r\n", log);
 
     CUmodule mod;
@@ -61,7 +62,25 @@ ocu_args_d_t& getOcu(void)
     delete[] log;
     delete[] ptx;
 
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTION], mod, "clConvolutionEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTIONX], mod, "clConvolutionXEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTIONY], mod, "clConvolutionYEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_SQUARESAMPLE], mod, "clSquareSampleEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_OPSINDYNAMICSIMAGE], mod, "clOpsinDynamicsImageEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_MASKHIGHINTENSITYCHANGE], mod, "clMaskHighIntensityChangeEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_EDGEDETECTOR], mod, "clEdgeDetectorMapEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_BLOCKDIFFMAP], mod, "clBlockDiffMapEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_EDGEDETECTORLOWFREQ], mod, "clEdgeDetectorLowFreqEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_DIFFPRECOMPUTE], mod, "clDiffPrecomputeEx");
     r = cuModuleGetFunction(&ocu.kernel[KERNEL_SCALEIMAGE], mod, "clScaleImageEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_AVERAGE5X5], mod, "clAverage5x5Ex");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_MINSQUAREVAL], mod, "clMinSquareValEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_DOMASK], mod, "clDoMaskEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_COMBINECHANNELS], mod, "clCombineChannelsEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_UPSAMPLESQUAREROOT], mod, "clUpsampleSquareRootEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_REMOVEBORDER], mod, "clRemoveBorderEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_ADDBORDER], mod, "clAddBorderEx");
+    r = cuModuleGetFunction(&ocu.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER], mod, "clComputeBlockZeroingOrderEx");
 
     cuCtxSetCacheConfig(CU_FUNC_CACHE_PREFER_SHARED);
     cuCtxSetSharedMemConfig(CU_SHARED_MEM_CONFIG_EIGHT_BYTE_BANK_SIZE);
