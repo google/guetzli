@@ -22,7 +22,7 @@ void set_global_size(int dim, int size){
     g_sizevec[dim] = size;
 }
 
-#define __opencl
+#define __checkcl
 #define abs(exper)    fabs((exper))
 #include "clguetzli.h"
 #include "clguetzli.cl"

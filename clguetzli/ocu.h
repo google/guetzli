@@ -16,4 +16,7 @@ struct ocu_args_d_t
 
     CUfunction  kernel[KERNEL_COUNT];
     CUstream    stream;
+    CUmodule    mod;
+    CUcontext   ctxt;
+    CUdevice    dev;
 };
