@@ -1,7 +1,7 @@
+#include "clguetzli.h"
 #include <math.h>
 #include <algorithm>
 #include <vector>
-#include "clguetzli.h"
 #include "ocu.h"
 
 extern bool g_useOpenCL = false;
@@ -1235,14 +1235,14 @@ void cuScaleImage(float *img, size_t length, double scale)
 	void *args[2] = { &m, &scale};
 
 	CUresult r = cuLaunchKernel(ocu.kernel[KERNEL_SCALEIMAGE], 
-                   1, 1, 1, 
-                   length, 1, 1,
+        length, 1, 1,
+                   1, 1, 1,
                    0,
                    ocu.stream, args, NULL);
-
+     
     r = cuStreamSynchronize(ocu.stream);
-
-    cuMemcpyDtoH(img, m, length * sizeof(float));
+      
+    r = cuMemcpyDtoH(img, m, length * sizeof(float));
 
 	cuMemFree(m);
 	return;

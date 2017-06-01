@@ -1,3 +1,5 @@
+#include "clguetzli\clguetzli.cl.h"
+
 #ifdef __CUDACC__
 //#ifdef __OPENCL_VERSION__
 __device__ int get_global_id(int dim)
@@ -17,8 +19,8 @@ __device__ int get_global_id(int dim)
 #endif
 
 
-__global__ void clScaleImageEx(float *img, double scale)
+extern "C" __global__ void clScaleImageEx(float * img, double scale)
 {
     const int i = get_global_id(0);
-    img[i] *= scale;
+    img[i] = 0.0001;
 }

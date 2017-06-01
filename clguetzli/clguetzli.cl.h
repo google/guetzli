@@ -2,6 +2,7 @@
 #define __CLGUETZLI_CL_H__
 
 #ifdef __cplusplus
+#ifndef __CUDACC__
     #define __kernel
     #define __private
     #define __global
@@ -14,7 +15,7 @@
     void set_global_id(int dim, int id);
     void set_global_size(int dim, int size);
 
-    #ifdef __opencl
+    #ifdef __checkcl
         typedef union ocl_channels_t
         {
             struct
@@ -49,7 +50,10 @@
             };
         }ocl_channels;
     #endif
-#else /*__cplusplus*/
+#endif
+#endif /*__cplusplus*/
+
+#ifdef __OPENCL_VERSION__
     typedef union ocl_channels_t
     {
         struct
@@ -65,7 +69,12 @@
         };
     }ocl_channels;
 
-#endif /*__cplusplus*/
+#endif /*__OPENCL_VERSION__*/
+
+#ifdef __CUDACC__
+    #define __global
+    typedef unsigned short ushort;
+#endif /*__CUDACC__*/
 
     typedef short coeff_t;
 

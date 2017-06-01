@@ -405,13 +405,6 @@ void tclMinSquareVal(const float *img, size_t square_size, size_t offset,
 
 void tclScaleImage(double scale, const float *result_org, const float *result_cmp, size_t length)
 {
-/*
-    ocu_args_d_t &ocu = getOcu();
-    CUdeviceptr m = ocu.allocMem(length * sizeof(float), result_org);
-    cuLaunchKernel(ocu.kernel[KERNEL_SCALEIMAGE], 
-    cuMemFree(m);
-    return;
-*/
     cl_int err = 0;
     ocl_args_d_t &ocl = getOcl();
     cl_mem mem_result_org = ocl.allocMem(length * sizeof(float), result_org);

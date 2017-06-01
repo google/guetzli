@@ -157,4 +157,4 @@ echo     %0 store 10.0.10240.0
 :end
 
 
-nvcc -Xcompiler "/wd 4819" -arch=sm_30 -ptx -o clguetzli\clguetzli.cu.ptx30 clguetzli\clguetzli.cu
+nvcc -Xcompiler "/wd 4819" -I"./" -arch=sm_30 -ptx -o clguetzli\clguetzli.cu.ptx30 clguetzli\clguetzli.cu
