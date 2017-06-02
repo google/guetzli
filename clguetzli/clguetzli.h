@@ -135,7 +135,16 @@ void clAddBorderEx(cl_mem out, const size_t xsize, const size_t ysize, const int
 
 void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step);
 
+////////////////////////////////////////////////////////////////
+void cuOpsinDynamicsImage(float *r, float *g, float *b, const size_t xsize, const size_t ysize);
+
 void cuScaleImage(float *img, size_t length, double scale);
+
+void cuBlurEx(CUdeviceptr image/*out, opt*/, const size_t xsize, const size_t ysize,
+    const double sigma, const double border_ratio,
+    CUdeviceptr result = NULL/*out, opt*/);
+
+void cuOpsinDynamicsImageEx(ocu_channels &rgb, const size_t xsize, const size_t ysize);
 
 class guetzli::OutputImage;
 

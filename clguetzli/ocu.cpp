@@ -126,3 +126,25 @@ CUdeviceptr ocu_args_d_t::allocMem(size_t s, const void *init)
 
     return mem;
 }
+
+ocu_channels ocu_args_d_t::allocMemChannels(size_t s, const void *c0, const void *c1, const void *c2)
+{
+    const void *c[3] = { c0, c1, c2 };
+
+    ocu_channels img;
+    for (int i = 0; i < 3; i++)
+    {
+        img.ch[i] = allocMem(s, c[i]);
+    }
+
+    return img;
+}
+
+void ocu_args_d_t::releaseMemChannels(ocu_channels &rgb)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        cuMemFree(rgb.ch[i]);
+        rgb.ch[i] = NULL;
+    }
+}
