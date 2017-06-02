@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include "CL/cl.h"
 #include "guetzli/processor.h"
 #include "guetzli/butteraugli_comparator.h"
 #include "ocl.h"
@@ -33,8 +32,7 @@ void clComputeBlockZeroingOrder(
     const channel_info mayout_channel[3],
     const int factor,
     const int comp_mask,
-    const float BlockErrorLimit
-    );
+    const float BlockErrorLimit);
 
 void clMask(
     float* mask_r,   float* mask_g,   float* mask_b,
@@ -69,10 +67,6 @@ void clSquareSampleEx(
 void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
     const double sigma, const double border_ratio,
     cl_mem result = nullptr/*out, opt*/);
-
-void clBlurEx2(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
-    double sigma, double border_ratio,
-    cl_mem result = NULL/*out, opt*/);
 
 void clOpsinDynamicsImageEx(ocl_channels &rgb, const size_t xsize, const size_t ysize);
 
@@ -128,8 +122,6 @@ void clCombineChannelsEx(
 	const size_t step);
 
 void clUpsampleSquareRootEx(cl_mem diffmap, const size_t xsize, const size_t ysize, const int step);
-
-void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, size_t xsize, size_t ysize, int step);
 
 void clRemoveBorderEx(cl_mem out, const cl_mem in, const size_t xsize, const size_t ysize, const int step);
 

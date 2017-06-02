@@ -89,8 +89,8 @@ void clDiffmapOpsinDynamicsImage(
     float* result,
     const float* r,  const float* g,  const float* b,
     const float* r2, const float* g2, const float* b2,
-    size_t xsize, size_t ysize,
-    size_t step)
+    const size_t xsize, const size_t ysize,
+    const size_t step)
 {
     const size_t res_xsize = (xsize + step - 1) / step;
     const size_t res_ysize = (ysize + step - 1) / step;
@@ -98,7 +98,6 @@ void clDiffmapOpsinDynamicsImage(
     size_t channel_size = xsize * ysize * sizeof(float);
     size_t channel_step_size = res_xsize * res_ysize * sizeof(float);
 
-    cl_int err = 0;
     ocl_args_d_t &ocl = getOcl();
     ocl_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
     ocl_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
@@ -127,7 +126,7 @@ void clDiffmapOpsinDynamicsImage(
     clCalculateDiffmapEx(mem_result, xsize, ysize, step);
 
     clEnqueueReadBuffer(ocl.commandQueue, mem_result, false, 0, channel_size, result, 0, NULL, NULL);
-    err = clFinish(ocl.commandQueue);
+    cl_int err = clFinish(ocl.commandQueue);
 
     ocl.releaseMemChannels(xyb1);
     ocl.releaseMemChannels(xyb0);
@@ -242,7 +241,6 @@ void clMask(
     const float* r,  const float* g,  const float* b,
     const float* r2, const float* g2, const float* b2)
 {
-    cl_int err = CL_SUCCESS;
     ocl_args_d_t &ocl = getOcl();
 
     size_t channel_size = xsize * ysize * sizeof(float);
@@ -260,7 +258,7 @@ void clMask(
     clEnqueueReadBuffer(ocl.commandQueue, mask_dc.r, false, 0, channel_size, maskdc_r, 0, NULL, NULL);
     clEnqueueReadBuffer(ocl.commandQueue, mask_dc.g, false, 0, channel_size, maskdc_g, 0, NULL, NULL);
     clEnqueueReadBuffer(ocl.commandQueue, mask_dc.b, false, 0, channel_size, maskdc_b, 0, NULL, NULL);
-    err = clFinish(ocl.commandQueue);
+    cl_int err = clFinish(ocl.commandQueue);
 
     ocl.releaseMemChannels(rgb);
     ocl.releaseMemChannels(rgb2);
@@ -410,54 +408,7 @@ void clSquareSampleEx(
 }
 
 void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
-    const double sigma, const double border_ratio,
-    cl_mem result/*out, opt*/)
-{
-    clBlurEx2(image, xsize, ysize, sigma, border_ratio, result);
-
-    return;
-/*
-    double m = 2.25;  // Accuracy increases when m is increased.
-    const double scaler = -1.0 / (2 * sigma * sigma);
-    // For m = 9.0: exp(-scaler * diff * diff) < 2^ {-52}
-    const int diff = std::max<int>(1, m * fabs(sigma));
-    const int expn_size = 2 * diff + 1;
-    std::vector<float> expn(expn_size);
-    for (int i = -diff; i <= diff; ++i) {
-        expn[i + diff] = static_cast<float>(exp(scaler * i * i));
-    }
-
-    const int xstep = std::max<int>(1, int(sigma / 3));
-    const int ystep = xstep;
-    int dxsize = (xsize + xstep - 1) / xstep;
-    int dysize = (ysize + ystep - 1) / ystep;
-
-    cl_int err = 0;
-    ocl_args_d_t &ocl = getOcl();
-    cl_mem mem_expn = ocl.allocMem(sizeof(cl_float) * expn_size, expn.data());
-
-    if (xstep > 1)
-    {
-        ocl.allocA(sizeof(cl_float) * dxsize * ysize);
-        ocl.allocB(sizeof(cl_float) * dxsize * dysize);
-
-        clConvolutionEx(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-        clConvolutionEx(ocl.srcB, ocl.srcA, ysize, dxsize, mem_expn, expn_size, ystep, diff, border_ratio);
-        clUpsampleEx(result ? result : image, ocl.srcB, xsize, ysize, xstep, ystep);
-    }
-    else
-    {
-        ocl.allocA(sizeof(cl_float) * xsize * ysize);
-        clConvolutionEx(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-        clConvolutionEx(result ? result : image, ocl.srcA, ysize, dxsize, mem_expn, expn_size, ystep, diff, border_ratio);
-    }
-
-    clReleaseMemObject(mem_expn);
-*/
-}
-
-void clBlurEx2(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
-	double sigma, double border_ratio,
+	const double sigma, const double border_ratio,
     cl_mem result/*out, opt*/)
 {
 	double m = 2.25;  // Accuracy increases when m is increased.
@@ -538,7 +489,6 @@ void clMaskHighIntensityChangeEx(
 {
 	size_t channel_size = xsize * ysize * sizeof(float);
 
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	ocl_channels c0 = ocl.allocMemChannels(channel_size);
@@ -550,7 +500,7 @@ void clMaskHighIntensityChangeEx(
 	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.r, c1.r, 0, 0, channel_size, 0, NULL, NULL);
 	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.g, c1.g, 0, 0, channel_size, 0, NULL, NULL);
 	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.b, c1.b, 0, 0, channel_size, 0, NULL, NULL);
-	err = clFinish(ocl.commandQueue);
+	cl_int err = clFinish(ocl.commandQueue);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.r);
@@ -588,8 +538,6 @@ void clEdgeDetectorMapEx(
     const size_t xsize, const size_t ysize, const size_t step)
 {
 	size_t channel_size = xsize * ysize * sizeof(float);
-
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	ocl_channels rgb_blured = ocl.allocMemChannels(channel_size);
@@ -623,7 +571,7 @@ void clEdgeDetectorMapEx(
 	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize};
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clEdgeDetectorMapEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
@@ -644,7 +592,6 @@ void clBlockDiffMapEx(
     const ocl_channels &rgb, const ocl_channels &rgb2,
 	const size_t xsize, const size_t ysize, const size_t step)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_int clxsize = xsize;
@@ -668,7 +615,7 @@ void clBlockDiffMapEx(
 	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clBlockDiffMapEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
@@ -688,8 +635,6 @@ void clEdgeDetectorLowFreqEx(
 	size_t channel_size = xsize * ysize * sizeof(float);
 
 	static const double kSigma = 14;
-
-	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
 	ocl_channels rgb_blured = ocl.allocMemChannels(channel_size);
 	ocl_channels rgb2_blured = ocl.allocMemChannels(channel_size);
@@ -720,7 +665,7 @@ void clEdgeDetectorLowFreqEx(
 	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 	if (CL_SUCCESS != err)
 	{
 		LogError("Error: clEdgeDetectorLowFreqEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
