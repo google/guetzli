@@ -104,3 +104,4 @@ struct ocl_args_d_t
 	void*			 outputC;
 	size_t			 lenC;
 };
+

@@ -53,7 +53,7 @@ namespace butteraugli
         {
             tclEdgeDetectorMap(xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
                 xyb1[0].data(), xyb1[1].data(), xyb1[2].data(),
-                xsize_, ysize_, step_,
+                xsize_, ysize_, step_, 
                 (*edge_detector_map).data());
         }
     }
@@ -104,7 +104,7 @@ namespace butteraugli
         }
     }
 
-    void MinSquareVal(size_t square_size, size_t offset, size_t xsize, size_t ysize, float *values)
+    void MinSquareVal(size_t square_size, size_t offset, size_t xsize, size_t ysize, float *values) 
     {
         std::vector<float> img;
         if (g_checkOpenCL && xsize > 8 && ysize > 8)
@@ -305,6 +305,6 @@ namespace butteraugli
                 tclOpsinDynamicsImage(orig_rgb[0].data(), orig_rgb[1].data(), orig_rgb[2].data(), xsize, ysize,
                     rgb[0].data(), rgb[1].data(), rgb[2].data());
             }
-        }
+        }  
     }
 }

@@ -545,7 +545,7 @@ size_t EstimateDCSize(const JPEGData& jpg) {
 
 }  // namespace
 
-void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, const uint8_t comp_mask,
+void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, const uint8_t comp_mask, 
                                        const double target_mul, bool stop_early)
 {
     const int width = img->width();
@@ -660,7 +660,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
     for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
         for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
             CoeffData * p = &output_order[block_ix * kBlockSize];
-
+   
             candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
             for (int i = 0; i < kBlockSize; i++)
             {
@@ -682,9 +682,9 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
 
 }
 
-void Processor::SelectFrequencyBackEnd(const JPEGData& jpg, OutputImage* img,
+void Processor::SelectFrequencyBackEnd(const JPEGData& jpg, OutputImage* img, 
                                         const uint8_t comp_mask,
-                                        const double target_mul,
+                                        const double target_mul, 
                                         bool stop_early,
                                         std::vector<int> &candidate_coeff_offsets,
                                         std::vector<uint8_t>& candidate_coeffs,

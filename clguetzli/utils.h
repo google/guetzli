@@ -29,3 +29,4 @@ void LogError(const char* str, ...);
 
 // Read OpenCL source code from fileName and store it in source. The number of read bytes returns in sourceSize
 int ReadSourceFromFile(const char* fileName, char** source, size_t* sourceSize);
+

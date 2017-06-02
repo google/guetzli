@@ -184,7 +184,7 @@ void* ocl_args_d_t::allocC(size_t s)
 	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
 	outputC = _aligned_malloc(optimizedSize, 4096);
 	lenC = s;
-
+	
 	cl_int err = 0;
 	dstMem = clCreateBuffer(this->context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, s, outputC, &err);
 	if (CL_SUCCESS != err)
@@ -204,7 +204,7 @@ cl_mem ocl_args_d_t::allocMem(size_t s, const void *init)
 		LogError("Error: allocMem() for buffer returned %s.\n", TranslateOpenCLError(err));
 	}
     if (!mem) return NULL;
-
+    
     // init memory
     if (init)
     {
@@ -323,7 +323,7 @@ const char* TranslateOpenCLError(cl_int errorCode)
 	case CL_INVALID_LINKER_OPTIONS:             return "CL_INVALID_LINKER_OPTIONS";                             //-67
 	case CL_INVALID_DEVICE_PARTITION_COUNT:     return "CL_INVALID_DEVICE_PARTITION_COUNT";                     //-68
 																												//    case CL_INVALID_PIPE_SIZE:                  return "CL_INVALID_PIPE_SIZE";                                  //-69
-																												//    case CL_INVALID_DEVICE_QUEUE:               return "CL_INVALID_DEVICE_QUEUE";                               //-70
+																												//    case CL_INVALID_DEVICE_QUEUE:               return "CL_INVALID_DEVICE_QUEUE";                               //-70    
 
 	default:
 		return "UNKNOWN ERROR CODE";

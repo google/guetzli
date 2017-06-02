@@ -16,7 +16,7 @@ typedef struct __IntFloatPair
     float err;
 }IntFloatPair, DCTScoreData, CoeffData;
 
-typedef struct __IntFloatPairList
+typedef struct __IntFloatPairList 
 {
     int size;
     IntFloatPair *pData;
@@ -48,9 +48,9 @@ __device__ void Butteraugli8x8CornerEdgeDetectorDiff(
 __device__ int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order);
 
 __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
-                        const coeff_t* candidate_block,
-                        const int block_x,
-                        const int block_y,
+                        const coeff_t* candidate_block, 
+                        const int block_x, 
+                        const int block_y, 
                         __global const float *orig_image_batch,
                         __global const float *mask_scale,
                         const int image_width,
@@ -65,7 +65,7 @@ __device__ int list_push_back(IntFloatPairList* list, int i, float f);
 
 __kernel void clConvolutionEx(
 	__global float* result,
-	__global const float* inp, const int xsize,
+	__global const float* inp, const int xsize, 
 	__global const float* multipliers, const int len,
     const int xstep, const int offset, const float border_ratio)
 {
@@ -107,7 +107,7 @@ __kernel void clConvolutionEx(
 __kernel void clConvolutionXEx(
 	__global float* result,
 	__global const float* inp,
-	__global const float* multipliers, const int len,
+	__global const float* multipliers, const int len, 
 	const int step, const int offset, const float border_ratio)
 {
     const int x = get_global_id(0);
@@ -147,8 +147,8 @@ __kernel void clConvolutionXEx(
 
 __kernel void clConvolutionYEx(
 	__global float* result,
-	__global const float* inp,
-	__global const float* multipliers, const int len,
+	__global const float* inp, 
+	__global const float* multipliers, const int len, 
     const int step, const int offset, const float border_ratio)
 {
     const int x = get_global_id(0);
@@ -189,7 +189,7 @@ __kernel void clConvolutionYEx(
 
 __kernel void clSquareSampleEx(
 	__global float* result,
-	__global const float* image,
+	__global const float* image, 
 	const int xstep, const int ystep)
 {
     const int x = get_global_id(0);
@@ -528,7 +528,7 @@ __kernel void clAverage5x5Ex(__global float *img, __global const float *img_org)
     const int y = get_global_id(1);
     const int xsize = get_global_size(0);
     const int ysize = get_global_size(1);
-
+	
     const int row0 = y * xsize;
 	if (x - 1 >= 0) {
 		img[row0 + x] += img_org[row0 + x - 1];
@@ -707,7 +707,7 @@ __kernel void clAddBorderEx(__global float *out, int s, int s2, __global const f
 
 	if (x >= xsize - s ||
 	    y >= ysize - s)
-	{
+	{ 
 		return;
 	}
 
@@ -803,8 +803,8 @@ __kernel void clComputeBlockZeroingOrderEx(
                                                block_y,
                                                orig_image_batch,
                                                mask_scale,
-                                               image_width,
-                                               image_height,
+                                               image_width, 
+                                               image_height, 
                                                factor);
             if (max_err < best_err)
             {
@@ -2868,12 +2868,12 @@ __device__ void Copy16x16ToChannel(const float rgb16x16[3][16 * 16], float r[8 *
 }
 
 __device__ void Convolution(size_t xsize, size_t ysize,
-                 int xstep, int len, int offset,
-                 const float* multipliers,
-                 const float* inp,
+                 int xstep, int len, int offset, 
+                 const float* multipliers, 
+                 const float* inp, 
                  float border_ratio,
                  float* result)
-{
+{ 
 	float weight_no_border = 0;
 
 	for (size_t j = 0; j <= 2 * offset; ++j) {
@@ -2909,17 +2909,17 @@ __device__ void BlurEx(const float *r, int xsize, int ysize, double kSigma, doub
 	const double scaler = -0.41322314049586772; // when sigma=1.1, scaler is -0.41322314049586772
 	const int diff = 2;  // when sigma=1.1, diff's value is 2.
 	const int expn_size = 5; // when sigma=1.1, scaler is  5
-	float expn[5] = { exp(scaler * (-diff) * (-diff)),
-							  exp(scaler * (-diff + 1) * (-diff + 1)),
+	float expn[5] = { exp(scaler * (-diff) * (-diff)), 
+							  exp(scaler * (-diff + 1) * (-diff + 1)), 
 							  exp(scaler * (-diff + 2) * (-diff + 2)),
 							  exp(scaler * (-diff + 3) * (-diff + 3)),
-							  exp(scaler * (-diff + 4) * (-diff + 4))};
+							  exp(scaler * (-diff + 4) * (-diff + 4))};				  
 	const int xstep = 1; // when sigma=1.1, xstep is 1.
 	const int ystep = xstep;
 
 	int dxsize = (xsize + xstep - 1) / xstep;
 
-	float tmp[8*8] = { 0 };
+	float tmp[8*8] = { 0 }; 
 	Convolution(xsize, ysize, xstep, expn_size, diff, expn, r, border_ratio, tmp);
 	Convolution(ysize, dxsize, ystep, expn_size, diff, expn, tmp,
               border_ratio, output);
@@ -3050,7 +3050,7 @@ __device__ void CalcOpsinDynamicsImage(__private float rgb[3][kDCTBlockSize])
 }
 
 __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private float rgb1_c[3][kDCTBlockSize], const __global float* mask_scale_block)
-{
+{ 
 //    CalcOpsinDynamicsImage(rgb0_c);
     CalcOpsinDynamicsImage(rgb1_c);
 
@@ -3067,7 +3067,7 @@ __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize],
                                 8, 8);
 
     // 这里为啥要把float转成double才能继续做计算？
-    double b0[3 * kDCTBlockSize];       //
+    double b0[3 * kDCTBlockSize];       // 
     double b1[3 * kDCTBlockSize];
     for (int c = 0; c < 3; ++c) {
         for (int ix = 0; ix < kDCTBlockSize; ++ix) {
@@ -3107,14 +3107,14 @@ __device__ int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_b
             }
         }
     }
-
+ 
     return SortInputOrder(input_order->pData, size);
 }
 
 __device__ int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
-                 const __global float *orig_image_batch,
+                 const __global float *orig_image_batch, 
                  int width_, int height_,
-                 int block_x, int block_y,
+                 int block_x, int block_y, 
                  int factor,
                  int off_x, int off_y)
 {
@@ -3137,9 +3137,9 @@ __device__ int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
 }
 
 __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
-                          const coeff_t* candidate_block,
-                          const int block_x,
-                          const int block_y,
+                          const coeff_t* candidate_block, 
+                          const int block_x, 
+                          const int block_y, 
                           __global const float *orig_image_batch,
                           __global const float *mask_scale,
                           const int image_width,
@@ -3183,7 +3183,7 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
                 }
             }
         }
-        else {
+        else { 
             if (factor == 1) {
                 int block_xx = block_x / mayout_channel[c].factor;
                 int block_yy = block_y / mayout_channel[c].factor;
@@ -3192,9 +3192,9 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
 
                 int block_16x16idx = block_yy * mayout_channel[c].block_width + block_xx;
                 __global const coeff_t * coeff_block = mayout_channel[c].coeff + block_16x16idx * 8 * 8;
-
-                CoeffToYUV16x16_g(coeff_block, &yuv16x16[c],
-                    mayout_channel[c].pixel, block_xx, block_yy,
+               
+                CoeffToYUV16x16_g(coeff_block, &yuv16x16[c], 
+                    mayout_channel[c].pixel, block_xx, block_yy, 
                     image_width,
                     image_height);
 
@@ -3203,9 +3203,9 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
             }
             else {
                 const coeff_t * coeff_block = candidate_channel[c];
-                CoeffToYUV16x16(coeff_block, &yuv16x16[c],
-                    mayout_channel[c].pixel, block_x, block_y,
-                    image_width,
+                CoeffToYUV16x16(coeff_block, &yuv16x16[c], 
+                    mayout_channel[c].pixel, block_x, block_y, 
+                    image_width, 
                     image_height);
             }
         }
@@ -3243,7 +3243,7 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
                 {
                     continue;
                 }
-
+                
                 float rgb0_c[3][kDCTBlockSize];
                 int block_8x8idx = GetOrigBlock(rgb0_c, orig_image_batch, image_width, image_height, block_x, block_y, factor, ix, iy);
 

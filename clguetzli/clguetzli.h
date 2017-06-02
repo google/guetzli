@@ -11,7 +11,7 @@ extern bool g_useCuda;
 extern bool g_checkOpenCL;
 
 void clOpsinDynamicsImage(
-    float *r, float *g, float *b,
+    float *r, float *g, float *b, 
     const size_t xsize, const size_t ysize);
 
 void clDiffmapOpsinDynamicsImage(
@@ -36,7 +36,7 @@ void clComputeBlockZeroingOrder(
 
 void clMask(
     float* mask_r,   float* mask_g,   float* mask_b,
-    float* maskdc_r, float* maskdc_g, float* maskdc_b,
+    float* maskdc_r, float* maskdc_g, float* maskdc_b, 
     const size_t xsize, const size_t ysize,
     const float* r,  const float* g,  const float* b,
     const float* r2, const float* g2, const float* b2);
@@ -48,7 +48,7 @@ void clConvolutionEx(
     int xstep, int offset, double border_ratio);
 
 void clConvolutionXEx(
-    cl_mem result/*out*/,
+    cl_mem result/*out*/, 
     const cl_mem inp, size_t xsize, size_t ysize,
     const cl_mem multipliers, size_t len,
     int xstep, int offset, double border_ratio);
@@ -85,7 +85,7 @@ void clEdgeDetectorMapEx(
     const size_t xsize, const size_t ysize, const size_t step);
 
 void clBlockDiffMapEx(
-    cl_mem block_diff_dc/*out*/,
+    cl_mem block_diff_dc/*out*/, 
     cl_mem block_diff_ac/*out*/,
     const ocl_channels &rgb, const ocl_channels &rgb2,
 	const size_t xsize, const size_t ysize, const size_t step);
@@ -97,7 +97,7 @@ void clEdgeDetectorLowFreqEx(
 
 void clDiffPrecomputeEx(
     ocl_channels &mask/*out*/,
-    const ocl_channels &xyb0, const ocl_channels &xyb1,
+    const ocl_channels &xyb0, const ocl_channels &xyb1, 
     const size_t xsize, const size_t ysize);
 
 void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w);
@@ -105,8 +105,8 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w);
 void clAverage5x5Ex(cl_mem img/*in,out*/, const size_t xsize, const size_t ysize);
 
 void clMinSquareValEx(
-    cl_mem img/*in,out*/,
-    const size_t xsize, const size_t ysize,
+    cl_mem img/*in,out*/, 
+    const size_t xsize, const size_t ysize, 
     const size_t square_size, const size_t offset);
 
 void clMaskEx(

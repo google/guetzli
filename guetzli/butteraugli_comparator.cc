@@ -97,7 +97,7 @@ void ButteraugliComparator::SwitchBlock(int block_x, int block_y,
 }
 
 double ButteraugliComparator::CompareBlock(const OutputImage& img,
-                                           int off_x, int off_y,
+                                           int off_x, int off_y, 
                                            const coeff_t* candidate_block,
                                            const int comp_mask) const {
   int block_x = block_x_ * factor_x_ + off_x;

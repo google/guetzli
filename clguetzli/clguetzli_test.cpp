@@ -90,7 +90,7 @@ void tclEdgeDetectorMap(const float* r, const float* g, const float* b,
 	err = clFinish(ocl.commandQueue);
 
 	FLOAT_COMPARE(result, r_r, res_xsize * res_ysize * 3);
-
+	
 	clEnqueueUnmapMemObject(ocl.commandQueue, edge, r_r, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
@@ -114,7 +114,7 @@ void tclBlockDiffMap(const float* r, const float* g, const float* b,
 	ocl_args_d_t &ocl = getOcl();
 	ocl_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
 	ocl_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
-
+	
 	cl_mem block_diff_dc = ocl.allocMem(reschannel_size);
 	cl_mem block_diff_ac = ocl.allocMem(reschannel_size);
 
@@ -187,7 +187,7 @@ void tclMask(const float* r, const float* g, const float* b,
 
 	ocl_channels mask = ocl.allocMemChannels(channel_size);
 	ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
-
+    	
 	clMaskEx(mask/*out*/, mask_dc/*out*/, rgb, rgb2, xsize, ysize);
 
 	cl_float *r0_r = (cl_float *)clEnqueueMapBuffer(ocl.commandQueue, mask.r, true, CL_MAP_READ, 0, channel_size, 0, NULL, NULL, &err);

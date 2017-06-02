@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
@@ -227,7 +226,7 @@ void Usage() {
       "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
       "                 the limit. Default limit is %d MB.\n"
 	  "  --opencl     - Use OpenCL\n"
-	  "  --cuda       - Use CUDA\n"
+	  "  --cuda       - Use CUDA\n"	 
       "  --nomemlimit - Do not limit memory usage.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
   exit(1);
 }
