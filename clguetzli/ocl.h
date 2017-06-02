@@ -67,14 +67,12 @@ enum KernelName {
 	KERNEL_COUNT,
 };
 
+#define LOG_CL_RESULT(e)   if (CL_SUCCESS != (e)) { LogError("Error: %s:%d returned %s.\n", __FUNCTION__, __LINE__, TranslateOpenCLError((e)));}
+
 struct ocl_args_d_t
 {
 	ocl_args_d_t();
 	~ocl_args_d_t();
-
-	void* allocA(size_t s);
-	void* allocB(size_t s);
-	void* allocC(size_t s);
 
 	cl_mem allocMem(size_t s, const void *init = NULL);
 	ocl_channels allocMemChannels(size_t s, const void *c0 = NULL, const void *c1 = NULL, const void *c2 = NULL);
@@ -89,19 +87,5 @@ struct ocl_args_d_t
 	float            platformVersion;   // hold the OpenCL platform version (default 1.2)
 	float            deviceVersion;     // hold the OpenCL device version (default. 1.2)
 	float            compilerVersion;   // hold the device OpenCL C version (default. 1.2)
-
-										// Objects that are specific for algorithm implemented in this sample
-	cl_mem           srcA;              // hold first source buffer
-	cl_mem           srcB;              // hold second source buffer
-	cl_mem           dstMem;            // hold destination buffer
-
-	void*			 inputA;
-	size_t		     lenA;
-
-	void*			 inputB;
-	size_t			 lenB;
-
-	void*			 outputC;
-	size_t			 lenC;
 };
 

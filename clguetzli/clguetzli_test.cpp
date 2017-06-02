@@ -311,9 +311,8 @@ void tclConvolution(size_t xsize, size_t ysize,
 	size_t inp_size = xsize * ysize * sizeof(float);
 	size_t multipliers_size = len * sizeof(float);
 	cl_int err = 0;
-	ocl_args_d_t &ocl = getOcl();
-	ocl.allocA(result_size);
-	cl_mem r = ocl.srcA;
+    ocl_args_d_t &ocl = getOcl();
+    cl_mem r = ocl.allocMem(result_size);
 	cl_mem i = ocl.allocMem(inp_size, inp);
 	cl_mem m = ocl.allocMem(multipliers_size, multipliers);
 
@@ -327,6 +326,7 @@ void tclConvolution(size_t xsize, size_t ysize,
 	clEnqueueUnmapMemObject(ocl.commandQueue, r, r_r, 0, NULL, NULL);
 	err = clFinish(ocl.commandQueue);
 
+    clReleaseMemObject(r);
 	clReleaseMemObject(i);
 	clReleaseMemObject(m);
 }
