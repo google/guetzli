@@ -567,7 +567,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
     CoeffData * output_order = NULL;
     ButteraugliComparatorEx * comp = (ButteraugliComparatorEx*)comparator_;
 
-    if (g_useOpenCL || g_useCuda || g_checkOpenCL)
+    if (g_useOpenCL || g_checkOpenCL)
     {
         channel_info orig_channel[3];
         channel_info mayout_channel[3];
