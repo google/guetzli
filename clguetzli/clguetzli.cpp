@@ -1844,11 +1844,11 @@ void cuMask(
     cuMaskEx(mask, mask_dc, rgb, rgb2, xsize, ysize);
 
     cuMemcpyDtoH(mask_r, mask.r, channel_size);
-    cuMemcpyDtoH(mask_g, mask.r, channel_size);
-    cuMemcpyDtoH(mask_b, mask.r, channel_size);
+    cuMemcpyDtoH(mask_g, mask.g, channel_size);
+    cuMemcpyDtoH(mask_b, mask.b, channel_size);
     cuMemcpyDtoH(maskdc_r, mask_dc.r, channel_size);
-    cuMemcpyDtoH(maskdc_g, mask_dc.r, channel_size);
-    cuMemcpyDtoH(maskdc_b, mask_dc.r, channel_size);
+    cuMemcpyDtoH(maskdc_g, mask_dc.g, channel_size);
+    cuMemcpyDtoH(maskdc_b, mask_dc.b, channel_size);
 
     ocl.releaseMemChannels(rgb);
     ocl.releaseMemChannels(rgb2);
