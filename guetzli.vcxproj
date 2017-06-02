@@ -394,10 +394,12 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </Intel_OpenCL_Build_Rules>
     <CustomBuild Include="clguetzli\clguetzli.cu">
       <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CUDA Code Builder</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)compile.bat</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">compile.bat</Command>
@@ -407,6 +409,7 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CUDA Code Builder</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cu.ptx</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </CustomBuild>
     <None Include="third_party\libpng\pngwin.def" />
     <None Include="third_party\zlib\inffas32.asm" />

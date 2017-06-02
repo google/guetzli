@@ -9,6 +9,8 @@ ocu_args_d_t& getOcu(void)
 
     if (bInit == true) return ocu;
 
+    bInit = true;
+
     CUresult r = cuInit(0);
     CUdevice dev = 0;
     CUcontext ctxt;
@@ -29,27 +31,30 @@ ocu_args_d_t& getOcu(void)
 
     char* source = nullptr;
     size_t src_size = 0;
-    ReadSourceFromFile("clguetzli/clguetzli.cu", &source, &src_size);
+    ReadSourceFromFile("clguetzli/clguetzli.cl", &source, &src_size);
 
     nvrtcProgram prog;
-    const char *opts[] = { "-arch=compute_30", "--fmad=false" };
-    nvrtcCreateProgram(&prog, source, "clguetzli.cu", 0, NULL, NULL);
-    nvrtcCompileProgram(prog, 2, opts);
+    const char *opts[] = { "-arch=compute_30", "-default-device", "-G", "-I\"./\"", "--fmad=false" };
+    nvrtcCreateProgram(&prog, source, "clguetzli.cl", 0, NULL, NULL);
+    nvrtcResult compile_result = nvrtcCompileProgram(prog, 3, opts);
+    if (NVRTC_SUCCESS != compile_result)
+    {
+        // Obtain compilation log from the program.
+        size_t logSize = 0;
+        nvrtcGetProgramLogSize(prog, &logSize);
+        char *log = new char[logSize];
+        nvrtcGetProgramLog(prog, log);
 
-    // Obtain compilation log from the program.
-    size_t logSize = 0;
-    nvrtcGetProgramLogSize(prog, &logSize);
-    char *log = new char[logSize];
-    nvrtcGetProgramLog(prog, log);
+        LogError("BuildInfo:\r\n%s\r\n", log);
+
+        delete[] log;
+    }
 
     // Obtain PTX from the program.
     size_t ptxSize = 0;
     nvrtcGetPTXSize(prog, &ptxSize);
     char *ptx = new char[ptxSize];
     nvrtcGetPTX(prog, ptx);
-
-    nvrtcDestroyProgram(&prog);
-    LogError("BuildInfo:\r\n%s\r\n", log);
 
     CUmodule mod;
     CUjit_option jit_options[2];
@@ -59,7 +64,6 @@ ocu_args_d_t& getOcu(void)
     r = cuModuleLoadDataEx(&mod, ptx, 1, jit_options, jit_optvals);
 
     delete[] source;
-    delete[] log;
     delete[] ptx;
 
     r = cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTION], mod, "clConvolutionEx");
@@ -104,7 +108,7 @@ ocu_args_d_t::~ocu_args_d_t()
 {
     cuModuleUnload(mod);
     cuCtxDestroy(ctxt);
-    cuStreamDestroy(stream);
+//    cuStreamDestroy(stream);
 }
 
 CUdeviceptr ocu_args_d_t::allocMem(size_t s, const void *init)
