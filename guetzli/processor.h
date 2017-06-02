@@ -42,8 +42,6 @@ bool Process(const Params& params, ProcessStats* stats,
 
 struct GuetzliOutput {
   std::string jpeg_data;
-  std::vector<float> distmap;
-  double distmap_aggregate;
   double score;
 };
 

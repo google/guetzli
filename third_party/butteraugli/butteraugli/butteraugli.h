@@ -45,8 +45,8 @@ class ButteraugliComparator {
 
   // Computes the butteraugli map between xyb0 and xyb1 and updates result.
   // Both xyb0 and xyb1 are in opsin-dynamics space.
-  // NOTE: The xyb1 image is mutated by this function in-place.
-  void DiffmapOpsinDynamicsImage(const std::vector<std::vector<float>> &xyb0,
+  // NOTE: The xyb0 and xyb1 images are mutated by this function in-place.
+  void DiffmapOpsinDynamicsImage(std::vector<std::vector<float>> &xyb0,
                                  std::vector<std::vector<float>> &xyb1,
                                  std::vector<float> &result);
 

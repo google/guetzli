@@ -35,7 +35,7 @@ constexpr int kDefaultJPEGQuality = 95;
 
 // An upper estimate of memory usage of Guetzli. The bound is
 // max(kLowerMemusaeMB * 1<<20, pixel_count * kBytesPerPixel)
-constexpr int kBytesPerPixel = 125;
+constexpr int kBytesPerPixel = 110;
 constexpr int kLowestMemusageMB = 100; // in MB
 
 constexpr int kDefaultMemlimitMB = 6000; // in MB
