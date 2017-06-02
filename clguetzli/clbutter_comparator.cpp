@@ -20,6 +20,12 @@ namespace butteraugli
             clDiffmapOpsinDynamicsImage(result.data(), xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
                 xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_);
         }
+        else if (g_useCuda && xsize_ > 100 && ysize_ > 100)
+        {
+            result.resize(xsize_ * ysize_);
+            clDiffmapOpsinDynamicsImage(result.data(), xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+                xyb1[0].data(), xyb1[1].data(), xyb1[2].data(), xsize_, ysize_, step_);
+        }
         else
         {
             ButteraugliComparator::DiffmapOpsinDynamicsImage(xyb0, xyb1, result);
@@ -169,6 +175,23 @@ namespace butteraugli
                 xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
                 xyb1[0].data(), xyb1[1].data(), xyb1[2].data()
                 );
+            return;
+        }
+        else if (g_useCuda && xsize > 100 && ysize > 100)
+        {
+            mask->resize(3);
+            mask_dc->resize(3);
+            for (int i = 0; i < 3; i++)
+            {
+                (*mask)[i].resize(xsize * ysize);
+                (*mask_dc)[i].resize(xsize * ysize);
+            }
+            cuMask((*mask)[0].data(), (*mask)[1].data(), (*mask)[2].data(),
+                (*mask_dc)[0].data(), (*mask_dc)[1].data(), (*mask_dc)[2].data(),
+                xsize, ysize,
+                xyb0[0].data(), xyb0[1].data(), xyb0[2].data(),
+                xyb1[0].data(), xyb1[1].data(), xyb1[2].data()
+            );
             return;
         }
 

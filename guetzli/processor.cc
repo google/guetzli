@@ -567,7 +567,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
     CoeffData * output_order = NULL;
     ButteraugliComparatorEx * comp = (ButteraugliComparatorEx*)comparator_;
 
-    if (g_useOpenCL || g_checkOpenCL)
+    if (g_useOpenCL || g_useCuda || g_checkOpenCL)
     {
         channel_info orig_channel[3];
         channel_info mayout_channel[3];
@@ -588,16 +588,32 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
         output_order_gpu.resize(num_blocks * kBlockSize);
         output_order = output_order_gpu.data();
 
-        clComputeBlockZeroingOrder(output_order,
-                                    orig_channel,
-                                    comp->imgOpsinDynamicsBlockList.data(),
-                                    comp->imgMaskXyzScaleBlockList.data(),
-                                    width,
-                                    height,
-                                    mayout_channel,
-                                    factor_x,
-                                    comp_mask,
-                                    comp->BlockErrorLimit());
+        if (g_useCuda)
+        {
+            clComputeBlockZeroingOrder(output_order,
+                orig_channel,
+                comp->imgOpsinDynamicsBlockList.data(),
+                comp->imgMaskXyzScaleBlockList.data(),
+                width,
+                height,
+                mayout_channel,
+                factor_x,
+                comp_mask,
+                comp->BlockErrorLimit());
+        }
+        else
+        {
+            clComputeBlockZeroingOrder(output_order,
+                orig_channel,
+                comp->imgOpsinDynamicsBlockList.data(),
+                comp->imgMaskXyzScaleBlockList.data(),
+                width,
+                height,
+                mayout_channel,
+                factor_x,
+                comp_mask,
+                comp->BlockErrorLimit());
+        }
 
     }
     if (!g_useOpenCL || g_checkOpenCL)

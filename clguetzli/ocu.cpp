@@ -117,7 +117,7 @@ CUdeviceptr ocu_args_d_t::allocMem(size_t s, const void *init)
     cuMemAlloc(&mem, s);
     if (init)
     {
-        cuMemcpyHtoDAsync(mem, init, s, this->stream);
+        cuMemcpyHtoD(mem, init, s);
     }
     else
     {
