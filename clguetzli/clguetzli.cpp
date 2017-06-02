@@ -339,7 +339,7 @@ void clConvolutionEx(
 	}
 }
 
-void clConvolutionX(
+void clConvolutionXEx(
     cl_mem result/*out*/,
     const cl_mem inp, size_t xsize, size_t ysize,
 	const cl_mem multipliers, size_t len,
@@ -375,7 +375,7 @@ void clConvolutionX(
 	}
 }
 
-void clConvolutionY(
+void clConvolutionYEx(
     cl_mem result/*out*/,
     const cl_mem inp, size_t xsize, size_t ysize,
 	const cl_mem multipliers, size_t len,
@@ -511,15 +511,15 @@ void clBlurEx2(cl_mem image/*out, opt*/, size_t xsize, size_t ysize,
 	if (xstep > 1)
 	{
 		ocl.allocA(sizeof(cl_float) * xsize * ysize);
-		clConvolutionX(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-		clConvolutionY(result ? result : image, ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+		clConvolutionXEx(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+		clConvolutionYEx(result ? result : image, ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
         clSquareSampleEx(result ? result : image, result ? result : image, xsize, ysize, xstep, xstep);
 	}
 	else
 	{
 		ocl.allocA(sizeof(cl_float) * xsize * ysize);
-		clConvolutionX(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-		clConvolutionY(result ? result : image, ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+		clConvolutionXEx(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+		clConvolutionYEx(result ? result : image, ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
 	}
 
 	clReleaseMemObject(mem_expn);
@@ -1227,6 +1227,7 @@ void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, const size_t xsize, const si
 	clReleaseMemObject(blurred);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////
 void cuScaleImage(float *img, size_t length, double scale)
 {
 	ocu_args_d_t &ocu = getOcu();
@@ -1235,10 +1236,10 @@ void cuScaleImage(float *img, size_t length, double scale)
 	void *args[2] = { &m, &scale};
 
 	CUresult r = cuLaunchKernel(ocu.kernel[KERNEL_SCALEIMAGE], 
-        1, 1, 1,
-                   length, 1, 1,
-                   0,
-                   ocu.stream, args, NULL);
+                    length, 1, 1,
+                    1, 1, 1,
+                    0,
+                    ocu.stream, args, NULL);
      
     r = cuStreamSynchronize(ocu.stream);
       
@@ -1246,4 +1247,9 @@ void cuScaleImage(float *img, size_t length, double scale)
 
 	cuMemFree(m);
 	return;
+}
+
+void cuOpsinDynamicsImage(float *r, float *g, float *b, const size_t xsize, const size_t ysize)
+{
+
 }

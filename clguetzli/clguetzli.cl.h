@@ -84,10 +84,25 @@
     typedef unsigned char uchar;
     typedef unsigned short ushort;
 
-    __device__ int get_global_id(int dim);
-    __device__ int get_global_size(int dim);
-    void set_global_id(int dim, int id);
-    void set_global_size(int dim, int size);
+    __device__ int get_global_id(int dim)
+    {
+        switch (dim)
+        {
+        case 0:  return blockIdx.x;
+        case 1:  return blockIdx.y;
+        default: return blockIdx.z;
+        }
+    }
+
+    __device__ int get_global_size(int dim)
+    {
+        switch(dim)
+        {
+        case 0: return gridDim.x;
+        case 1: return gridDim.y;
+        default: return gridDim.z;
+        }
+    }
 
 #endif /*__CUDACC__*/
 

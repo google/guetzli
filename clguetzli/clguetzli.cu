@@ -1,5 +1,5 @@
 #include "clguetzli\clguetzli.cl"
-
+/*
 __device__ int get_global_id(int dim)
 {
     switch (dim)
@@ -19,3 +19,4 @@ __device__ int get_global_size(int dim)
 {
     return 0;
 }
+*/
