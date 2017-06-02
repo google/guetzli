@@ -1023,14 +1023,14 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
 }
 
 void ButteraugliComparator::DiffmapOpsinDynamicsImage(
-    const std::vector<std::vector<float>> &xyb0_arg,
+    std::vector<std::vector<float>> &xyb0,
     std::vector<std::vector<float>> &xyb1,
     std::vector<float> &result) {
   if (xsize_ < 8 || ysize_ < 8) return;
-  auto xyb0 = xyb0_arg;
   {
+    auto xyb0_c = xyb0;
     auto xyb1_c = xyb1;
-    MaskHighIntensityChange(xsize_, ysize_, xyb0_arg, xyb1_c, xyb0, xyb1);
+    MaskHighIntensityChange(xsize_, ysize_, xyb0_c, xyb1_c, xyb0, xyb1);
   }
   assert(8 <= xsize_);
   for (int i = 0; i < 3; i++) {

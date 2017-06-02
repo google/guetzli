@@ -141,8 +141,6 @@ void Processor::MaybeOutput(const std::string& encoded_jpg) {
   GUETZLI_LOG(stats_, " Score[%.4f]", score);
   if (score < final_output_->score || final_output_->score < 0) {
     final_output_->jpeg_data = encoded_jpg;
-    final_output_->distmap = comparator_->distmap();
-    final_output_->distmap_aggregate = comparator_->distmap_aggregate();
     final_output_->score = score;
     GUETZLI_LOG(stats_, " (*)");
   }
@@ -823,9 +821,6 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
   if (comparator_ == nullptr) {
     GUETZLI_LOG(stats, " <image too small for Butteraugli>\n");
     final_output_->jpeg_data = encoded_jpg;
-    final_output_->distmap =
-        std::vector<float>(jpg_in.width * jpg_in.height, 0.0);
-    final_output_->distmap_aggregate = 0;
     final_output_->score = encoded_jpg.size();
     // Butteraugli doesn't work with images this small.
     return true;

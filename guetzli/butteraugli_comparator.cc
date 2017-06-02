@@ -24,6 +24,23 @@
 
 namespace guetzli {
 
+std::vector<std::vector<float> > ComputeOpsinDynamicsImage(
+    const int width, const int height,
+    const std::vector<uint8_t>& rgb) {
+  std::vector<std::vector<float> > out(3);
+  const double* lut = Srgb8ToLinearTable();
+  for (int c = 0; c < 3; ++c) {
+    out[c].resize(width * height);
+    for (int y = 0, ix = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x, ++ix) {
+        out[c][ix] = lut[rgb[3 * ix + c]];
+      }
+    }
+  }
+  ::butteraugli::OpsinDynamicsImage(width, height, out);
+  return out;
+}
+
 ButteraugliComparator::ButteraugliComparator(const int width, const int height,
                                              const std::vector<uint8_t>* rgb,
                                              const float target_distance,
@@ -32,34 +49,27 @@ ButteraugliComparator::ButteraugliComparator(const int width, const int height,
       height_(height),
       target_distance_(target_distance),
       rgb_orig_(*rgb),
-      rgb_linear_pregamma_(3, std::vector<float>(width_ * height_)),
       comparator_(width_, height_, kButteraugliStep),
       distance_(0.0),
-      distmap_(width_, static_cast<float>(height_)),
-      stats_(stats) {
-  const double* lut = Srgb8ToLinearTable();
-  for (int c = 0; c < 3; ++c) {
-    for (int y = 0, ix = 0; y < height_; ++y) {
-      for (int x = 0; x < width_; ++x, ++ix) {
-        rgb_linear_pregamma_[c][ix] = lut[rgb_orig_[3 * ix + c]];
-      }
-    }
-  }
-  ::butteraugli::OpsinDynamicsImage(width_, height_, rgb_linear_pregamma_);
-}
+      stats_(stats) {}
 
 void ButteraugliComparator::Compare(const OutputImage& img) {
+  std::vector<std::vector<float> > rgb0 =
+      ComputeOpsinDynamicsImage(width_, height_, rgb_orig_);
   std::vector<std::vector<float> > rgb(3, std::vector<float>(width_ * height_));
   img.ToLinearRGB(&rgb);
   ::butteraugli::OpsinDynamicsImage(width_, height_, rgb);
-  comparator_.DiffmapOpsinDynamicsImage(rgb_linear_pregamma_, rgb, distmap_);
+  std::vector<float>().swap(distmap_);
+  comparator_.DiffmapOpsinDynamicsImage(rgb0, rgb, distmap_);
   distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
   GUETZLI_LOG(stats_, " BA[100.00%%] D[%6.4f]", distance_);
 }
 
 void ButteraugliComparator::StartBlockComparisons() {
   std::vector<std::vector<float> > dummy(3);
-  ::butteraugli::Mask(rgb_linear_pregamma_, rgb_linear_pregamma_,
+  std::vector<std::vector<float> > rgb0 =
+      ComputeOpsinDynamicsImage(width_, height_, rgb_orig_);
+  ::butteraugli::Mask(rgb0, rgb0,
                       width_, height_,
                       &mask_xyz_, &dummy);
 }
