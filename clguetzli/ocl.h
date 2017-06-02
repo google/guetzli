@@ -78,7 +78,7 @@ struct ocl_args_d_t
 
 	cl_mem allocMem(size_t s, const void *init = NULL);
 	ocl_channels allocMemChannels(size_t s, const void *c0 = NULL, const void *c1 = NULL, const void *c2 = NULL);
-    void releaseMemChannels(ocl_channels rgb);
+    void releaseMemChannels(ocl_channels &rgb);
 
 	// Regular OpenCL objects:
 	cl_context       context;           // hold the context handler

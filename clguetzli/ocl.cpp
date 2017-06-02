@@ -250,11 +250,12 @@ ocl_channels ocl_args_d_t::allocMemChannels(size_t s, const void *c0, const void
 	return img;
 }
 
-void ocl_args_d_t::releaseMemChannels(ocl_channels rgb)
+void ocl_args_d_t::releaseMemChannels(ocl_channels &rgb)
 {
     for (int i = 0; i < 3; i++)
     {
         clReleaseMemObject(rgb.ch[i]);
+        rgb.ch[i] = NULL;
     }
 }
 

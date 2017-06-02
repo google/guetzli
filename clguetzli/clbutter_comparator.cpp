@@ -289,6 +289,14 @@ namespace butteraugli
 
             clOpsinDynamicsImage(r, g, b, xsize, ysize);
         }
+        else if (g_useCuda && xsize > 100 && ysize > 100)
+        {
+            float * r = rgb[0].data();
+            float * g = rgb[1].data();
+            float * b = rgb[2].data();
+
+            cuOpsinDynamicsImage(r, g, b, xsize, ysize);
+        }
         else
         {
             std::vector< std::vector<float>> orig_rgb;

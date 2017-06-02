@@ -3,6 +3,13 @@
 
 #ifdef __cplusplus
 #ifndef __CUDACC__
+#include "CL\cl.h"
+#include "cuda.h"
+#endif
+#endif
+
+#ifdef __cplusplus
+#ifndef __CUDACC__
     #define __kernel
     #define __private
     #define __global
@@ -32,6 +39,20 @@
                 float *ch[3];
             };
         }ocl_channels;
+
+        typedef union ocu_channels_t
+        {
+            struct
+            {
+                float * r;
+                float * g;
+                float * b;
+            };
+            union
+            {
+                float *ch[3];
+            };
+        }ocu_channels;
     #else
         typedef union ocl_channels_t
         {
@@ -52,6 +73,26 @@
                 cl_mem ch[3];
             };
         }ocl_channels;
+
+        typedef union ocu_channels_t
+        {
+            struct
+            {
+                CUdeviceptr r;
+                CUdeviceptr g;
+                CUdeviceptr b;
+            };
+            struct
+            {
+                CUdeviceptr x;
+                CUdeviceptr y;
+                CUdeviceptr b_;
+            };
+            union
+            {
+                CUdeviceptr ch[3];
+            };
+        }ocu_channels;
     #endif
 #endif /*__CUDACC__*/
 #endif /*__cplusplus*/
@@ -59,6 +100,7 @@
 #ifdef __OPENCL_VERSION__
     #define __constant_ex __constant
     #define __device__
+/*
     typedef union ocl_channels_t
     {
         struct
@@ -73,6 +115,7 @@
             float *ch[3];
         };
     }ocl_channels;
+*/
 #endif /*__OPENCL_VERSION__*/
 
 #ifdef __CUDACC__
