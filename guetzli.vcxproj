@@ -204,6 +204,7 @@
     <ClInclude Include="clguetzli\clguetzli.cl.h" />
     <ClInclude Include="clguetzli\clguetzli.h" />
     <ClInclude Include="clguetzli\clguetzli_test.h" />
+    <ClInclude Include="clguetzli\cuguetzli.h" />
     <ClInclude Include="clguetzli\ocl.h" />
     <ClInclude Include="clguetzli\ocu.h" />
     <ClInclude Include="clguetzli\utils.h" />
@@ -302,6 +303,7 @@
     <ClCompile Include="clguetzli\clguetzli.cl.cpp" />
     <ClCompile Include="clguetzli\clguetzli.cpp" />
     <ClCompile Include="clguetzli\clguetzli_test.cpp" />
+    <ClCompile Include="clguetzli\cuguetzli.cpp" />
     <ClCompile Include="clguetzli\ocl.cpp" />
     <ClCompile Include="clguetzli\ocu.cpp" />
     <ClCompile Include="clguetzli\utils.cpp" />
