@@ -183,17 +183,17 @@ void cuConvolutionXEx(
     const CUdeviceptr multipliers, size_t len,
     int xstep, int offset, double border_ratio)
 {
-    ocu_args_d_t &ocu = getOcu();
+    ocu_args_d_t &ocl = getOcu();
 
     const void *args[] = { &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio };
 
-    CUresult err = cuLaunchKernel(ocu.kernel[KERNEL_CONVOLUTIONX],
+    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_CONVOLUTIONX],
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocu.stream, (void**)args, NULL);
+        ocl.stream, (void**)args, NULL);
 
-    err = cuStreamSynchronize(ocu.stream);
+    err = cuStreamSynchronize(ocl.stream);
 }
 
 void cuConvolutionYEx(
@@ -203,17 +203,17 @@ void cuConvolutionYEx(
     int xstep, int offset, double border_ratio)
 {
     CUresult err = CUDA_SUCCESS;
-    ocu_args_d_t &ocu = getOcu();
+    ocu_args_d_t &ocl = getOcu();
 
     const void *args[] = { &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio };
 
-    err = cuLaunchKernel(ocu.kernel[KERNEL_CONVOLUTIONY],
+    err = cuLaunchKernel(ocl.kernel[KERNEL_CONVOLUTIONY],
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocu.stream, (void**)args, NULL);
+        ocl.stream, (void**)args, NULL);
 
-    err = cuStreamSynchronize(ocu.stream);
+    err = cuStreamSynchronize(ocl.stream);
 }
 
 void cuSquareSampleEx(

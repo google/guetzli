@@ -16,10 +16,7 @@ ocl_args_d_t& getOcl(void)
 
 	bInit = true;
 	cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 
 	char* source = nullptr;
 	size_t src_size = 0;
@@ -30,21 +27,18 @@ ocl_args_d_t& getOcl(void)
 	delete[] source;
 
 	err = clBuildProgram(ocl.program, 1, &ocl.device, "", NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+    LOG_CL_RESULT(err);
+    if (CL_BUILD_PROGRAM_FAILURE == err)
+    {
+        size_t log_size = 0;
+        clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 
-        if (err == CL_BUILD_PROGRAM_FAILURE)
-        {
-            size_t log_size = 0;
-            clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+        std::vector<char> build_log(log_size);
+        clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, log_size, &build_log[0], NULL);
 
-            std::vector<char> build_log(log_size);
-            clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, log_size, &build_log[0], NULL);
-
-            LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
-        }
-	}
+        LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
+    }
+	
     ocl.kernel[KERNEL_CONVOLUTION] = clCreateKernel(ocl.program, "clConvolutionEx", &err);
     ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "clConvolutionXEx", &err);
     ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "clConvolutionYEx", &err);
@@ -208,15 +202,9 @@ void clComputeBlockZeroingOrder(
 
     size_t globalWorkSize[2] = { blockf_width, blockf_height };
     err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clComputeBlockZeroingOrder() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-    }
+    LOG_CL_RESULT(err);
     err = clFinish(ocl.commandQueue);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clComputeBlockZeroingOrder() clFinish returned %s.\n", TranslateOpenCLError(err));
-    }
+    LOG_CL_RESULT(err);
 
     clEnqueueReadBuffer(ocl.commandQueue, mem_output_order_batch, false, 0, output_order_batch_size, output_order_batch, 0, NULL, NULL);
     clFinish(ocl.commandQueue);
@@ -226,7 +214,6 @@ void clComputeBlockZeroingOrder(
         clReleaseMemObject(mem_orig_coeff[c]);
         clReleaseMemObject(mem_mayout_coeff[c]);
         clReleaseMemObject(mem_mayout_pixel[c]);
-
     }
 
     clReleaseMemObject(mem_orig_image);
@@ -258,7 +245,7 @@ void clMask(
     clEnqueueReadBuffer(ocl.commandQueue, mask_dc.r, false, 0, channel_size, maskdc_r, 0, NULL, NULL);
     clEnqueueReadBuffer(ocl.commandQueue, mask_dc.g, false, 0, channel_size, maskdc_g, 0, NULL, NULL);
     clEnqueueReadBuffer(ocl.commandQueue, mask_dc.b, false, 0, channel_size, maskdc_b, 0, NULL, NULL);
-    cl_int err = clFinish(ocl.commandQueue);
+    clFinish(ocl.commandQueue);
 
     ocl.releaseMemChannels(rgb);
     ocl.releaseMemChannels(rgb2);
@@ -272,7 +259,6 @@ void clConvolutionEx(
     const cl_mem multipliers, size_t len,
     int xstep, int offset, double border_ratio)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	size_t oxsize = (xsize + xstep - 1) / xstep;
@@ -294,16 +280,10 @@ void clConvolutionEx(
 	clSetKernelArg(kernel, 7, sizeof(cl_float), (void*)&clborder_ratio);
 
 	size_t globalWorkSize[2] = { oxsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clConvolutionEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clConvolutionEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clConvolutionXEx(
@@ -312,7 +292,6 @@ void clConvolutionXEx(
 	const cl_mem multipliers, size_t len,
 	int xstep, int offset, double border_ratio)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_int clxstep = xstep;
@@ -330,16 +309,10 @@ void clConvolutionXEx(
 	clSetKernelArg(kernel, 6, sizeof(cl_float), (void*)&clborder_ratio);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clConvolutionEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clConvolutionEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clConvolutionYEx(
@@ -348,7 +321,6 @@ void clConvolutionYEx(
 	const cl_mem multipliers, size_t len,
 	int xstep, int offset, double border_ratio)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_int clxstep = xstep;
@@ -366,16 +338,10 @@ void clConvolutionYEx(
 	clSetKernelArg(kernel, 6, sizeof(cl_float), (void*)&clborder_ratio);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clConvolutionEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clConvolutionEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clSquareSampleEx(
@@ -383,7 +349,6 @@ void clSquareSampleEx(
     const cl_mem image, size_t xsize, size_t ysize,
 	size_t xstep, size_t ystep)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_int clxstep = xstep;
@@ -395,16 +360,10 @@ void clSquareSampleEx(
 	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&clystep);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clUpsampleEx clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clUpsampleEx clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
@@ -423,23 +382,24 @@ void clBlurEx(cl_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
 
 	const int xstep = std::max<int>(1, int(sigma / 3));
 
-	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
 	cl_mem mem_expn = ocl.allocMem(sizeof(cl_float) * expn_size, expn.data());
 
 	if (xstep > 1)
 	{
-		ocl.allocA(sizeof(cl_float) * xsize * ysize);
-		clConvolutionXEx(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-		clConvolutionYEx(result ? result : image, ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+        cl_mem m = ocl.allocMem(sizeof(cl_float) * xsize * ysize);
+		clConvolutionXEx(m, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+		clConvolutionYEx(result ? result : image, m, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
         clSquareSampleEx(result ? result : image, result ? result : image, xsize, ysize, xstep, xstep);
+        clReleaseMemObject(m);
 	}
 	else
 	{
-		ocl.allocA(sizeof(cl_float) * xsize * ysize);
-		clConvolutionXEx(ocl.srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-		clConvolutionYEx(result ? result : image, ocl.srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-	}
+        cl_mem m = ocl.allocMem(sizeof(cl_float) * xsize * ysize);
+		clConvolutionXEx(m, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+		clConvolutionYEx(result ? result : image, m, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+        clReleaseMemObject(m);
+    }
 
 	clReleaseMemObject(mem_expn);
 }
@@ -450,7 +410,6 @@ void clOpsinDynamicsImageEx(ocl_channels &rgb, const size_t xsize, const size_t 
 
 	size_t channel_size = xsize * ysize * sizeof(float);
 
-	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
 	ocl_channels rgb_blurred = ocl.allocMemChannels(channel_size);
 
@@ -467,20 +426,13 @@ void clOpsinDynamicsImageEx(ocl_channels &rgb, const size_t xsize, const size_t 
 	clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&rgb_blurred.b);
 
 	size_t globalWorkSize[1] = { xsize * ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clOpsinDynamicsImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clOpsinDynamicsImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 
 	ocl.releaseMemChannels(rgb_blurred);
 }
-
 
 void clMaskHighIntensityChangeEx(
     ocl_channels &xyb0/*in,out*/,
@@ -500,7 +452,7 @@ void clMaskHighIntensityChangeEx(
 	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.r, c1.r, 0, 0, channel_size, 0, NULL, NULL);
 	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.g, c1.g, 0, 0, channel_size, 0, NULL, NULL);
 	clEnqueueCopyBuffer(ocl.commandQueue, xyb1.b, c1.b, 0, 0, channel_size, 0, NULL, NULL);
-	cl_int err = clFinish(ocl.commandQueue);
+	clFinish(ocl.commandQueue);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE];
 	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&xyb0.r);
@@ -517,16 +469,10 @@ void clMaskHighIntensityChangeEx(
 	clSetKernelArg(kernel, 11, sizeof(cl_mem), (void*)&c1.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clMaskHighIntensityChangeEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clMaskHighIntensityChangeEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 
 	ocl.releaseMemChannels(c0);
 	ocl.releaseMemChannels(c1);
@@ -572,15 +518,9 @@ void clEdgeDetectorMapEx(
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize};
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clEdgeDetectorMapEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clEdgeDetectorMapEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 
 	ocl.releaseMemChannels(rgb_blured);
 	ocl.releaseMemChannels(rgb2_blured);
@@ -616,15 +556,9 @@ void clBlockDiffMapEx(
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clBlockDiffMapEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clBlockDiffMapEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clEdgeDetectorLowFreqEx(
@@ -666,15 +600,9 @@ void clEdgeDetectorLowFreqEx(
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clEdgeDetectorLowFreqEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clEdgeDetectorLowFreqEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 
 	ocl.releaseMemChannels(rgb_blured);
 	ocl.releaseMemChannels(rgb2_blured);
@@ -685,7 +613,6 @@ void clDiffPrecomputeEx(
     const ocl_channels &xyb0, const ocl_channels &xyb1, 
     const size_t xsize, const size_t ysize)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_DIFFPRECOMPUTE];
@@ -700,21 +627,14 @@ void clDiffPrecomputeEx(
 	clSetKernelArg(kernel, 8, sizeof(cl_mem), (void*)&xyb1.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clDiffPrecomputeEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clDiffPrecomputeEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_double clscale = w;
@@ -724,16 +644,10 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w)
 	clSetKernelArg(kernel, 1, sizeof(cl_double), (void*)&clscale);
 
 	size_t globalWorkSize[1] = { size };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clScaleImageEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clScaleImageEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clAverage5x5Ex(cl_mem img/*in,out*/, const size_t xsize, const size_t ysize)
@@ -743,30 +657,24 @@ void clAverage5x5Ex(cl_mem img/*in,out*/, const size_t xsize, const size_t ysize
 	    return;
     }
 
-    cl_int err = CL_SUCCESS;
     ocl_args_d_t &ocl = getOcl();
 
     size_t len = xsize * ysize * sizeof(float);
-    ocl.allocA(len);
-    cl_mem img_org = ocl.srcA;
+    cl_mem img_org = ocl.allocMem(len);
 
-    err = clEnqueueCopyBuffer(ocl.commandQueue, img, img_org, 0, 0, len, 0, NULL, NULL);
+    clEnqueueCopyBuffer(ocl.commandQueue, img, img_org, 0, 0, len, 0, NULL, NULL);
 
     cl_kernel kernel = ocl.kernel[KERNEL_AVERAGE5X5];
     clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&img);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&img_org);
 
     size_t globalWorkSize[2] = { xsize, ysize };
-    err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-    if (CL_SUCCESS != err)
-    {
-    LogError("Error: clAverage5x5Ex() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-    }
+    cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
     err = clFinish(ocl.commandQueue);
-    if (CL_SUCCESS != err)
-    {
-    LogError("Error: clAverage5x5Ex() clFinish returned %s.\n", TranslateOpenCLError(err));
-    }
+    LOG_CL_RESULT(err);
+
+    clReleaseMemObject(img_org);
 }
 
 void clMinSquareValEx(
@@ -774,36 +682,26 @@ void clMinSquareValEx(
     const size_t xsize, const size_t ysize, 
     const size_t square_size, const size_t offset)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_int cloffset = offset;
 	cl_int clsquare_size = square_size;
-	ocl.allocA(sizeof(cl_float) * xsize * ysize);
+	cl_mem result = ocl.allocMem(sizeof(cl_float) * xsize * ysize);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_MINSQUAREVAL];
-    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&ocl.srcA);
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&result);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&img);
 	clSetKernelArg(kernel, 2, sizeof(cl_int), (void*)&clsquare_size);
 	clSetKernelArg(kernel, 3, sizeof(cl_int), (void*)&cloffset);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clMinSquareValEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
-
-	err = clEnqueueCopyBuffer(ocl.commandQueue, ocl.srcA, img, 0, 0, sizeof(cl_float) * xsize * ysize, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clMinSquareValEx() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
+	err = clEnqueueCopyBuffer(ocl.commandQueue, result, img, 0, 0, sizeof(cl_float) * xsize * ysize, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clMinSquareValEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
+    clReleaseMemObject(result);
 }
 
 static void MakeMask(double extmul, double extoff,
@@ -822,7 +720,6 @@ static const double kGlobalScale = 1.0 / kInternalGoodQualityThreshold;
 
 void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, size_t xsize, size_t ysize)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	double extmul = 0.975741017749;
@@ -922,16 +819,10 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 	clSetKernelArg(kernel, 11, sizeof(cl_mem), (void*)&xyb_dc.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clDoMask() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clDoMask() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 
 	ocl.releaseMemChannels(xyb);
 	ocl.releaseMemChannels(xyb_dc);
@@ -977,7 +868,6 @@ void clCombineChannelsEx(
 	const size_t res_xsize,
 	const size_t step)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	const size_t work_xsize = ((xsize - 8 + step) + step - 1) / step;
@@ -1005,21 +895,14 @@ void clCombineChannelsEx(
 	clSetKernelArg(kernel, 13, sizeof(cl_int), (void*)&clstep);
 
 	size_t globalWorkSize[2] = { work_xsize, work_ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clCombineChannelsEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clCombineChannelsEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clUpsampleSquareRootEx(cl_mem diffmap, const size_t xsize, const size_t ysize, const int step)
 {
-	cl_int err = CL_SUCCESS;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_int clxsize = xsize;
@@ -1039,29 +922,18 @@ void clUpsampleSquareRootEx(cl_mem diffmap, const size_t xsize, const size_t ysi
 	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clUpsampleSquareRootEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
-	err = clFinish(ocl.commandQueue);
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clEnqueueCopyBuffer(ocl.commandQueue, diffmap_out, diffmap, 0, 0, xsize * ysize * sizeof(float), 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clUpsampleSquareRootEx() clEnqueueCopyBuffer returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clUpsampleSquareRootEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 
     clReleaseMemObject(diffmap_out);
 }
 
 void clRemoveBorderEx(cl_mem out, const cl_mem in, const size_t xsize, const size_t ysize, const int step)
 {
-	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_int cls = 8 - step;
@@ -1075,21 +947,14 @@ void clRemoveBorderEx(cl_mem out, const cl_mem in, const size_t xsize, const siz
 	clSetKernelArg(kernel, 4, sizeof(cl_int), &cls2);
 
 	size_t globalWorkSize[2] = { xsize - cls, ysize - cls};
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clCalculateDiffmapGetBlurredEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clCalculateDiffmapGetBlurredEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clAddBorderEx(cl_mem out, size_t xsize, size_t ysize, int step, cl_mem in)
 {
-	cl_int err = 0;
 	ocl_args_d_t &ocl = getOcl();
 
     cl_int cls = 8 - step;
@@ -1101,16 +966,10 @@ void clAddBorderEx(cl_mem out, size_t xsize, size_t ysize, int step, cl_mem in)
 	clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&in);
 
 	size_t globalWorkSize[2] = { xsize, ysize};
-	err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clGetDiffmapFromBlurredEx() clEnqueueNDRangeKernel returned %s.\n", TranslateOpenCLError(err));
-	}
+	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: clGetDiffmapFromBlurredEx() clFinish returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
 }
 
 void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step)

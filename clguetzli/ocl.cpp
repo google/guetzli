@@ -15,16 +15,7 @@ ocl_args_d_t::ocl_args_d_t() :
 	program(NULL),
 	platformVersion(OPENCL_VERSION_1_2),
 	deviceVersion(OPENCL_VERSION_1_2),
-	compilerVersion(OPENCL_VERSION_1_2),
-	srcA(NULL),
-	srcB(NULL),
-	dstMem(NULL),
-	inputA(NULL),
-	lenA(0),
-	inputB(NULL),
-	lenB(0),
-	outputC(NULL),
-	lenC(0)
+	compilerVersion(OPENCL_VERSION_1_2)
 {
 	for (int i = 0; i < KERNEL_COUNT; i++)
 	{
@@ -72,30 +63,6 @@ ocl_args_d_t::~ocl_args_d_t()
 			LogError("Error: clReleaseProgram returned '%s'.\n", TranslateOpenCLError(err));
 		}
 	}
-	if (srcA)
-	{
-		err = clReleaseMemObject(srcA);
-		if (CL_SUCCESS != err)
-		{
-			LogError("Error: clReleaseMemObject returned '%s'.\n", TranslateOpenCLError(err));
-		}
-	}
-	if (srcB)
-	{
-		err = clReleaseMemObject(srcB);
-		if (CL_SUCCESS != err)
-		{
-			LogError("Error: clReleaseMemObject returned '%s'.\n", TranslateOpenCLError(err));
-		}
-	}
-	if (dstMem)
-	{
-		err = clReleaseMemObject(dstMem);
-		if (CL_SUCCESS != err)
-		{
-			LogError("Error: clReleaseMemObject returned '%s'.\n", TranslateOpenCLError(err));
-		}
-	}
 	if (commandQueue)
 	{
 		err = clReleaseCommandQueue(commandQueue);
@@ -120,118 +87,30 @@ ocl_args_d_t::~ocl_args_d_t()
 			LogError("Error: clReleaseContext returned '%s'.\n", TranslateOpenCLError(err));
 		}
 	}
-
-	/*
-	* Note there is no procedure to deallocate platform
-	* because it was not created at the startup,
-	* but just queried from OpenCL runtime.
-	*/
-
-	if (inputA) _aligned_free(inputA);
-	if (inputB) _aligned_free(inputB);
-	if (outputC) _aligned_free(outputC);
-}
-
-void* ocl_args_d_t::allocA(size_t s)
-{
-	if (s <= lenA) return inputA;
-	lenA = 0;
-	_aligned_free(inputA);
-	clReleaseMemObject(srcA);
-
-	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
-	inputA = _aligned_malloc(optimizedSize, 4096);
-	lenA = s;
-
-	cl_int err = 0;
-	srcA = clCreateBuffer(this->context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, s, inputA, &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: allocA() for buffer returned %s.\n", TranslateOpenCLError(err));
-	}
-
-	return inputA;
-}
-
-void* ocl_args_d_t::allocB(size_t s)
-{
-	if (s <= lenB) return inputB;
-	lenB = 0;
-	_aligned_free(inputB);
-	clReleaseMemObject(srcB);
-
-	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
-	inputB = _aligned_malloc(optimizedSize, 4096);
-	lenB = s;
-
-	cl_int err = 0;
-	srcB = clCreateBuffer(this->context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, s, inputB, &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: allocB() for buffer returned %s.\n", TranslateOpenCLError(err));
-	}
-
-	return inputB;
-}
-
-void* ocl_args_d_t::allocC(size_t s)
-{
-	if (s <= lenC) return outputC;
-	lenC = 0;
-	_aligned_free(outputC);
-	clReleaseMemObject(dstMem);
-
-	cl_uint optimizedSize = ((s - 1) / 64 + 1) * 64;
-	outputC = _aligned_malloc(optimizedSize, 4096);
-	lenC = s;
-	
-	cl_int err = 0;
-	dstMem = clCreateBuffer(this->context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, s, outputC, &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: allocB() for buffer returned %s.\n", TranslateOpenCLError(err));
-	}
-
-	return outputC;
 }
 
 cl_mem ocl_args_d_t::allocMem(size_t s, const void *init)
 {
 	cl_int err = 0;
 	cl_mem mem = clCreateBuffer(this->context, CL_MEM_READ_WRITE, s, nullptr, &err);
-	if (CL_SUCCESS != err)
-	{
-		LogError("Error: allocMem() for buffer returned %s.\n", TranslateOpenCLError(err));
-	}
+    LOG_CL_RESULT(err);
     if (!mem) return NULL;
     
     // init memory
     if (init)
     {
         err = clEnqueueWriteBuffer(this->commandQueue, mem, CL_FALSE, 0, s, init, 0, NULL, NULL);
-        if (CL_SUCCESS != err)
-        {
-            LogError("Error: allocMem() clEnqueueWriteBuffer return %s.\n", TranslateOpenCLError(err));
-        }
+        LOG_CL_RESULT(err);
         err = clFinish(this->commandQueue);
-        if (CL_SUCCESS != err)
-        {
-            LogError("Error: allocMem() clEnqueueWriteBuffer/clFinish return %s.\n", TranslateOpenCLError(err));
-        }
+        LOG_CL_RESULT(err);
     }
     else
     {
         cl_char cc = 0;
         err = clEnqueueFillBuffer(this->commandQueue, mem, &cc, sizeof(cc), 0, s / sizeof(cc), 0, NULL, NULL);
-        if (CL_SUCCESS != err)
-        {
-            LogError("Error: allocMem() clEnqueueFillBuffer return %s.\n", TranslateOpenCLError(err));
-        }
+        LOG_CL_RESULT(err);
         err = clFinish(this->commandQueue);
-        if (CL_SUCCESS != err)
-        {
-            LogError("Error: allocMem() clEnqueueFillBuffer/clFinish return %s.\n", TranslateOpenCLError(err));
-        }
+        LOG_CL_RESULT(err);
     }
 
 	return mem;
