@@ -2,6 +2,8 @@
 #include <algorithm>
 #include "ocu.h"
 
+#ifdef __USE_CUDA__
+
 void cuOpsinDynamicsImage(float *r, float *g, float *b, const size_t xsize, const size_t ysize)
 {
     size_t channel_size = xsize * ysize * sizeof(float);
@@ -799,3 +801,4 @@ void cuCalculateDiffmapEx(CUdeviceptr diffmap/*in,out*/, const size_t xsize, con
     cuMemFree(blurred);
 }
 
+#endif

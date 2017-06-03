@@ -177,6 +177,7 @@ namespace butteraugli
                 );
             return;
         }
+#ifdef __USE_CUDA__
         else if (g_useCuda && xsize > 100 && ysize > 100)
         {
             mask->resize(3);
@@ -194,7 +195,7 @@ namespace butteraugli
             );
             return;
         }
-
+#endif
         _Mask(xyb0, xyb1, xsize, ysize, mask, mask_dc);
 
         if (g_checkOpenCL && xsize > 8 && ysize > 8)
@@ -305,6 +306,7 @@ namespace butteraugli
 
             clOpsinDynamicsImage(r, g, b, xsize, ysize);
         }
+#ifdef __USE_CUDA__
         else if (g_useCuda && xsize > 100 && ysize > 100)
         {
             float * r = rgb[0].data();
@@ -313,6 +315,7 @@ namespace butteraugli
 
             cuOpsinDynamicsImage(r, g, b, xsize, ysize);
         }
+#endif
         else
         {
             std::vector< std::vector<float>> orig_rgb;
