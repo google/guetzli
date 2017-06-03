@@ -2,6 +2,8 @@
 #include <nvrtc.h>
 #include "ocu.h"
 
+#ifdef __USE_CUDA__
+
 ocu_args_d_t& getOcu(void)
 {
     static bool bInit = false;
@@ -148,3 +150,5 @@ void ocu_args_d_t::releaseMemChannels(ocu_channels &rgb)
         rgb.ch[i] = NULL;
     }
 }
+
+#endif

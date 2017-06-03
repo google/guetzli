@@ -2,6 +2,8 @@
 #include "guetzli/processor.h"
 #include "clguetzli.cl.h"
 
+#ifdef __USE_CUDA__
+
 void cuOpsinDynamicsImage(
 	float *r, float *g, float *b, 
 	const size_t xsize, const size_t ysize);
@@ -113,3 +115,5 @@ void cuRemoveBorderEx(CUdeviceptr out, const CUdeviceptr in, const size_t xsize,
 void cuAddBorderEx(CUdeviceptr out, const size_t xsize, const size_t ysize, const int step, const CUdeviceptr in);
 
 void cuCalculateDiffmapEx(CUdeviceptr diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step);
+
+#endif

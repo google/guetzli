@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef __USE_CUDA__
+
 #include <cuda.h>
 #include "ocl.h"
 
@@ -22,3 +24,5 @@ struct ocu_args_d_t
     CUcontext   ctxt;
     CUdevice    dev;
 };
+
+#endif
