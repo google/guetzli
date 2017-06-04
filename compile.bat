@@ -1,4 +1,7 @@
 @rem setupt windows var
 call vcvars64.bat
 
-nvcc -Xcompiler "/wd 4819" -I"./" -arch=compute_30 --fmad=false --machine 64 -G -g -ptx -o clguetzli\clguetzli.cu.ptx64 clguetzli\clguetzli.cu
+@echo %1 --machine 64 or 32
+@echo %2  -G 
+
+nvcc -Xcompiler "/wd 4819" -I"./" -arch=compute_30 --fmad=false --machine %1 %2 -ptx -o clguetzli\clguetzli.cu.ptx%1  clguetzli\clguetzli.cu

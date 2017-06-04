@@ -13,12 +13,14 @@ ocu_args_d_t& getOcu(void)
 
     bInit = true;
 
-    CUresult r = cuInit(0);
+    CUresult err = cuInit(0);
+    LOG_CU_RESULT(err);
     CUdevice dev = 0;
     CUcontext ctxt;
     CUstream  stream;
 
-    r = cuCtxCreate(&ctxt, CU_CTX_SCHED_BLOCKING_SYNC, dev);
+    err = cuCtxCreate(&ctxt, CU_CTX_SCHED_BLOCKING_SYNC, dev);
+    LOG_CU_RESULT(err);
 
     char name[1024];
     int proc_count = 0;
@@ -30,7 +32,7 @@ ocu_args_d_t& getOcu(void)
     cuDeviceGetAttribute(&proc_count, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, dev);
     cuDeviceGetAttribute(&thread_count, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR, dev);
     LogError("CUDA Adapter:%s Ver%d.%d MP %d Core %d)\r\n", name, cap_major, cap_minor, proc_count, thread_count);
-
+/*
     char* source = nullptr;
     size_t src_size = 0;
     ReadSourceFromFile("clguetzli/clguetzli.cl", &source, &src_size);
@@ -38,7 +40,7 @@ ocu_args_d_t& getOcu(void)
     nvrtcProgram prog;
     const char *opts[] = { "-arch=compute_30", "-default-device", "-G", "-I\"./\"", "--fmad=false" };
     nvrtcCreateProgram(&prog, source, "clguetzli.cl", 0, NULL, NULL);
-    nvrtcResult compile_result = nvrtcCompileProgram(prog, 3, opts);
+    nvrtcResult compile_result;// = nvrtcCompileProgram(prog, 3, opts);
     if (NVRTC_SUCCESS != compile_result)
     {
         // Obtain compilation log from the program.
@@ -52,41 +54,51 @@ ocu_args_d_t& getOcu(void)
         delete[] log;
     }
 
+    delete[] source;
     // Obtain PTX from the program.
     size_t ptxSize = 0;
     nvrtcGetPTXSize(prog, &ptxSize);
     char *ptx = new char[ptxSize];
     nvrtcGetPTX(prog, ptx);
+*/
+
+    char* ptx = nullptr;
+    size_t src_size = 0;
+#ifdef _WIN64
+    ReadSourceFromFile("clguetzli/clguetzli.cu.ptx64", &ptx, &src_size);
+#else
+    ReadSourceFromFile("clguetzli/clguetzli.cu.ptx32", &ptx, &src_size);
+#endif
 
     CUmodule mod;
     CUjit_option jit_options[2];
     void *jit_optvals[2];
     jit_options[0] = CU_JIT_CACHE_MODE;
     jit_optvals[0] = (void*)(uintptr_t)CU_JIT_CACHE_OPTION_CA;
-    r = cuModuleLoadDataEx(&mod, ptx, 1, jit_options, jit_optvals);
+    err = cuModuleLoadDataEx(&mod, ptx, 1, jit_options, jit_optvals);
+    LOG_CU_RESULT(err);
 
-    delete[] source;
     delete[] ptx;
 
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTION], mod, "clConvolutionEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTIONX], mod, "clConvolutionXEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTIONY], mod, "clConvolutionYEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_SQUARESAMPLE], mod, "clSquareSampleEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_OPSINDYNAMICSIMAGE], mod, "clOpsinDynamicsImageEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_MASKHIGHINTENSITYCHANGE], mod, "clMaskHighIntensityChangeEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_EDGEDETECTOR], mod, "clEdgeDetectorMapEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_BLOCKDIFFMAP], mod, "clBlockDiffMapEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_EDGEDETECTORLOWFREQ], mod, "clEdgeDetectorLowFreqEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_DIFFPRECOMPUTE], mod, "clDiffPrecomputeEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_SCALEIMAGE], mod, "clScaleImageEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_AVERAGE5X5], mod, "clAverage5x5Ex");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_MINSQUAREVAL], mod, "clMinSquareValEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_DOMASK], mod, "clDoMaskEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_COMBINECHANNELS], mod, "clCombineChannelsEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_UPSAMPLESQUAREROOT], mod, "clUpsampleSquareRootEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_REMOVEBORDER], mod, "clRemoveBorderEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_ADDBORDER], mod, "clAddBorderEx");
-    r = cuModuleGetFunction(&ocu.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER], mod, "clComputeBlockZeroingOrderEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTION], mod, "clConvolutionEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTIONX], mod, "clConvolutionXEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_CONVOLUTIONY], mod, "clConvolutionYEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_SQUARESAMPLE], mod, "clSquareSampleEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_OPSINDYNAMICSIMAGE], mod, "clOpsinDynamicsImageEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_MASKHIGHINTENSITYCHANGE], mod, "clMaskHighIntensityChangeEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_EDGEDETECTOR], mod, "clEdgeDetectorMapEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_BLOCKDIFFMAP], mod, "clBlockDiffMapEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_EDGEDETECTORLOWFREQ], mod, "clEdgeDetectorLowFreqEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_DIFFPRECOMPUTE], mod, "clDiffPrecomputeEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_SCALEIMAGE], mod, "clScaleImageEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_AVERAGE5X5], mod, "clAverage5x5Ex");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_MINSQUAREVAL], mod, "clMinSquareValEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_DOMASK], mod, "clDoMaskEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_COMBINECHANNELS], mod, "clCombineChannelsEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_UPSAMPLESQUAREROOT], mod, "clUpsampleSquareRootEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_REMOVEBORDER], mod, "clRemoveBorderEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_ADDBORDER], mod, "clAddBorderEx");
+    cuModuleGetFunction(&ocu.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER], mod, "clComputeBlockZeroingOrderEx");
 
     cuCtxSetCacheConfig(CU_FUNC_CACHE_PREFER_SHARED);
     cuCtxSetSharedMemConfig(CU_SHARED_MEM_CONFIG_EIGHT_BYTE_BANK_SIZE);
@@ -94,7 +106,7 @@ ocu_args_d_t& getOcu(void)
     cuStreamCreate(&stream, 0);
 
     ocu.dev = dev;
-    ocu.stream = stream;
+    ocu.commandQueue = stream;
     ocu.mod = mod;
     ocu.ctxt = ctxt;
 
@@ -102,6 +114,10 @@ ocu_args_d_t& getOcu(void)
 }
 
 ocu_args_d_t::ocu_args_d_t()
+    : dev(0)
+    , commandQueue(NULL)
+    , mod(NULL)
+    , ctxt(NULL)
 {
 
 }
@@ -110,7 +126,7 @@ ocu_args_d_t::~ocu_args_d_t()
 {
     cuModuleUnload(mod);
     cuCtxDestroy(ctxt);
-//    cuStreamDestroy(stream);
+//    cuStreamDestroy(commandQueue);
 }
 
 cu_mem ocu_args_d_t::allocMem(size_t s, const void *init)
@@ -119,11 +135,11 @@ cu_mem ocu_args_d_t::allocMem(size_t s, const void *init)
     cuMemAlloc(&mem, s);
     if (init)
     {
-        cuMemcpyHtoD(mem, init, s);
+        cuMemcpyHtoDAsync(mem, init, s, commandQueue);
     }
     else
     {
-        cuMemsetD8(mem, 0, s);
+        cuMemsetD8Async(mem, 0, s, commandQueue);
     }
 
     return mem;
@@ -153,6 +169,68 @@ void ocu_args_d_t::releaseMemChannels(ocu_channels &rgb)
 
 const char* TranslateCUDAError(CUresult errorCode)
 {
-    return "Unknwon";
+    switch (errorCode)
+    {
+    case CUDA_SUCCESS: return "CUDA_SUCCESS";
+    case CUDA_ERROR_INVALID_VALUE: return "CUDA_ERROR_INVALID_VALUE";
+    case CUDA_ERROR_OUT_OF_MEMORY: return "CUDA_ERROR_OUT_OF_MEMORY";
+    case CUDA_ERROR_NOT_INITIALIZED: return "CUDA_ERROR_NOT_INITIALIZED";
+    case CUDA_ERROR_DEINITIALIZED: return "CUDA_ERROR_DEINITIALIZED";
+    case CUDA_ERROR_PROFILER_DISABLED: return "CUDA_ERROR_PROFILER_DISABLED";
+    case CUDA_ERROR_PROFILER_NOT_INITIALIZED: return "CUDA_ERROR_PROFILER_NOT_INITIALIZED";
+    case CUDA_ERROR_PROFILER_ALREADY_STARTED: return "CUDA_ERROR_PROFILER_ALREADY_STARTED";
+    case CUDA_ERROR_PROFILER_ALREADY_STOPPED: return "CUDA_ERROR_PROFILER_ALREADY_STOPPED";
+    case CUDA_ERROR_NO_DEVICE: return "CUDA_ERROR_NO_DEVICE";
+    case CUDA_ERROR_INVALID_DEVICE: return "CUDA_ERROR_INVALID_DEVICE";
+    case CUDA_ERROR_INVALID_IMAGE: return "CUDA_ERROR_INVALID_IMAGE";
+    case CUDA_ERROR_INVALID_CONTEXT: return "CUDA_ERROR_INVALID_CONTEXT";
+    case CUDA_ERROR_CONTEXT_ALREADY_CURRENT: return "CUDA_ERROR_CONTEXT_ALREADY_CURRENT";
+    case CUDA_ERROR_MAP_FAILED: return "CUDA_ERROR_MAP_FAILED";
+    case CUDA_ERROR_UNMAP_FAILED: return "CUDA_ERROR_UNMAP_FAILED";
+    case CUDA_ERROR_ARRAY_IS_MAPPED: return "CUDA_ERROR_ARRAY_IS_MAPPED";
+    case CUDA_ERROR_ALREADY_MAPPED: return "CUDA_ERROR_ALREADY_MAPPED";
+    case CUDA_ERROR_NO_BINARY_FOR_GPU: return "CUDA_ERROR_NO_BINARY_FOR_GPU";
+    case CUDA_ERROR_ALREADY_ACQUIRED: return "CUDA_ERROR_ALREADY_ACQUIRED";
+    case CUDA_ERROR_NOT_MAPPED: return "CUDA_ERROR_NOT_MAPPED";
+    case CUDA_ERROR_NOT_MAPPED_AS_ARRAY: return "CUDA_ERROR_NOT_MAPPED_AS_ARRAY";
+    case CUDA_ERROR_NOT_MAPPED_AS_POINTER: return "CUDA_ERROR_NOT_MAPPED_AS_POINTER";
+    case CUDA_ERROR_ECC_UNCORRECTABLE: return "CUDA_ERROR_ECC_UNCORRECTABLE";
+    case CUDA_ERROR_UNSUPPORTED_LIMIT: return "CUDA_ERROR_UNSUPPORTED_LIMIT";
+    case CUDA_ERROR_CONTEXT_ALREADY_IN_USE: return "CUDA_ERROR_CONTEXT_ALREADY_IN_USE";
+    case CUDA_ERROR_PEER_ACCESS_UNSUPPORTED: return "CUDA_ERROR_PEER_ACCESS_UNSUPPORTED";
+    case CUDA_ERROR_INVALID_PTX: return "CUDA_ERROR_INVALID_PTX";
+    case CUDA_ERROR_INVALID_GRAPHICS_CONTEXT: return "CUDA_ERROR_INVALID_GRAPHICS_CONTEXT";
+    case CUDA_ERROR_NVLINK_UNCORRECTABLE: return "CUDA_ERROR_NVLINK_UNCORRECTABLE";
+    case CUDA_ERROR_INVALID_SOURCE: return "CUDA_ERROR_INVALID_SOURCE";
+    case CUDA_ERROR_FILE_NOT_FOUND: return "CUDA_ERROR_FILE_NOT_FOUND";
+    case CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND: return "CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND";
+    case CUDA_ERROR_SHARED_OBJECT_INIT_FAILED: return "CUDA_ERROR_SHARED_OBJECT_INIT_FAILED";
+    case CUDA_ERROR_OPERATING_SYSTEM: return "CUDA_ERROR_OPERATING_SYSTEM";
+    case CUDA_ERROR_INVALID_HANDLE: return "CUDA_ERROR_INVALID_HANDLE";
+    case CUDA_ERROR_NOT_FOUND: return "CUDA_ERROR_NOT_FOUND";
+    case CUDA_ERROR_NOT_READY: return "CUDA_ERROR_NOT_READY";
+    case CUDA_ERROR_ILLEGAL_ADDRESS: return "CUDA_ERROR_ILLEGAL_ADDRESS";
+    case CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: return "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES";
+    case CUDA_ERROR_LAUNCH_TIMEOUT: return "CUDA_ERROR_LAUNCH_TIMEOUT";
+    case CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING: return "CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING";
+    case CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED: return "CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED";
+    case CUDA_ERROR_PEER_ACCESS_NOT_ENABLED: return "CUDA_ERROR_PEER_ACCESS_NOT_ENABLED";
+    case CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE: return "CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE";
+    case CUDA_ERROR_CONTEXT_IS_DESTROYED: return "CUDA_ERROR_CONTEXT_IS_DESTROYED";
+    case CUDA_ERROR_ASSERT: return "CUDA_ERROR_ASSERT";
+    case CUDA_ERROR_TOO_MANY_PEERS: return "CUDA_ERROR_TOO_MANY_PEERS";
+    case CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED: return "CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED";
+    case CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED: return "CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED";
+    case CUDA_ERROR_HARDWARE_STACK_ERROR: return "CUDA_ERROR_HARDWARE_STACK_ERROR";
+    case CUDA_ERROR_ILLEGAL_INSTRUCTION: return "CUDA_ERROR_ILLEGAL_INSTRUCTION";
+    case CUDA_ERROR_MISALIGNED_ADDRESS: return "CUDA_ERROR_MISALIGNED_ADDRESS";
+    case CUDA_ERROR_INVALID_ADDRESS_SPACE: return "CUDA_ERROR_INVALID_ADDRESS_SPACE";
+    case CUDA_ERROR_INVALID_PC: return "CUDA_ERROR_INVALID_PC";
+    case CUDA_ERROR_LAUNCH_FAILED: return "CUDA_ERROR_LAUNCH_FAILED";
+    case CUDA_ERROR_NOT_PERMITTED: return "CUDA_ERROR_NOT_PERMITTED";
+    case CUDA_ERROR_NOT_SUPPORTED: return "CUDA_ERROR_NOT_SUPPORTED";
+    case CUDA_ERROR_UNKNOWN: return "CUDA_ERROR_UNKNOWN";
+    default: return "CUDA_ERROR_UNKNOWN";
+    }
 }
 #endif
