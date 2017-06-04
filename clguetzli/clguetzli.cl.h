@@ -19,6 +19,7 @@
 
     typedef unsigned char uchar;
     typedef unsigned short ushort;
+    typedef CUdeviceptr cu_mem;
 
     int get_global_id(int dim);
     int get_global_size(int dim);
@@ -78,19 +79,19 @@
         {
             struct
             {
-                CUdeviceptr r;
-                CUdeviceptr g;
-                CUdeviceptr b;
+                cu_mem r;
+                cu_mem g;
+                cu_mem b;
             };
             struct
             {
-                CUdeviceptr x;
-                CUdeviceptr y;
-                CUdeviceptr b_;
+                cu_mem x;
+                cu_mem y;
+                cu_mem b_;
             };
             union
             {
-                CUdeviceptr ch[3];
+                cu_mem ch[3];
             };
         }ocu_channels;
     #endif
@@ -100,22 +101,7 @@
 #ifdef __OPENCL_VERSION__
     #define __constant_ex __constant
     #define __device__
-/*
-    typedef union ocl_channels_t
-    {
-        struct
-        {
-            float * r;
-            float * g;
-            float * b;
-        };
 
-        union
-        {
-            float *ch[3];
-        };
-    }ocl_channels;
-*/
 #endif /*__OPENCL_VERSION__*/
 
 #ifdef __CUDACC__

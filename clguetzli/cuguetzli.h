@@ -35,25 +35,25 @@ void cuMask(
     const float* r2, const float* g2, const float* b2);
 
 void cuConvolutionXEx(
-    CUdeviceptr result/*out*/,
-    const CUdeviceptr inp, size_t xsize, size_t ysize,
-    const CUdeviceptr multipliers, size_t len,
-    int xstep, int offset, double border_ratio);
+    cu_mem result/*out*/,
+    const cu_mem inp, size_t xsize, size_t ysize,
+    const cu_mem multipliers, size_t len,
+    int xstep, int offset, float border_ratio);
 
 void cuConvolutionYEx(
-    CUdeviceptr result/*out*/,
-    const CUdeviceptr inp, size_t xsize, size_t ysize,
-    const CUdeviceptr multipliers, size_t len,
-    int xstep, int offset, double border_ratio);
+    cu_mem result/*out*/,
+    const cu_mem inp, size_t xsize, size_t ysize,
+    const cu_mem multipliers, size_t len,
+    int xstep, int offset, float border_ratio);
 
 void cuSquareSampleEx(
-    CUdeviceptr result/*out*/,
-    const CUdeviceptr image, size_t xsize, size_t ysize,
+    cu_mem result/*out*/,
+    const cu_mem image, size_t xsize, size_t ysize,
     size_t xstep, size_t ystep);
 
-void cuBlurEx(CUdeviceptr image/*out, opt*/, const size_t xsize, const size_t ysize,
+void cuBlurEx(cu_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
     const double sigma, const double border_ratio,
-    CUdeviceptr result = NULL/*out, opt*/);
+    cu_mem result = NULL/*out, opt*/);
 
 void cuOpsinDynamicsImageEx(ocu_channels &rgb, const size_t xsize, const size_t ysize);
 
@@ -63,18 +63,18 @@ void cuMaskHighIntensityChangeEx(
     const size_t xsize, const size_t ysize);
 
 void cuEdgeDetectorMapEx(
-    CUdeviceptr result/*out*/,
+    cu_mem result/*out*/,
     const ocu_channels &rgb, const ocu_channels &rgb2,
     const size_t xsize, const size_t ysize, const size_t step);
 
 void cuBlockDiffMapEx(
-    CUdeviceptr block_diff_dc/*out*/,
-    CUdeviceptr block_diff_ac/*out*/,
+    cu_mem block_diff_dc/*out*/,
+    cu_mem block_diff_ac/*out*/,
     const ocu_channels &rgb, const ocu_channels &rgb2,
     const size_t xsize, const size_t ysize, const size_t step);
 
 void cuEdgeDetectorLowFreqEx(
-    CUdeviceptr block_diff_ac/*in,out*/,
+    cu_mem block_diff_ac/*in,out*/,
     const ocu_channels &rgb, const ocu_channels &rgb2,
     const size_t xsize, const size_t ysize, const size_t step);
 
@@ -83,12 +83,12 @@ void cuDiffPrecomputeEx(
     const ocu_channels &xyb0, const ocu_channels &xyb1,
     const size_t xsize, const size_t ysize);
 
-void cuScaleImageEx(CUdeviceptr img/*in, out*/, size_t size, double w);
+void cuScaleImageEx(cu_mem img/*in, out*/, size_t size, double w);
 
-void cuAverage5x5Ex(CUdeviceptr img/*in,out*/, const size_t xsize, const size_t ysize);
+void cuAverage5x5Ex(cu_mem img/*in,out*/, const size_t xsize, const size_t ysize);
 
 void cuMinSquareValEx(
-    CUdeviceptr img/*in,out*/,
+    cu_mem img/*in,out*/,
     const size_t xsize, const size_t ysize,
     const size_t square_size, const size_t offset);
 
@@ -98,22 +98,22 @@ void cuMaskEx(
     const size_t xsize, const size_t ysize);
 
 void cuCombineChannelsEx(
-    CUdeviceptr result/*out*/,
+    cu_mem result/*out*/,
     const ocu_channels &mask,
     const ocu_channels &mask_dc,
     const size_t xsize, const size_t ysize,
-    const CUdeviceptr block_diff_dc,
-    const CUdeviceptr block_diff_ac,
-    const CUdeviceptr edge_detector_map,
+    const cu_mem block_diff_dc,
+    const cu_mem block_diff_ac,
+    const cu_mem edge_detector_map,
     const size_t res_xsize,
     const size_t step);
 
-void cuUpsampleSquareRootEx(CUdeviceptr diffmap, const size_t xsize, const size_t ysize, const int step);
+void cuUpsampleSquareRootEx(cu_mem diffmap, const size_t xsize, const size_t ysize, const int step);
 
-void cuRemoveBorderEx(CUdeviceptr out, const CUdeviceptr in, const size_t xsize, const size_t ysize, const int step);
+void cuRemoveBorderEx(cu_mem out, const cu_mem in, const size_t xsize, const size_t ysize, const int step);
 
-void cuAddBorderEx(CUdeviceptr out, const size_t xsize, const size_t ysize, const int step, const CUdeviceptr in);
+void cuAddBorderEx(cu_mem out, const size_t xsize, const size_t ysize, const int step, const cu_mem in);
 
-void cuCalculateDiffmapEx(CUdeviceptr diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step);
+void cuCalculateDiffmapEx(cu_mem diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step);
 
 #endif

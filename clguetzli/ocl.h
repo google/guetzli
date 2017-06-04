@@ -8,48 +8,12 @@
 #define OPENCL_VERSION_1_2  1.2f
 #define OPENCL_VERSION_2_0  2.0f
 
-struct ocl_args_d_t;
-
-/* This function helps to create informative messages in
-* case when OpenCL errors occur. It returns a string
-* representation for an OpenCL error code.
-* (E.g. "CL_DEVICE_NOT_FOUND" instead of just -1.)
-*/
-const char* TranslateOpenCLError(cl_int errorCode);
-
-/*
-* This function picks/creates necessary OpenCL objects which are needed.
-* The objects are:
-* OpenCL platform, device, context, and command queue.
-*
-* All these steps are needed to be performed once in a regular OpenCL application.
-* This happens before actual compute kernels calls are performed.
-*
-* For convenience, in this application you store all those basic OpenCL objects in structure ocl_args_d_t,
-* so this function populates fields of this structure, which is passed as parameter ocl.
-* Please, consider reviewing the fields before going further.
-* The structure definition is right in the beginning of this file.
-*/
-int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType);
-
-
-/* Convenient container for all OpenCL specific objects used in the sample
-*
-* It consists of two parts:
-*   - regular OpenCL objects which are used in almost each normal OpenCL applications
-*   - several OpenCL objects that are specific for this particular sample
-*
-* You collect all these objects in one structure for utility purposes
-* only, there is no OpenCL specific here: just to avoid global variables
-* and make passing all these arguments in functions easier.
-*/
-
 enum KernelName {
-	KERNEL_CONVOLUTION = 0,
-	KERNEL_CONVOLUTIONX,
-	KERNEL_CONVOLUTIONY,
-	KERNEL_SQUARESAMPLE,
-	KERNEL_OPSINDYNAMICSIMAGE,
+    KERNEL_CONVOLUTION = 0,
+    KERNEL_CONVOLUTIONX,
+    KERNEL_CONVOLUTIONY,
+    KERNEL_SQUARESAMPLE,
+    KERNEL_OPSINDYNAMICSIMAGE,
     KERNEL_MASKHIGHINTENSITYCHANGE,
     KERNEL_EDGEDETECTOR,
     KERNEL_BLOCKDIFFMAP,
@@ -59,15 +23,23 @@ enum KernelName {
     KERNEL_AVERAGE5X5,
     KERNEL_MINSQUAREVAL,
     KERNEL_DOMASK,
-	KERNEL_COMBINECHANNELS,
-	KERNEL_UPSAMPLESQUAREROOT,
+    KERNEL_COMBINECHANNELS,
+    KERNEL_UPSAMPLESQUAREROOT,
     KERNEL_REMOVEBORDER,
-	KERNEL_ADDBORDER,
-	KERNEL_COMPUTEBLOCKZEROINGORDER,
-	KERNEL_COUNT,
+    KERNEL_ADDBORDER,
+    KERNEL_COMPUTEBLOCKZEROINGORDER,
+    KERNEL_COUNT,
 };
 
 #define LOG_CL_RESULT(e)   if (CL_SUCCESS != (e)) { LogError("Error: %s:%d returned %s.\n", __FUNCTION__, __LINE__, TranslateOpenCLError((e)));}
+
+struct ocl_args_d_t;
+
+const char* TranslateOpenCLError(cl_int errorCode);
+
+int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType);
+
+ocl_args_d_t& getOcl(void);
 
 struct ocl_args_d_t
 {

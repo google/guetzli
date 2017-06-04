@@ -1,8 +1,6 @@
 #pragma once
 #include "ocl.h"
 
-ocl_args_d_t& getOcl(void);
-
 void tclMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize,
