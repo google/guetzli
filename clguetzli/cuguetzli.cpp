@@ -15,9 +15,10 @@ void cuOpsinDynamicsImage(float *r, float *g, float *b, const size_t xsize, cons
 
     cuOpsinDynamicsImageEx(rgb, xsize, ysize);
 
-    cuMemcpyDtoH(r, rgb.r, channel_size);
-    cuMemcpyDtoH(g, rgb.g, channel_size);
-	cuMemcpyDtoH(b, rgb.b, channel_size);
+    cuMemcpyDtoHAsync(r, rgb.r, channel_size, ocl.commandQueue);
+    cuMemcpyDtoHAsync(g, rgb.g, channel_size, ocl.commandQueue);
+	cuMemcpyDtoHAsync(b, rgb.b, channel_size, ocl.commandQueue);
+    cuFinish(ocl.commandQueue);
 
     ocl.releaseMemChannels(rgb);
 }
@@ -143,7 +144,6 @@ void cuComputeBlockZeroingOrder(
         cuMemFree(mem_orig_coeff[c]);
         cuMemFree(mem_mayout_coeff[c]);
         cuMemFree(mem_mayout_pixel[c]);
-
     }
 
     cuMemFree(mem_orig_image);
