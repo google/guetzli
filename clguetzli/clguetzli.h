@@ -7,9 +7,16 @@
 
 #include "cuguetzli.h"
 
-extern bool g_useOpenCL;
-extern bool g_useCuda;
-extern bool g_checkOpenCL;
+enum MATH_MODE
+{
+    MODE_CPU = 0,
+    MODE_OPENCL,
+    MODE_CUDA,
+    MODE_CHECKCL,
+    MODE_CHECKCUDA
+};
+
+extern MATH_MODE g_mathMode;
 
 void clOpsinDynamicsImage(
     float *r, float *g, float *b, 

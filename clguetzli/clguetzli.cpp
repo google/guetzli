@@ -4,9 +4,7 @@
 #include <vector>
 #include "cl.hpp"
 
-extern bool g_useOpenCL = false;
-extern bool g_useCuda = false;
-extern bool g_checkOpenCL = false;
+extern MATH_MODE g_mathMode = MODE_CPU;
 
 void clOpsinDynamicsImage(float *r, float *g, float *b, const size_t xsize, const size_t ysize)
 {

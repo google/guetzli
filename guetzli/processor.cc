@@ -567,7 +567,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
     CoeffData * output_order = NULL;
     ButteraugliComparatorEx * comp = (ButteraugliComparatorEx*)comparator_;
 
-    if (g_useOpenCL || g_checkOpenCL)
+    if (MODE_OPENCL == g_mathMode || MODE_CUDA == g_mathMode)
     {
         channel_info orig_channel[3];
         channel_info mayout_channel[3];
@@ -588,7 +588,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
         output_order_gpu.resize(num_blocks * kBlockSize);
         output_order = output_order_gpu.data();
 
-        if (g_useCuda)
+        if (MODE_OPENCL == g_mathMode)
         {
             clComputeBlockZeroingOrder(output_order,
                 orig_channel,
@@ -601,9 +601,10 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
                 comp_mask,
                 comp->BlockErrorLimit());
         }
+#ifdef __USE_CUDA__
         else
         {
-            clComputeBlockZeroingOrder(output_order,
+            cuComputeBlockZeroingOrder(output_order,
                 orig_channel,
                 comp->imgOpsinDynamicsBlockList.data(),
                 comp->imgMaskXyzScaleBlockList.data(),
@@ -614,9 +615,10 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
                 comp_mask,
                 comp->BlockErrorLimit());
         }
-
+#endif
     }
-    if (!g_useOpenCL || g_checkOpenCL)
+
+    if (MODE_CPU == g_mathMode || MODE_CHECKCL == g_mathMode)
     {
         output_order_cpu.resize(num_blocks * kBlockSize);
         output_order = output_order_cpu.data();
@@ -651,7 +653,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
         }
     }
 
-    if (g_checkOpenCL)
+    if (MODE_CHECKCL == g_mathMode)
     {
         int count = 0;
         int check_size = output_order_gpu.size();
