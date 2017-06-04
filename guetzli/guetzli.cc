@@ -227,6 +227,8 @@ void Usage() {
       "                 the limit. Default limit is %d MB.\n"
 	  "  --opencl     - Use OpenCL\n"
 	  "  --cuda       - Use CUDA\n"	 
+      "  --checkcl    - Check OpenCL result\n"
+      "  --checkcuda  - Check CUDA result\n"
       "  --nomemlimit - Do not limit memory usage.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
   exit(1);
 }
@@ -260,14 +262,17 @@ int main(int argc, char** argv) {
       memlimit_mb = -1;
 	}
 	else if (!strcmp(argv[opt_idx], "--opencl")) {
-		g_useOpenCL = true;
+		g_mathMode = MODE_OPENCL;
 	}
 	else if (!strcmp(argv[opt_idx], "--cuda")) {
-		g_useCuda = true;
+		g_mathMode = MODE_CUDA;
 	}
-	else if (!strcmp(argv[opt_idx], "--checkcl")) {
-		g_checkOpenCL = true;
-	}
+    else if (!strcmp(argv[opt_idx], "--checkcl")) {
+        g_mathMode = MODE_CHECKCL;
+    }
+    else if (!strcmp(argv[opt_idx], "--checkcuda")) {
+        g_mathMode = MODE_CHECKCUDA;
+    }
 	else if (!strcmp(argv[opt_idx], "--")) {
       opt_idx++;
       break;
