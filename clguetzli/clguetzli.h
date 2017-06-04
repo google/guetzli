@@ -45,19 +45,19 @@ void clConvolutionEx(
     cl_mem result/*out*/,
     const cl_mem inp, size_t xsize, size_t ysize,
     const cl_mem multipliers, size_t len,
-    int xstep, int offset, double border_ratio);
+    int xstep, int offset, float border_ratio);
 
 void clConvolutionXEx(
     cl_mem result/*out*/, 
     const cl_mem inp, size_t xsize, size_t ysize,
     const cl_mem multipliers, size_t len,
-    int xstep, int offset, double border_ratio);
+    int xstep, int offset, float border_ratio);
 
 void clConvolutionYEx(
     cl_mem result/*out*/,
     const cl_mem inp, size_t xsize, size_t ysize,
     const cl_mem multipliers, size_t len,
-    int xstep, int offset, double border_ratio);
+    int xstep, int offset, float border_ratio);
 
 void clSquareSampleEx(
     cl_mem result/*out*/,

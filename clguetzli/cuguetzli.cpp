@@ -115,7 +115,7 @@ void cuComputeBlockZeroingOrder(
     CUdeviceptr mem_output_order_batch = ocl.allocMem(output_order_batch_size, output_order_batch);
 
     const void *args[] = { &mem_orig_coeff[0], &mem_orig_coeff[1], &mem_orig_coeff[2],
-        &mem_orig_image, &mem_orig_image, &mem_mask_scale,
+        &mem_orig_image, &mem_mask_scale,
         &image_width, &image_height,
         &mem_mayout_coeff[0], &mem_mayout_coeff[1], &mem_mayout_coeff[2],
         &mem_mayout_pixel[0], &mem_mayout_pixel[1], &mem_mayout_pixel[2],
@@ -179,11 +179,33 @@ void cuMask(
     ocl.releaseMemChannels(mask_dc);
 }
 
+void cuConvolutionEx(
+    CUdeviceptr result/*out*/,
+    const CUdeviceptr inp, size_t xsize, size_t ysize,
+    const CUdeviceptr multipliers, size_t len,
+    int xstep, int offset, float border_ratio)
+{
+    ocu_args_d_t &ocl = getOcu();
+
+    size_t oxsize = (xsize + xstep - 1) / xstep;
+
+    const void *args[] = { &result, &inp, &xsize, &multipliers, &len, &xstep, &offset, &border_ratio };
+
+    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_CONVOLUTIONX],
+        oxsize, ysize, 1,
+        1, 1, 1,
+        0,
+        ocl.stream, (void**)args, NULL);
+
+    err = cuStreamSynchronize(ocl.stream);
+}
+
+
 void cuConvolutionXEx(
     CUdeviceptr result/*out*/,
     const CUdeviceptr inp, size_t xsize, size_t ysize,
     const CUdeviceptr multipliers, size_t len,
-    int xstep, int offset, double border_ratio)
+    int xstep, int offset, float border_ratio)
 {
     ocu_args_d_t &ocl = getOcu();
 
@@ -204,12 +226,11 @@ void cuConvolutionYEx(
     const CUdeviceptr multipliers, size_t len,
     int xstep, int offset, double border_ratio)
 {
-    CUresult err = CUDA_SUCCESS;
     ocu_args_d_t &ocl = getOcu();
 
     const void *args[] = { &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio };
 
-    err = cuLaunchKernel(ocl.kernel[KERNEL_CONVOLUTIONY],
+    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_CONVOLUTIONY],
         xsize, ysize, 1,
         1, 1, 1,
         0,
@@ -223,12 +244,11 @@ void cuSquareSampleEx(
     const CUdeviceptr image, size_t xsize, size_t ysize,
     size_t xstep, size_t ystep)
 {
-    CUresult err = CUDA_SUCCESS;
     ocu_args_d_t &ocu = getOcu();
 
     const void *args[] = { &result, &image, &xstep, &ystep };
 
-    err = cuLaunchKernel(ocu.kernel[KERNEL_SQUARESAMPLE],
+    CUresult err = cuLaunchKernel(ocu.kernel[KERNEL_SQUARESAMPLE],
         xsize, ysize, 1,
         1, 1, 1,
         0,
@@ -253,7 +273,6 @@ void cuBlurEx(CUdeviceptr image/*out, opt*/, const size_t xsize, const size_t ys
 
     const int xstep = std::max<int>(1, int(sigma / 3));
 
-    CUresult err = CUDA_SUCCESS;
     ocu_args_d_t &ocu = getOcu();
     CUdeviceptr mem_expn = ocu.allocMem(sizeof(cl_float) * expn_size, expn.data());
 
@@ -282,7 +301,6 @@ void cuOpsinDynamicsImageEx(ocu_channels &rgb, const size_t xsize, const size_t 
 
     size_t channel_size = xsize * ysize * sizeof(float);
 
-    CUresult err = CUDA_SUCCESS;
     ocu_args_d_t &ocl = getOcu();
     ocu_channels rgb_blurred = ocl.allocMemChannels(channel_size);
 
@@ -292,7 +310,7 @@ void cuOpsinDynamicsImageEx(ocu_channels &rgb, const size_t xsize, const size_t 
 
     void *args[] = { &rgb.r, &rgb.g, &rgb.b, &rgb_blurred.r, &rgb_blurred.g, &rgb_blurred.b };
 
-    CUresult r = cuLaunchKernel(ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE],
+    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE],
         xsize * ysize, 1, 1,
         1, 1, 1,
         0,
@@ -694,7 +712,8 @@ void cuCombineChannelsEx(
         &mask.r, &mask.g, &mask.b,
         &mask_dc.r, &mask_dc.g, &mask_dc.b,
         &xsize, &ysize,
-        &block_diff_dc, &block_diff_ac, &edge_detector_map,
+        &block_diff_dc, &block_diff_ac,
+		&edge_detector_map,
         &res_xsize,
         &step };
 
