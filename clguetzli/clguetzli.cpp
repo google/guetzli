@@ -8,61 +8,6 @@ extern bool g_useOpenCL = false;
 extern bool g_useCuda = false;
 extern bool g_checkOpenCL = false;
 
-ocl_args_d_t& getOcl(void)
-{
-	static bool bInit = false;
-	static ocl_args_d_t ocl;
-
-	if (bInit == true) return ocl;
-
-	bInit = true;
-	cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
-    LOG_CL_RESULT(err);
-
-	char* source = nullptr;
-	size_t src_size = 0;
-	ReadSourceFromFile("clguetzli/clguetzli.cl", &source, &src_size);
-
-	ocl.program = clCreateProgramWithSource(ocl.context, 1, (const char**)&source, &src_size, &err);
-
-	delete[] source;
-
-	err = clBuildProgram(ocl.program, 1, &ocl.device, "", NULL, NULL);
-    LOG_CL_RESULT(err);
-    if (CL_BUILD_PROGRAM_FAILURE == err)
-    {
-        size_t log_size = 0;
-        clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-
-        std::vector<char> build_log(log_size);
-        clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, log_size, &build_log[0], NULL);
-
-        LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
-    }
-	
-    ocl.kernel[KERNEL_CONVOLUTION] = clCreateKernel(ocl.program, "clConvolutionEx", &err);
-    ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "clConvolutionXEx", &err);
-    ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "clConvolutionYEx", &err);
-    ocl.kernel[KERNEL_SQUARESAMPLE] = clCreateKernel(ocl.program, "clSquareSampleEx", &err);
-	ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "clOpsinDynamicsImageEx", &err);
-    ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "clMaskHighIntensityChangeEx", &err);
-    ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMapEx", &err);
-    ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMapEx", &err);
-    ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreqEx", &err);
-    ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "clDiffPrecomputeEx", &err);
-    ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "clScaleImageEx", &err);
-    ocl.kernel[KERNEL_AVERAGE5X5] = clCreateKernel(ocl.program, "clAverage5x5Ex", &err);
-    ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "clMinSquareValEx", &err);
-    ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "clDoMaskEx", &err);
-    ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "clCombineChannelsEx", &err);
-    ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "clUpsampleSquareRootEx", &err);
-    ocl.kernel[KERNEL_REMOVEBORDER] = clCreateKernel(ocl.program, "clRemoveBorderEx", &err);
-    ocl.kernel[KERNEL_ADDBORDER] = clCreateKernel(ocl.program, "clAddBorderEx", &err);
-    ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrderEx", &err);
-
-	return ocl;
-}
-
 void clOpsinDynamicsImage(float *r, float *g, float *b, const size_t xsize, const size_t ysize)
 {
     size_t channel_size = xsize * ysize * sizeof(float);
@@ -250,7 +195,8 @@ void clConvolutionEx(
 	size_t oxsize = (xsize + xstep - 1) / xstep;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTION];
-    clSetKernelArgEx(kernel, &result, &inp, &xsize, &multipliers, &len, &xstep, &offset, &border_ratio);
+    clSetKernelArgEx(kernel, 
+					&result, &inp, &xsize, &multipliers, &len, &xstep, &offset, &border_ratio);
 
 	size_t globalWorkSize[2] = { oxsize, ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -268,7 +214,8 @@ void clConvolutionXEx(
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTIONX];
-    clSetKernelArgEx(kernel, &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio);
+    clSetKernelArgEx(kernel, 
+				&result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -286,7 +233,8 @@ void clConvolutionYEx(
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTIONY];
-    clSetKernelArgEx(kernel, &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio);
+    clSetKernelArgEx(kernel, 
+			&result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -364,7 +312,8 @@ void clOpsinDynamicsImageEx(ocl_channels &rgb, const size_t xsize, const size_t 
 	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0, rgb_blurred.b);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE];
-    clSetKernelArgEx(kernel, &rgb.r, &rgb.g, &rgb.b, &rgb_blurred.r, &rgb_blurred.g, &rgb_blurred.b);
+    clSetKernelArgEx(kernel, 
+					&rgb.r, &rgb.g, &rgb.b, &rgb_blurred.r, &rgb_blurred.g, &rgb_blurred.b);
 
 	size_t globalWorkSize[1] = { xsize * ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -396,10 +345,11 @@ void clMaskHighIntensityChangeEx(
 	clFinish(ocl.commandQueue);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE];
-    clSetKernelArgEx(kernel, &xyb0.r, &xyb0.g, &xyb0.b,
-                            &xyb1.r, &xyb1.g, &xyb1.b,
-                            &c0.r, &c0.g, &c0.b,
-                            &c1.r, &c1.g, &c1.b);
+    clSetKernelArgEx(kernel, 
+		&xyb0.r, &xyb0.g, &xyb0.b,
+    	&xyb1.r, &xyb1.g, &xyb1.b,
+        &c0.r, &c0.g, &c0.b,
+        &c1.r, &c1.g, &c1.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);

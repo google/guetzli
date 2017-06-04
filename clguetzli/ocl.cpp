@@ -1,12 +1,61 @@
 #include "ocl.h"
 #include <string.h>
-#ifdef __linux__
-#include <malloc.h>
-#define _aligned_malloc memalign
-#define _aligned_free free
-#endif
 #include <vector>
 
+ocl_args_d_t& getOcl(void)
+{
+    static bool bInit = false;
+    static ocl_args_d_t ocl;
+
+    if (bInit == true) return ocl;
+
+    bInit = true;
+    cl_int err = SetupOpenCL(&ocl, CL_DEVICE_TYPE_GPU);
+    LOG_CL_RESULT(err);
+
+    char* source = nullptr;
+    size_t src_size = 0;
+    ReadSourceFromFile("clguetzli/clguetzli.cl", &source, &src_size);
+
+    ocl.program = clCreateProgramWithSource(ocl.context, 1, (const char**)&source, &src_size, &err);
+
+    delete[] source;
+
+    err = clBuildProgram(ocl.program, 1, &ocl.device, "", NULL, NULL);
+    LOG_CL_RESULT(err);
+    if (CL_BUILD_PROGRAM_FAILURE == err)
+    {
+        size_t log_size = 0;
+        clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+        std::vector<char> build_log(log_size);
+        clGetProgramBuildInfo(ocl.program, ocl.device, CL_PROGRAM_BUILD_LOG, log_size, &build_log[0], NULL);
+
+        LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
+    }
+
+    ocl.kernel[KERNEL_CONVOLUTION] = clCreateKernel(ocl.program, "clConvolutionEx", &err);
+    ocl.kernel[KERNEL_CONVOLUTIONX] = clCreateKernel(ocl.program, "clConvolutionXEx", &err);
+    ocl.kernel[KERNEL_CONVOLUTIONY] = clCreateKernel(ocl.program, "clConvolutionYEx", &err);
+    ocl.kernel[KERNEL_SQUARESAMPLE] = clCreateKernel(ocl.program, "clSquareSampleEx", &err);
+    ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE] = clCreateKernel(ocl.program, "clOpsinDynamicsImageEx", &err);
+    ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE] = clCreateKernel(ocl.program, "clMaskHighIntensityChangeEx", &err);
+    ocl.kernel[KERNEL_EDGEDETECTOR] = clCreateKernel(ocl.program, "clEdgeDetectorMapEx", &err);
+    ocl.kernel[KERNEL_BLOCKDIFFMAP] = clCreateKernel(ocl.program, "clBlockDiffMapEx", &err);
+    ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ] = clCreateKernel(ocl.program, "clEdgeDetectorLowFreqEx", &err);
+    ocl.kernel[KERNEL_DIFFPRECOMPUTE] = clCreateKernel(ocl.program, "clDiffPrecomputeEx", &err);
+    ocl.kernel[KERNEL_SCALEIMAGE] = clCreateKernel(ocl.program, "clScaleImageEx", &err);
+    ocl.kernel[KERNEL_AVERAGE5X5] = clCreateKernel(ocl.program, "clAverage5x5Ex", &err);
+    ocl.kernel[KERNEL_MINSQUAREVAL] = clCreateKernel(ocl.program, "clMinSquareValEx", &err);
+    ocl.kernel[KERNEL_DOMASK] = clCreateKernel(ocl.program, "clDoMaskEx", &err);
+    ocl.kernel[KERNEL_COMBINECHANNELS] = clCreateKernel(ocl.program, "clCombineChannelsEx", &err);
+    ocl.kernel[KERNEL_UPSAMPLESQUAREROOT] = clCreateKernel(ocl.program, "clUpsampleSquareRootEx", &err);
+    ocl.kernel[KERNEL_REMOVEBORDER] = clCreateKernel(ocl.program, "clRemoveBorderEx", &err);
+    ocl.kernel[KERNEL_ADDBORDER] = clCreateKernel(ocl.program, "clAddBorderEx", &err);
+    ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER] = clCreateKernel(ocl.program, "clComputeBlockZeroingOrderEx", &err);
+
+    return ocl;
+}
 
 ocl_args_d_t::ocl_args_d_t() :
 	context(NULL),
@@ -23,17 +72,6 @@ ocl_args_d_t::ocl_args_d_t() :
 	}
 }
 
-/*
-* destructor - called only once
-* Release all OpenCL objects
-* This is a regular sequence of calls to deallocate all created OpenCL resources in bootstrapOpenCL.
-*
-* You may want to call these deallocation procedures in the middle of your application execution
-* (not at the end) if you don't further need OpenCL runtime.
-* You may want to do that in order to free some memory, for example,
-* or recreate OpenCL objects with different parameters.
-*
-*/
 ocl_args_d_t::~ocl_args_d_t()
 {
 	cl_int err = CL_SUCCESS;
@@ -45,16 +83,7 @@ ocl_args_d_t::~ocl_args_d_t()
 			LogError("Error: clReleaseKernel returned '%s'.\n", TranslateOpenCLError(err));
 		}
 	}
-/*
-	if (kernel)
-	{
-		err = clReleaseKernel(kernel);
-		if (CL_SUCCESS != err)
-		{
-			LogError("Error: clReleaseKernel returned '%s'.\n", TranslateOpenCLError(err));
-		}
-	}
-*/
+
 	if (program)
 	{
 		err = clReleaseProgram(program);

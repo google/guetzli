@@ -4,6 +4,8 @@
 
 #ifdef __USE_CUDA__
 
+#define cuFinish cuStreamSynchronize
+
 void cuOpsinDynamicsImage(float *r, float *g, float *b, const size_t xsize, const size_t ysize)
 {
     size_t channel_size = xsize * ysize * sizeof(float);
@@ -37,11 +39,11 @@ void cuDiffmapOpsinDynamicsImage(
     ocu_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
     ocu_channels xyb1 = ocl.allocMemChannels(channel_size, r2, g2, b2);
 
-    CUdeviceptr mem_result = ocl.allocMem(channel_size, result);
+    cu_mem mem_result = ocl.allocMem(channel_size, result);
 
-    CUdeviceptr edge_detector_map = ocl.allocMem(3 * channel_step_size);
-    CUdeviceptr block_diff_dc = ocl.allocMem(3 * channel_step_size);
-    CUdeviceptr block_diff_ac = ocl.allocMem(3 * channel_step_size);
+    cu_mem edge_detector_map = ocl.allocMem(3 * channel_step_size);
+    cu_mem block_diff_dc = ocl.allocMem(3 * channel_step_size);
+    cu_mem block_diff_ac = ocl.allocMem(3 * channel_step_size);
 
     cuMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
 
@@ -95,9 +97,9 @@ void cuComputeBlockZeroingOrder(
     cl_int err = 0;
     ocu_args_d_t &ocl = getOcu();
 
-    CUdeviceptr mem_orig_coeff[3];
-    CUdeviceptr mem_mayout_coeff[3];
-    CUdeviceptr mem_mayout_pixel[3];
+    cu_mem mem_orig_coeff[3];
+    cu_mem mem_mayout_coeff[3];
+    cu_mem mem_mayout_pixel[3];
     for (int c = 0; c < 3; c++)
     {
         int block_count = orig_channel[c].block_width * orig_channel[c].block_height;
@@ -108,11 +110,11 @@ void cuComputeBlockZeroingOrder(
 
         mem_mayout_pixel[c] = ocl.allocMem(image_width * image_height * sizeof(uint16_t), mayout_channel[c].pixel);
     }
-    CUdeviceptr mem_orig_image = ocl.allocMem(sizeof(float) * 3 * kDCTBlockSize * block8_width * block8_height, orig_image_batch);
-    CUdeviceptr mem_mask_scale = ocl.allocMem(sizeof(float) * 3 * block8_width * block8_height, mask_scale);
+    cu_mem mem_orig_image = ocl.allocMem(sizeof(float) * 3 * kDCTBlockSize * block8_width * block8_height, orig_image_batch);
+    cu_mem mem_mask_scale = ocl.allocMem(sizeof(float) * 3 * block8_width * block8_height, mask_scale);
 
     int output_order_batch_size = sizeof(CoeffData) * 3 * kDCTBlockSize * blockf_width * blockf_height;
-    CUdeviceptr mem_output_order_batch = ocl.allocMem(output_order_batch_size, output_order_batch);
+    cu_mem mem_output_order_batch = ocl.allocMem(output_order_batch_size, output_order_batch);
 
     const void *args[] = { &mem_orig_coeff[0], &mem_orig_coeff[1], &mem_orig_coeff[2],
         &mem_orig_image, &mem_mask_scale,
@@ -130,8 +132,10 @@ void cuComputeBlockZeroingOrder(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
+    LOG_CU_RESULT(err);
 
-    err = cuStreamSynchronize(ocl.stream);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 
     cuMemcpyDtoH(output_order_batch, mem_output_order_batch, output_order_batch_size);
 
@@ -180,9 +184,9 @@ void cuMask(
 }
 
 void cuConvolutionEx(
-    CUdeviceptr result/*out*/,
-    const CUdeviceptr inp, size_t xsize, size_t ysize,
-    const CUdeviceptr multipliers, size_t len,
+    cu_mem result/*out*/,
+    const cu_mem inp, size_t xsize, size_t ysize,
+    const cu_mem multipliers, size_t len,
     int xstep, int offset, float border_ratio)
 {
     ocu_args_d_t &ocl = getOcu();
@@ -196,15 +200,16 @@ void cuConvolutionEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
 
 void cuConvolutionXEx(
-    CUdeviceptr result/*out*/,
-    const CUdeviceptr inp, size_t xsize, size_t ysize,
-    const CUdeviceptr multipliers, size_t len,
+    cu_mem result/*out*/,
+    const cu_mem inp, size_t xsize, size_t ysize,
+    const cu_mem multipliers, size_t len,
     int xstep, int offset, float border_ratio)
 {
     ocu_args_d_t &ocl = getOcu();
@@ -216,15 +221,16 @@ void cuConvolutionXEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
 void cuConvolutionYEx(
-    CUdeviceptr result/*out*/,
-    const CUdeviceptr inp, size_t xsize, size_t ysize,
-    const CUdeviceptr multipliers, size_t len,
-    int xstep, int offset, double border_ratio)
+    cu_mem result/*out*/,
+    const cu_mem inp, size_t xsize, size_t ysize,
+    const cu_mem multipliers, size_t len,
+    int xstep, int offset, float border_ratio)
 {
     ocu_args_d_t &ocl = getOcu();
 
@@ -235,13 +241,14 @@ void cuConvolutionYEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
 void cuSquareSampleEx(
-    CUdeviceptr result/*out*/,
-    const CUdeviceptr image, size_t xsize, size_t ysize,
+    cu_mem result/*out*/,
+    const cu_mem image, size_t xsize, size_t ysize,
     size_t xstep, size_t ystep)
 {
     ocu_args_d_t &ocu = getOcu();
@@ -253,13 +260,14 @@ void cuSquareSampleEx(
         1, 1, 1,
         0,
         ocu.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocu.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocu.stream);
+	LOG_CU_RESULT(err);
 }
 
-void cuBlurEx(CUdeviceptr image/*out, opt*/, const size_t xsize, const size_t ysize,
+void cuBlurEx(cu_mem image/*out, opt*/, const size_t xsize, const size_t ysize,
     const double sigma, const double border_ratio,
-    CUdeviceptr result/*out, opt*/)
+    cu_mem result/*out, opt*/)
 {
     double m = 2.25;  // Accuracy increases when m is increased.
     const double scaler = -1.0 / (2 * sigma * sigma);
@@ -273,23 +281,23 @@ void cuBlurEx(CUdeviceptr image/*out, opt*/, const size_t xsize, const size_t ys
 
     const int xstep = std::max<int>(1, int(sigma / 3));
 
-    ocu_args_d_t &ocu = getOcu();
-    CUdeviceptr mem_expn = ocu.allocMem(sizeof(cl_float) * expn_size, expn.data());
+    ocu_args_d_t &ocl = getOcu();
+    cu_mem mem_expn = ocl.allocMem(sizeof(cl_float) * expn_size, expn.data());
 
     if (xstep > 1)
     {
-        CUdeviceptr srcA = ocu.allocMem(sizeof(cl_float) * xsize * ysize);
-        cuConvolutionXEx(srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-        cuConvolutionYEx(result ? result : image, srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+        cu_mem m = ocl.allocMem(sizeof(cl_float) * xsize * ysize);
+        cuConvolutionXEx(m, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+        cuConvolutionYEx(result ? result : image, m, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
         cuSquareSampleEx(result ? result : image, result ? result : image, xsize, ysize, xstep, xstep);
-        cuMemFree(srcA);
+        cuMemFree(m);
     }
     else
     {
-        CUdeviceptr srcA = ocu.allocMem(sizeof(cl_float) * xsize * ysize);
-        cuConvolutionXEx(srcA, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-        cuConvolutionYEx(result ? result : image, srcA, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
-        cuMemFree(srcA);
+        cu_mem m = ocl.allocMem(sizeof(cl_float) * xsize * ysize);
+        cuConvolutionXEx(m, image, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+        cuConvolutionYEx(result ? result : image, m, xsize, ysize, mem_expn, expn_size, xstep, diff, border_ratio);
+        cuMemFree(m);
     }
 
     cuMemFree(mem_expn);
@@ -315,8 +323,9 @@ void cuOpsinDynamicsImageEx(ocu_channels &rgb, const size_t xsize, const size_t 
         1, 1, 1,
         0,
         ocl.stream, args, NULL);
-
-    r = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    r = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(rgb_blurred);
 }
@@ -333,14 +342,16 @@ void cuMaskHighIntensityChangeEx(
     ocu_channels c0 = ocl.allocMemChannels(channel_size);
     ocu_channels c1 = ocl.allocMemChannels(channel_size);
 
-    cuMemcpyDtoD(c0.r, xyb0.r, channel_size);
-    cuMemcpyDtoD(c0.g, xyb0.g, channel_size);
-    cuMemcpyDtoD(c0.b, xyb0.b, channel_size);
-    cuMemcpyDtoD(c1.r, xyb1.r, channel_size);
-    cuMemcpyDtoD(c1.g, xyb1.g, channel_size);
-    cuMemcpyDtoD(c1.b, xyb1.b, channel_size);
+    cuMemcpyDtoDAsync(c0.r, xyb0.r, channel_size, ocl.stream);
+    cuMemcpyDtoDAsync(c0.g, xyb0.g, channel_size, ocl.stream);
+    cuMemcpyDtoDAsync(c0.b, xyb0.b, channel_size, ocl.stream);
+    cuMemcpyDtoDAsync(c1.r, xyb1.r, channel_size, ocl.stream);
+    cuMemcpyDtoDAsync(c1.g, xyb1.g, channel_size, ocl.stream);
+    cuMemcpyDtoDAsync(c1.b, xyb1.b, channel_size, ocl.stream);
+	cuFinish(ocl.stream);
 
-    const void *args[] = { &xyb0.r, &xyb0.g, &xyb0.b,
+    const void *args[] = { 
+		&xyb0.r, &xyb0.g, &xyb0.b,
         &xyb1.r, &xyb1.g, &xyb1.b,
         &c0.r, &c0.g, &c0.b,
         &c1.r, &c1.g, &c1.b };
@@ -350,15 +361,16 @@ void cuMaskHighIntensityChangeEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(c0);
     ocl.releaseMemChannels(c1);
 }
 
 void cuEdgeDetectorMapEx(
-    CUdeviceptr result/*out*/,
+    cu_mem result/*out*/,
     const ocu_channels &rgb, const ocu_channels &rgb2,
     const size_t xsize, const size_t ysize, const size_t step)
 {
@@ -390,16 +402,17 @@ void cuEdgeDetectorMapEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(rgb_blured);
     ocl.releaseMemChannels(rgb2_blured);
 }
 
 void cuBlockDiffMapEx(
-    CUdeviceptr block_diff_dc/*out*/,
-    CUdeviceptr block_diff_ac/*out*/,
+    cu_mem block_diff_dc/*out*/,
+    cu_mem block_diff_ac/*out*/,
     const ocu_channels &rgb, const ocu_channels &rgb2,
     const size_t xsize, const size_t ysize, const size_t step)
 {
@@ -418,12 +431,13 @@ void cuBlockDiffMapEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
 void cuEdgeDetectorLowFreqEx(
-    CUdeviceptr block_diff_ac/*in,out*/,
+    cu_mem block_diff_ac/*in,out*/,
     const ocu_channels &rgb, const ocu_channels &rgb2,
     const size_t xsize, const size_t ysize, const size_t step)
 {
@@ -454,8 +468,9 @@ void cuEdgeDetectorLowFreqEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(rgb_blured);
     ocl.releaseMemChannels(rgb2_blured);
@@ -477,11 +492,12 @@ void cuDiffPrecomputeEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
-void cuScaleImageEx(CUdeviceptr img/*in, out*/, size_t size, double w)
+void cuScaleImageEx(cu_mem img/*in, out*/, size_t size, double w)
 {
     ocu_args_d_t &ocl = getOcu();
 
@@ -492,11 +508,12 @@ void cuScaleImageEx(CUdeviceptr img/*in, out*/, size_t size, double w)
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
-void cuAverage5x5Ex(CUdeviceptr img/*in,out*/, const size_t xsize, const size_t ysize)
+void cuAverage5x5Ex(cu_mem img/*in,out*/, const size_t xsize, const size_t ysize)
 {
     if (xsize < 4 || ysize < 4) {
         // TODO: Make this work for small dimensions as well.
@@ -506,7 +523,7 @@ void cuAverage5x5Ex(CUdeviceptr img/*in,out*/, const size_t xsize, const size_t 
     ocu_args_d_t &ocl = getOcu();
 
     size_t len = xsize * ysize * sizeof(float);
-    CUdeviceptr img_org = ocl.allocMem(len);
+    cu_mem img_org = ocl.allocMem(len);
 
     cuMemcpyDtoD(img_org, img, len);
 
@@ -517,20 +534,21 @@ void cuAverage5x5Ex(CUdeviceptr img/*in,out*/, const size_t xsize, const size_t 
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 
     cuMemFree(img_org);
 }
 
 void cuMinSquareValEx(
-    CUdeviceptr img/*in,out*/,
+    cu_mem img/*in,out*/,
     const size_t xsize, const size_t ysize,
     const size_t square_size, const size_t offset)
 {
     ocu_args_d_t &ocl = getOcu();
 
-    CUdeviceptr srcA = ocl.allocMem(sizeof(float) * xsize * ysize);
+    cu_mem srcA = ocl.allocMem(sizeof(float) * xsize * ysize);
 
     const void *args[] = { &srcA, &img, &square_size, &offset };
 
@@ -539,9 +557,9 @@ void cuMinSquareValEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
-
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
     cuMemcpyDtoD(img, srcA, sizeof(float) * xsize * ysize);
     cuMemFree(srcA);
 }
@@ -656,8 +674,9 @@ void cuDoMask(ocu_channels mask/*in, out*/, ocu_channels mask_dc/*in, out*/, siz
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(xyb);
     ocl.releaseMemChannels(xyb_dc);
@@ -693,13 +712,13 @@ void cuMaskEx(
 }
 
 void cuCombineChannelsEx(
-    CUdeviceptr result/*out*/,
+    cu_mem result/*out*/,
     const ocu_channels &mask,
     const ocu_channels &mask_dc,
     const size_t xsize, const size_t ysize,
-    const CUdeviceptr block_diff_dc,
-    const CUdeviceptr block_diff_ac,
-    const CUdeviceptr edge_detector_map,
+    const cu_mem block_diff_dc,
+    const cu_mem block_diff_ac,
+    const cu_mem edge_detector_map,
     const size_t res_xsize,
     const size_t step)
 {
@@ -722,15 +741,16 @@ void cuCombineChannelsEx(
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
-void cuUpsampleSquareRootEx(CUdeviceptr diffmap, const size_t xsize, const size_t ysize, const int step)
+void cuUpsampleSquareRootEx(cu_mem diffmap, const size_t xsize, const size_t ysize, const int step)
 {
     ocu_args_d_t &ocl = getOcu();
 
-    CUdeviceptr diffmap_out = ocl.allocMem(xsize * ysize * sizeof(float));
+    cu_mem diffmap_out = ocl.allocMem(xsize * ysize * sizeof(float));
 
     const void *args[] = { &diffmap_out,
         &diffmap,
@@ -745,15 +765,15 @@ void cuUpsampleSquareRootEx(CUdeviceptr diffmap, const size_t xsize, const size_
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
-
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
     cuMemcpyDtoD(diffmap, diffmap_out, xsize * ysize * sizeof(float));
 
     cuMemFree(diffmap_out);
 }
 
-void cuRemoveBorderEx(CUdeviceptr out, const CUdeviceptr in, const size_t xsize, const size_t ysize, const int step)
+void cuRemoveBorderEx(cu_mem out, const cu_mem in, const size_t xsize, const size_t ysize, const int step)
 {
     ocu_args_d_t &ocl = getOcu();
 
@@ -771,11 +791,12 @@ void cuRemoveBorderEx(CUdeviceptr out, const CUdeviceptr in, const size_t xsize,
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
-void cuAddBorderEx(CUdeviceptr out, size_t xsize, size_t ysize, int step, CUdeviceptr in)
+void cuAddBorderEx(cu_mem out, size_t xsize, size_t ysize, int step, cu_mem in)
 {
     ocu_args_d_t &ocl = getOcu();
 
@@ -792,11 +813,12 @@ void cuAddBorderEx(CUdeviceptr out, size_t xsize, size_t ysize, int step, CUdevi
         1, 1, 1,
         0,
         ocl.stream, (void**)args, NULL);
-
-    err = cuStreamSynchronize(ocl.stream);
+	LOG_CU_RESULT(err);
+    err = cuFinish(ocl.stream);
+	LOG_CU_RESULT(err);
 }
 
-void cuCalculateDiffmapEx(CUdeviceptr diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step)
+void cuCalculateDiffmapEx(cu_mem diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step)
 {
     cuUpsampleSquareRootEx(diffmap, xsize, ysize, step);
 
@@ -808,7 +830,7 @@ void cuCalculateDiffmapEx(CUdeviceptr diffmap/*in,out*/, const size_t xsize, con
     int s2 = (8 - step) / 2;
 
     ocu_args_d_t &ocl = getOcu();
-    CUdeviceptr blurred = ocl.allocMem((xsize - s) * (ysize - s) * sizeof(float));
+    cu_mem blurred = ocl.allocMem((xsize - s) * (ysize - s) * sizeof(float));
     cuRemoveBorderEx(blurred, diffmap, xsize, ysize, step);
 
     static const double border_ratio = 0.03027655136;

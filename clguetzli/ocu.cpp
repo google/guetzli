@@ -1,6 +1,6 @@
+#include "ocu.h"
 #include <cuda.h>
 #include <nvrtc.h>
-#include "ocu.h"
 
 #ifdef __USE_CUDA__
 
@@ -113,9 +113,9 @@ ocu_args_d_t::~ocu_args_d_t()
 //    cuStreamDestroy(stream);
 }
 
-CUdeviceptr ocu_args_d_t::allocMem(size_t s, const void *init)
+cu_mem ocu_args_d_t::allocMem(size_t s, const void *init)
 {
-    CUdeviceptr mem;
+    cu_mem mem;
     cuMemAlloc(&mem, s);
     if (init)
     {
@@ -151,4 +151,8 @@ void ocu_args_d_t::releaseMemChannels(ocu_channels &rgb)
     }
 }
 
+const char* TranslateCUDAError(CUresult errorCode)
+{
+    return "Unknwon";
+}
 #endif
