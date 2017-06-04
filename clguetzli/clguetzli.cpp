@@ -97,7 +97,6 @@ void clComputeBlockZeroingOrder(
 
     using namespace guetzli;
 
-    cl_int err = 0;
     ocl_args_d_t &ocl = getOcl();
 
     cl_mem mem_orig_coeff[3];
@@ -132,7 +131,7 @@ void clComputeBlockZeroingOrder(
 						&mem_output_order_batch);
 
     size_t globalWorkSize[2] = { blockf_width, blockf_height };
-    err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+    cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
     LOG_CL_RESULT(err);
     err = clFinish(ocl.commandQueue);
     LOG_CL_RESULT(err);
@@ -195,8 +194,7 @@ void clConvolutionEx(
 	size_t oxsize = (xsize + xstep - 1) / xstep;
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTION];
-    clSetKernelArgEx(kernel, 
-					&result, &inp, &xsize, &multipliers, &len, &xstep, &offset, &border_ratio);
+    clSetKernelArgEx(kernel, &result, &inp, &xsize, &multipliers, &len, &xstep, &offset, &border_ratio);
 
 	size_t globalWorkSize[2] = { oxsize, ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -214,8 +212,7 @@ void clConvolutionXEx(
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTIONX];
-    clSetKernelArgEx(kernel, 
-				&result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio);
+    clSetKernelArgEx(kernel, &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -233,8 +230,7 @@ void clConvolutionYEx(
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_CONVOLUTIONY];
-    clSetKernelArgEx(kernel, 
-			&result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio);
+    clSetKernelArgEx(kernel, &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -312,8 +308,7 @@ void clOpsinDynamicsImageEx(ocl_channels &rgb, const size_t xsize, const size_t 
 	clBlurEx(rgb.b, xsize, ysize, kSigma, 0.0, rgb_blurred.b);
 
 	cl_kernel kernel = ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE];
-    clSetKernelArgEx(kernel, 
-					&rgb.r, &rgb.g, &rgb.b, &rgb_blurred.r, &rgb_blurred.g, &rgb_blurred.b);
+    clSetKernelArgEx(kernel,  &rgb.r, &rgb.g, &rgb.b, &rgb_blurred.r, &rgb_blurred.g, &rgb_blurred.b);
 
 	size_t globalWorkSize[1] = { xsize * ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -367,6 +362,7 @@ void clEdgeDetectorMapEx(
     const size_t xsize, const size_t ysize, const size_t step)
 {
 	size_t channel_size = xsize * ysize * sizeof(float);
+ 
 	ocl_args_d_t &ocl = getOcl();
 
 	ocl_channels rgb_blured = ocl.allocMemChannels(channel_size);
@@ -470,7 +466,7 @@ void clDiffPrecomputeEx(
 	cl_kernel kernel = ocl.kernel[KERNEL_DIFFPRECOMPUTE];
     clSetKernelArgEx(kernel, &mask.x, &mask.y, &mask.b, 
                             &xyb0.x, &xyb0.y, &xyb0.b,
-        &xyb1.x, &xyb1.y, &xyb1.b);
+							&xyb1.x, &xyb1.y, &xyb1.b);
 
 	size_t globalWorkSize[2] = { xsize, ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -484,7 +480,7 @@ void clScaleImageEx(cl_mem img/*in, out*/, size_t size, double w)
 	ocl_args_d_t &ocl = getOcl();
 
 	cl_kernel kernel = ocl.kernel[KERNEL_SCALEIMAGE];
-    clSetKernelArgEx(kernel, &img, &w);
+	clSetKernelArgEx(kernel, &img, &w);
 
 	size_t globalWorkSize[1] = { size };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 1, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -704,7 +700,7 @@ void clCombineChannelsEx(
 
 	cl_kernel kernel = ocl.kernel[KERNEL_COMBINECHANNELS];
     clSetKernelArgEx(kernel, &result, 
-                            &mask.r, &mask.g, &mask.b,
+    	&mask.r, &mask.g, &mask.b,
         &mask_dc.r, &mask_dc.g, &mask_dc.b, 
         &xsize, &ysize,
         &block_diff_dc, &block_diff_ac,

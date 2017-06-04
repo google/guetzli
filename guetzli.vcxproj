@@ -108,13 +108,13 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
-      <PreprocessorDefinitions>ENABLE_OPENCL;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__USE_CUDA__;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>nvrtc.lib;cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
     </Link>
@@ -174,7 +174,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>nvrtc.lib;cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
     </Link>
@@ -396,22 +396,24 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </Command>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </Intel_OpenCL_Build_Rules>
     <CustomBuild Include="clguetzli\clguetzli.cu">
       <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CUDA Code Builder</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)compile.bat</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">compile.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)compile.bat 64 -G</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)compile.bat 32 -G</Command>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cu.ptx</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)compile.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)compile.bat 64 -G</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CUDA Code Builder</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cu.ptx</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)compile.bat 32 -G</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CUDA Code Builder</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cu.ptx</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CUDA Code Builder</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cu.ptx</Outputs>
     </CustomBuild>
     <None Include="third_party\libpng\pngwin.def" />
     <None Include="third_party\zlib\inffas32.asm" />

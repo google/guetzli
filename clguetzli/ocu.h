@@ -23,7 +23,7 @@ struct ocu_args_d_t
     void releaseMemChannels(ocu_channels &rgb);
 
     CUfunction  kernel[KERNEL_COUNT];
-    CUstream    stream;
+    CUstream    commandQueue;
     CUmodule    mod;
     CUcontext   ctxt;
     CUdevice    dev;

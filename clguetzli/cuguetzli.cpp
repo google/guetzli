@@ -74,7 +74,6 @@ void cuDiffmapOpsinDynamicsImage(
     cuMemFree(mem_result);
 }
 
-
 void cuComputeBlockZeroingOrder(
     guetzli::CoeffData *output_order_batch,
     const channel_info orig_channel[3],
@@ -94,7 +93,6 @@ void cuComputeBlockZeroingOrder(
 
     using namespace guetzli;
 
-    cl_int err = 0;
     ocu_args_d_t &ocl = getOcu();
 
     cu_mem mem_orig_coeff[3];
@@ -116,6 +114,7 @@ void cuComputeBlockZeroingOrder(
     int output_order_batch_size = sizeof(CoeffData) * 3 * kDCTBlockSize * blockf_width * blockf_height;
     cu_mem mem_output_order_batch = ocl.allocMem(output_order_batch_size, output_order_batch);
 
+    CUfunction kernel = ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER];
     const void *args[] = { &mem_orig_coeff[0], &mem_orig_coeff[1], &mem_orig_coeff[2],
         &mem_orig_image, &mem_mask_scale,
         &image_width, &image_height,
@@ -127,14 +126,14 @@ void cuComputeBlockZeroingOrder(
         &BlockErrorLimit,
         &mem_output_order_batch };
 
-    err = cuLaunchKernel(ocl.kernel[KERNEL_COMPUTEBLOCKZEROINGORDER],
+    CUresult err = cuLaunchKernel(kernel,
         blockf_width, blockf_height, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
     LOG_CU_RESULT(err);
 
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 
     cuMemcpyDtoH(output_order_batch, mem_output_order_batch, output_order_batch_size);
@@ -170,12 +169,13 @@ void cuMask(
 
     cuMaskEx(mask, mask_dc, rgb, rgb2, xsize, ysize);
 
-    cuMemcpyDtoH(mask_r, mask.r, channel_size);
-    cuMemcpyDtoH(mask_g, mask.g, channel_size);
-    cuMemcpyDtoH(mask_b, mask.b, channel_size);
-    cuMemcpyDtoH(maskdc_r, mask_dc.r, channel_size);
-    cuMemcpyDtoH(maskdc_g, mask_dc.g, channel_size);
-    cuMemcpyDtoH(maskdc_b, mask_dc.b, channel_size);
+    cuMemcpyDtoHAsync(mask_r, mask.r, channel_size, ocl.commandQueue);
+    cuMemcpyDtoHAsync(mask_g, mask.g, channel_size, ocl.commandQueue);
+    cuMemcpyDtoHAsync(mask_b, mask.b, channel_size, ocl.commandQueue);
+    cuMemcpyDtoHAsync(maskdc_r, mask_dc.r, channel_size, ocl.commandQueue);
+    cuMemcpyDtoHAsync(maskdc_g, mask_dc.g, channel_size, ocl.commandQueue);
+    cuMemcpyDtoHAsync(maskdc_b, mask_dc.b, channel_size, ocl.commandQueue);
+    cuFinish(ocl.commandQueue);
 
     ocl.releaseMemChannels(rgb);
     ocl.releaseMemChannels(rgb2);
@@ -193,15 +193,16 @@ void cuConvolutionEx(
 
     size_t oxsize = (xsize + xstep - 1) / xstep;
 
+	CUfunction kernel = ocl.kernel[KERNEL_CONVOLUTION];
     const void *args[] = { &result, &inp, &xsize, &multipliers, &len, &xstep, &offset, &border_ratio };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_CONVOLUTIONX],
+    CUresult err = cuLaunchKernel(kernel,
         oxsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -214,15 +215,16 @@ void cuConvolutionXEx(
 {
     ocu_args_d_t &ocl = getOcu();
 
+	CUfunction kernel = ocl.kernel[KERNEL_CONVOLUTIONX];
     const void *args[] = { &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_CONVOLUTIONX],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -234,15 +236,16 @@ void cuConvolutionYEx(
 {
     ocu_args_d_t &ocl = getOcu();
 
+	CUfunction kernel = ocl.kernel[KERNEL_CONVOLUTIONY];
     const void *args[] = { &result, &inp, &multipliers, &len, &xstep, &offset, &border_ratio };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_CONVOLUTIONY],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -251,17 +254,18 @@ void cuSquareSampleEx(
     const cu_mem image, size_t xsize, size_t ysize,
     size_t xstep, size_t ystep)
 {
-    ocu_args_d_t &ocu = getOcu();
+    ocu_args_d_t &ocl = getOcu();
 
+	CUfunction kernel = ocl.kernel[KERNEL_SQUARESAMPLE];
     const void *args[] = { &result, &image, &xstep, &ystep };
 
-    CUresult err = cuLaunchKernel(ocu.kernel[KERNEL_SQUARESAMPLE],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocu.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocu.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -316,15 +320,16 @@ void cuOpsinDynamicsImageEx(ocu_channels &rgb, const size_t xsize, const size_t 
     cuBlurEx(rgb.g, xsize, ysize, kSigma, 0.0, rgb_blurred.g);
     cuBlurEx(rgb.b, xsize, ysize, kSigma, 0.0, rgb_blurred.b);
 
+	CUfunction kernel = ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE];
     void *args[] = { &rgb.r, &rgb.g, &rgb.b, &rgb_blurred.r, &rgb_blurred.g, &rgb_blurred.b };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_OPSINDYNAMICSIMAGE],
+    CUresult err = cuLaunchKernel(kernel,
         xsize * ysize, 1, 1,
         1, 1, 1,
         0,
-        ocl.stream, args, NULL);
+        ocl.commandQueue, args, NULL);
 	LOG_CU_RESULT(err);
-    r = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(rgb_blurred);
@@ -342,27 +347,28 @@ void cuMaskHighIntensityChangeEx(
     ocu_channels c0 = ocl.allocMemChannels(channel_size);
     ocu_channels c1 = ocl.allocMemChannels(channel_size);
 
-    cuMemcpyDtoDAsync(c0.r, xyb0.r, channel_size, ocl.stream);
-    cuMemcpyDtoDAsync(c0.g, xyb0.g, channel_size, ocl.stream);
-    cuMemcpyDtoDAsync(c0.b, xyb0.b, channel_size, ocl.stream);
-    cuMemcpyDtoDAsync(c1.r, xyb1.r, channel_size, ocl.stream);
-    cuMemcpyDtoDAsync(c1.g, xyb1.g, channel_size, ocl.stream);
-    cuMemcpyDtoDAsync(c1.b, xyb1.b, channel_size, ocl.stream);
-	cuFinish(ocl.stream);
+    cuMemcpyDtoDAsync(c0.r, xyb0.r, channel_size, ocl.commandQueue);
+    cuMemcpyDtoDAsync(c0.g, xyb0.g, channel_size, ocl.commandQueue);
+    cuMemcpyDtoDAsync(c0.b, xyb0.b, channel_size, ocl.commandQueue);
+    cuMemcpyDtoDAsync(c1.r, xyb1.r, channel_size, ocl.commandQueue);
+    cuMemcpyDtoDAsync(c1.g, xyb1.g, channel_size, ocl.commandQueue);
+    cuMemcpyDtoDAsync(c1.b, xyb1.b, channel_size, ocl.commandQueue);
+	cuFinish(ocl.commandQueue);
 
+	CUfunction kernel = ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE];
     const void *args[] = { 
 		&xyb0.r, &xyb0.g, &xyb0.b,
         &xyb1.r, &xyb1.g, &xyb1.b,
         &c0.r, &c0.g, &c0.b,
         &c1.r, &c1.g, &c1.b };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_MASKHIGHINTENSITYCHANGE],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(c0);
@@ -389,6 +395,7 @@ void cuEdgeDetectorMapEx(
         cuBlurEx(rgb2.ch[i], xsize, ysize, kSigma[i], 0.0, rgb2_blured.ch[i]);
     }
 
+	CUfunction kernel = ocl.kernel[KERNEL_EDGEDETECTOR];
     const void *args[] = { &result,
         &rgb_blured.r, &rgb_blured.g, &rgb_blured.b,
         &rgb2_blured.r, &rgb2_blured.g, &rgb2_blured.b,
@@ -397,13 +404,13 @@ void cuEdgeDetectorMapEx(
     const size_t res_xsize = (xsize + step - 1) / step;
     const size_t res_ysize = (ysize + step - 1) / step;
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_EDGEDETECTOR],
+    CUresult err = cuLaunchKernel(kernel,
         res_xsize, res_ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(rgb_blured);
@@ -418,6 +425,7 @@ void cuBlockDiffMapEx(
 {
     ocu_args_d_t &ocl = getOcu();
 
+	CUfunction kernel = ocl.kernel[KERNEL_BLOCKDIFFMAP];
     const void *args[] = { &block_diff_dc, &block_diff_ac,
         &rgb.r, &rgb.g, &rgb.b,
         &rgb2.r, &rgb2.g, &rgb2.b,
@@ -426,13 +434,13 @@ void cuBlockDiffMapEx(
     const size_t res_xsize = (xsize + step - 1) / step;
     const size_t res_ysize = (ysize + step - 1) / step;
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_BLOCKDIFFMAP],
+    CUresult err = cuLaunchKernel(kernel,
         res_xsize, res_ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -455,6 +463,7 @@ void cuEdgeDetectorLowFreqEx(
         cuBlurEx(rgb2.ch[i], xsize, ysize, kSigma, 0.0, rgb2_blured.ch[i]);
     }
 
+	CUfunction kernel = ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ];
     const void *args[] = { &block_diff_ac,
         &rgb_blured.r, &rgb_blured.g, &rgb_blured.b,
         &rgb2_blured.r, &rgb2_blured.g, &rgb2_blured.b,
@@ -463,13 +472,13 @@ void cuEdgeDetectorLowFreqEx(
     const size_t res_xsize = (xsize + step - 1) / step;
     const size_t res_ysize = (ysize + step - 1) / step;
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ],
+    CUresult err = cuLaunchKernel(kernel,
         res_xsize, res_ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(rgb_blured);
@@ -483,17 +492,18 @@ void cuDiffPrecomputeEx(
 {
     ocu_args_d_t &ocl = getOcu();
 
+	CUfunction kernel = ocl.kernel[KERNEL_DIFFPRECOMPUTE];
     const void *args[] = { &mask.x, &mask.y, &mask.b,
         &xyb0.x, &xyb0.y, &xyb0.b,
         &xyb1.x, &xyb1.y, &xyb1.b };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_DIFFPRECOMPUTE],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -501,15 +511,16 @@ void cuScaleImageEx(cu_mem img/*in, out*/, size_t size, double w)
 {
     ocu_args_d_t &ocl = getOcu();
 
+	CUfunction kernel = ocl.kernel[KERNEL_SCALEIMAGE];
     const void *args[] = { &img, &w };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_SCALEIMAGE],
+    CUresult err = cuLaunchKernel(kernel,
         size, 1, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -527,15 +538,16 @@ void cuAverage5x5Ex(cu_mem img/*in,out*/, const size_t xsize, const size_t ysize
 
     cuMemcpyDtoD(img_org, img, len);
 
+	CUfunction kernel = ocl.kernel[KERNEL_AVERAGE5X5];
     const void *args[] = { &img, &img_org };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_AVERAGE5X5],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 
     cuMemFree(img_org);
@@ -548,20 +560,21 @@ void cuMinSquareValEx(
 {
     ocu_args_d_t &ocl = getOcu();
 
-    cu_mem srcA = ocl.allocMem(sizeof(float) * xsize * ysize);
+    cu_mem result = ocl.allocMem(sizeof(float) * xsize * ysize);
 
-    const void *args[] = { &srcA, &img, &square_size, &offset };
+	CUfunction kernel = ocl.kernel[KERNEL_MINSQUAREVAL];
+    const void *args[] = { &result, &img, &square_size, &offset };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_MINSQUAREVAL],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
-    cuMemcpyDtoD(img, srcA, sizeof(float) * xsize * ysize);
-    cuMemFree(srcA);
+    cuMemcpyDtoD(img, result, sizeof(float) * xsize * ysize);
+    cuMemFree(result);
 }
 
 static void MakeMask(double extmul, double extoff,
@@ -664,18 +677,19 @@ void cuDoMask(ocu_channels mask/*in, out*/, ocu_channels mask_dc/*in, out*/, siz
     ocu_channels xyb = ocl.allocMemChannels(channel_size, lut_x, lut_y, lut_b);
     ocu_channels xyb_dc = ocl.allocMemChannels(channel_size, lut_dcx, lut_dcy, lut_dcb);
 
+	CUfunction kernel = ocl.kernel[KERNEL_DOMASK];
     const void *args[] = { &mask.r, &mask.g, &mask.b,
         &mask_dc.r, &mask_dc.g, &mask_dc.b,
         &xyb.x, &xyb.y, &xyb.b,
         &xyb_dc.x, &xyb_dc.y, &xyb_dc.b };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_DOMASK],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 
     ocl.releaseMemChannels(xyb);
@@ -727,6 +741,7 @@ void cuCombineChannelsEx(
     const size_t work_xsize = ((xsize - 8 + step) + step - 1) / step;
     const size_t work_ysize = ((ysize - 8 + step) + step - 1) / step;
 
+	CUfunction kernel = ocl.kernel[KERNEL_COMBINECHANNELS];
     const void *args[] = { &result,
         &mask.r, &mask.g, &mask.b,
         &mask_dc.r, &mask_dc.g, &mask_dc.b,
@@ -736,13 +751,13 @@ void cuCombineChannelsEx(
         &res_xsize,
         &step };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_COMBINECHANNELS],
+    CUresult err = cuLaunchKernel(kernel,
         work_xsize, work_ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -752,21 +767,19 @@ void cuUpsampleSquareRootEx(cu_mem diffmap, const size_t xsize, const size_t ysi
 
     cu_mem diffmap_out = ocl.allocMem(xsize * ysize * sizeof(float));
 
-    const void *args[] = { &diffmap_out,
-        &diffmap,
-        &xsize, &ysize,
-        &step };
+	CUfunction kernel = ocl.kernel[KERNEL_UPSAMPLESQUAREROOT];
+    const void *args[] = { &diffmap_out, &diffmap, &xsize, &ysize, &step };
 
     const size_t res_xsize = (xsize + step - 1) / step;
     const size_t res_ysize = (ysize + step - 1) / step;
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_UPSAMPLESQUAREROOT],
+    CUresult err = cuLaunchKernel(kernel,
         res_xsize, res_ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
     cuMemcpyDtoD(diffmap, diffmap_out, xsize * ysize * sizeof(float));
 
@@ -780,19 +793,16 @@ void cuRemoveBorderEx(cu_mem out, const cu_mem in, const size_t xsize, const siz
     int cls = 8 - step;
     int cls2 = (8 - step) / 2;
 
-    const void *args[] = { &out,
-        &in,
-        &xsize,
-        &cls,
-        &cls2 };
+	CUfunction kernel = ocl.kernel[KERNEL_REMOVEBORDER];
+    const void *args[] = { &out, &in, &xsize, &cls, &cls2 };
 
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_REMOVEBORDER],
+    CUresult err = cuLaunchKernel(kernel,
         xsize - cls, ysize - cls, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
@@ -802,19 +812,16 @@ void cuAddBorderEx(cu_mem out, size_t xsize, size_t ysize, int step, cu_mem in)
 
     int cls = 8 - step;
     int cls2 = (8 - step) / 2;
+	CUfunction kernel = ocl.kernel[KERNEL_ADDBORDER];
+    const void *args[] = { &out, &cls, &cls2, &in };
 
-    const void *args[] = { &out,
-        &cls,
-        &cls2,
-        &in };
-
-    CUresult err = cuLaunchKernel(ocl.kernel[KERNEL_ADDBORDER],
+    CUresult err = cuLaunchKernel(kernel,
         xsize, ysize, 1,
         1, 1, 1,
         0,
-        ocl.stream, (void**)args, NULL);
+        ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
-    err = cuFinish(ocl.stream);
+    err = cuFinish(ocl.commandQueue);
 	LOG_CU_RESULT(err);
 }
 
