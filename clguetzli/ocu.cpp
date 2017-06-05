@@ -31,7 +31,7 @@ ocu_args_d_t& getOcu(void)
     cuDeviceGetAttribute(&cap_minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, dev);
     cuDeviceGetAttribute(&proc_count, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, dev);
     cuDeviceGetAttribute(&thread_count, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR, dev);
-    LogError("CUDA Adapter:%s Ver%d.%d MP %d Core %d)\r\n", name, cap_major, cap_minor, proc_count, thread_count);
+    LogError("CUDA Adapter:%s Ver%d.%d MP %d MaxThread Per MP %d)\r\n", name, cap_major, cap_minor, proc_count, thread_count);
 /*
     char* source = nullptr;
     size_t src_size = 0;
