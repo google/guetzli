@@ -646,6 +646,7 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
 
 	cl_kernel kernel = ocl.kernel[KERNEL_DOMASK];
     clSetKernelArgEx(kernel, &mask.r, &mask.g, &mask.b,
+        &xsize, &ysize,
         &mask_dc.r, &mask_dc.g, &mask_dc.b,
         &xyb.x, &xyb.y, &xyb.b,
         &xyb_dc.x, &xyb_dc.y, &xyb_dc.b);

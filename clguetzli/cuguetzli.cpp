@@ -6,7 +6,7 @@
 
 #define cuFinish cuStreamSynchronize
 #define BLOCK_SIZE_X 16
-#define BLOCK_SIZE_Y 12
+#define BLOCK_SIZE_Y 16
 #define BLOCK_COUNT_X(size)    ((size + BLOCK_SIZE_X - 1) / BLOCK_SIZE_X)
 #define BLOCK_COUNT_Y(size)    ((size + BLOCK_SIZE_Y - 1) / BLOCK_SIZE_Y)
 
@@ -331,8 +331,10 @@ void cuOpsinDynamicsImageEx(ocu_channels &rgb, const size_t xsize, const size_t 
     const void *args[] = { &rgb.r, &rgb.g, &rgb.b, &size, &rgb_blurred.r, &rgb_blurred.g, &rgb_blurred.b };
 
     CUresult err = cuLaunchKernel(kernel,
-        (size + BLOCK_SIZE_X * BLOCK_SIZE_Y - 1) / BLOCK_SIZE_X * BLOCK_SIZE_Y, 1, 1,
-        BLOCK_SIZE_X * BLOCK_SIZE_Y, 1, 1,
+//        (size + BLOCK_SIZE_X * BLOCK_SIZE_Y - 1) / BLOCK_SIZE_X * BLOCK_SIZE_Y, 1, 1,
+//        BLOCK_SIZE_X * BLOCK_SIZE_Y, 1, 1,
+        (size + 511) / 512, 1, 1,
+        512, 1, 1,
         0,
         ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
@@ -526,8 +528,10 @@ void cuScaleImageEx(cu_mem img/*in, out*/, size_t size, double w)
     const void *args[] = { &img, &size, &fw };
 
     CUresult err = cuLaunchKernel(kernel,
-        (size + BLOCK_SIZE_X * BLOCK_SIZE_Y - 1) / BLOCK_SIZE_X * BLOCK_SIZE_Y, 1, 1,
-        BLOCK_SIZE_X, BLOCK_SIZE_Y, 1,
+//        (size + BLOCK_SIZE_X * BLOCK_SIZE_Y - 1) / BLOCK_SIZE_X * BLOCK_SIZE_Y, 1, 1,
+        (size + 511) / 512, 1, 1,
+//        BLOCK_SIZE_X * BLOCK_SIZE_Y, 1, 1,
+        512, 1, 1,
         0,
         ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
@@ -690,13 +694,14 @@ void cuDoMask(ocu_channels mask/*in, out*/, ocu_channels mask_dc/*in, out*/, siz
 
 	CUfunction kernel = ocl.kernel[KERNEL_DOMASK];
     const void *args[] = { &mask.r, &mask.g, &mask.b,
+        &xsize, &ysize,
         &mask_dc.r, &mask_dc.g, &mask_dc.b,
         &xyb.x, &xyb.y, &xyb.b,
         &xyb_dc.x, &xyb_dc.y, &xyb_dc.b };
 
     CUresult err = cuLaunchKernel(kernel,
-        xsize, ysize, 1,
-        1, 1, 1,
+        BLOCK_COUNT_X(xsize), BLOCK_COUNT_Y(ysize), 1,
+        BLOCK_SIZE_X, BLOCK_SIZE_Y, 1,
         0,
         ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
