@@ -613,6 +613,7 @@ __kernel void clMinSquareValEx(__global float* result, const int xsize, const in
 
 __kernel void clDoMaskEx(
     __global float *mask_x, __global float *mask_y, __global float *mask_b,
+    const int xsize, const int ysize,
     __global float *mask_dc_x, __global float *mask_dc_y, __global float *mask_dc_b,
     __global const double *lut_x, __global const double *lut_y, __global const double *lut_b,
     __global const double *lut_dc_x, __global const double *lut_dc_y, __global const double *lut_dc_b)
@@ -620,8 +621,8 @@ __kernel void clDoMaskEx(
     const int x = get_global_id(0);
     const int y = get_global_id(1);
 
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
+//    const int xsize = get_global_size(0);
+//    const int ysize = get_global_size(1);
 
 	const double w00 = 232.206464018;
 	const double w11 = 22.9455222245;
