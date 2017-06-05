@@ -156,7 +156,8 @@
       <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>compile.bat</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <CustomBuild>
       <Message>CUDA CU</Message>
@@ -396,24 +397,27 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Intel_OpenCL_Build_Rules>
     <CustomBuild Include="clguetzli\clguetzli.cu">
       <FileType>Document</FileType>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CUDA Code Builder</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)compile.bat 64 -G</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)compile.bat 32 -G</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)compile.bat 64</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)compile.bat 32</Command>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cu.ptx</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clguetzli\clguetzli.cu.ptx64</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)compile.bat 64 -G</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CUDA Code Builder</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cu.ptx</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)compile.bat 32 -G</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CUDA Code Builder</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cu.ptx</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CUDA Code Builder</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cu.ptx</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </CustomBuild>
     <None Include="third_party\libpng\pngwin.def" />
     <None Include="third_party\zlib\inffas32.asm" />

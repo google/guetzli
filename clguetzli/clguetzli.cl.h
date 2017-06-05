@@ -117,9 +117,9 @@
     {
         switch (dim)
         {
-        case 0:  return blockIdx.x;
-        case 1:  return blockIdx.y;
-        default: return blockIdx.z;
+        case 0:  return blockIdx.x * blockDim.x + threadIdx.x;
+        case 1:  return blockIdx.y * blockDim.y + threadIdx.y;
+        default: return blockIdx.z * blockDim.z + threadIdx.z;
         }
     }
 
@@ -127,9 +127,9 @@
     {
         switch(dim)
         {
-        case 0: return gridDim.x;
-        case 1: return gridDim.y;
-        default: return gridDim.z;
+        case 0: return gridDim.x * blockDim.x;
+        case 1: return gridDim.y * blockDim.y;
+        default: return gridDim.z * blockDim.z;
         }
     }
 

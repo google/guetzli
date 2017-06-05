@@ -106,6 +106,7 @@ __kernel void clConvolutionEx(
 
 __kernel void clConvolutionXEx(
 	__global float* result,
+    const int xsize, const int ysize,
 	__global const float* inp,
 	__global const float* multipliers, const int len, 
 	const int step, const int offset, const float border_ratio)
@@ -113,10 +114,12 @@ __kernel void clConvolutionXEx(
     const int x = get_global_id(0);
     const int y = get_global_id(1);
 
+    if (x >= xsize || y >= ysize) return;
+
     if (x % step != 0) return;
 
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
+//    const int xsize = get_global_size(0);
+//    const int ysize = get_global_size(1);
 
     float weight_no_border = 0;
     for (int j = 0; j <= 2 * offset; j++)
@@ -147,6 +150,7 @@ __kernel void clConvolutionXEx(
 
 __kernel void clConvolutionYEx(
 	__global float* result,
+    const int xsize, const int ysize,
 	__global const float* inp, 
 	__global const float* multipliers, const int len, 
     const int step, const int offset, const float border_ratio)
@@ -154,11 +158,12 @@ __kernel void clConvolutionYEx(
     const int x = get_global_id(0);
     const int y = get_global_id(1);
 
+    if (x >= xsize || y >= ysize) return;
     if (x % step != 0) return;
     if (y % step != 0) return;
 
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
+//    const int xsize = get_global_size(0);
+//    const int ysize = get_global_size(1);
 
     float weight_no_border = 0;
     for (int j = 0; j <= 2 * offset; j++)
@@ -189,28 +194,33 @@ __kernel void clConvolutionYEx(
 
 __kernel void clSquareSampleEx(
 	__global float* result,
+    const int xsize, const int ysize,
 	__global const float* image, 
 	const int xstep, const int ystep)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
+    if (x >= xsize || y >= ysize) return;
 
     int x_sample = x - x % xstep;
     int y_sample = y - y % ystep;
 
     if (x_sample == x && y_sample == y) return;
 
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
+//    const int xsize = get_global_size(0);
+//    const int ysize = get_global_size(1);
 
     result[y * xsize + x] = image[y_sample * xsize + x_sample];
 }
 
 __kernel void clOpsinDynamicsImageEx(
     __global float *r, __global float *g, __global float *b,
+    const int size,
     __global const float *r_blurred, __global const float *g_blurred, __global const float *b_blurred)
 {
     const int i = get_global_id(0);
+    if (i >= size) return;
+
     double pre[3] = { r_blurred[i], g_blurred[i],  b_blurred[i] };
     double pre_mixed[3];
     OpsinAbsorbance(pre, pre_mixed);
@@ -236,6 +246,7 @@ __kernel void clOpsinDynamicsImageEx(
 
 __kernel void clMaskHighIntensityChangeEx(
     __global float *xyb0_x, __global float *xyb0_y, __global float *xyb0_b,
+    const int xsize, const int ysize,
     __global float *xyb1_x, __global float *xyb1_y, __global float *xyb1_b,
     __global const float *c0_x, __global const float *c0_y, __global const float *c0_b,
     __global const float *c1_x, __global const float *c1_y, __global const float *c1_b
@@ -243,8 +254,9 @@ __kernel void clMaskHighIntensityChangeEx(
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
+    if (x >= xsize || y >= ysize) return;
+//    const int xsize = get_global_size(0);
+    //const int ysize = get_global_size(1);
 
     size_t ix = y * xsize + x;
     const double ave[3] = {
@@ -327,6 +339,7 @@ __kernel void clEdgeDetectorMapEx(
 
 __kernel void clBlockDiffMapEx(
 	__global float* block_diff_dc, __global float* block_diff_ac,
+    const int res_xsize, const int res_ysize,
 	__global const float* r, __global const float* g, __global const float* b,
     __global const float* r2, __global const float* g2, __global const float* b2,
     int xsize, int ysize, int step)
@@ -334,8 +347,10 @@ __kernel void clBlockDiffMapEx(
     const int res_x = get_global_id(0);
     const int res_y = get_global_id(1);
 
-    const int res_xsize = get_global_size(0);
-    const int res_ysize = get_global_size(1);
+//    const int res_xsize = get_global_size(0);
+//    const int res_ysize = get_global_size(1);
+
+    if (res_x >= res_xsize || res_y >= res_ysize) return;
 
     int pos_x = res_x * step;
     int pos_y = res_y * step;
@@ -450,13 +465,15 @@ __kernel void clEdgeDetectorLowFreqEx(
 
 __kernel void clDiffPrecomputeEx(
     __global float *mask_x, __global float *mask_y, __global float *mask_b,
+    const int xsize, const int ysize,
     __global const float *xyb0_x, __global const float *xyb0_y, __global const float *xyb0_b,
     __global const float *xyb1_x, __global const float *xyb1_y, __global const float *xyb1_b)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
+    if (x >= xsize || y >= ysize) return;
+//    const int xsize = get_global_size(0);
+    //const int ysize = get_global_size(1);
 
     double valsh0[3] = { 0.0 };
     double valsv0[3] = { 0.0 };
@@ -514,20 +531,23 @@ __kernel void clDiffPrecomputeEx(
     mask_b[ix] = (float)(m);
 }
 
-__kernel void clScaleImageEx(__global float *img, double scale)
+__kernel void clScaleImageEx(__global float *img, const int size, float scale)
 {
     const int i = get_global_id(0);
+    if (i >= size) return;
+
     img[i] *= scale;
 }
 
 #define Average5x5_w 0.679144890667f
 __constant float Average5x5_scale = 1.0f / (5.0f + 4 * Average5x5_w);
-__kernel void clAverage5x5Ex(__global float *img, __global const float *img_org)
+__kernel void clAverage5x5Ex(__global float *img, const int xsize, const int ysize, __global const float *img_org)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
+    if (x >= xsize || y >= ysize) return;
+//    const int xsize = get_global_size(0);
+//    const int ysize = get_global_size(1);
 	
     const int row0 = y * xsize;
 	if (x - 1 >= 0) {
@@ -562,31 +582,33 @@ __kernel void clAverage5x5Ex(__global float *img, __global const float *img_org)
 	img[row0 + x] *= Average5x5_scale;
 }
 
-__kernel void clMinSquareValEx(__global float* result, __global const float* img,  int square_size, int offset)
+__kernel void clMinSquareValEx(__global float* result, const int xsize, const int ysize, __global const float* img,  int square_size, int offset)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
-    const int width = get_global_size(0);
-    const int height = get_global_size(1);
+
+    if (x >= xsize || y >= ysize) return;
+//    const int width = get_global_size(0);
+//    const int height = get_global_size(1);
 
     int minH = offset > y ? 0 : y - offset;
-    int maxH = min(y + square_size - offset, height);
+    int maxH = min(y + square_size - offset, ysize);
 
     int minW = offset > x ? 0 : x - offset;
-    int maxW = min(x + square_size - offset, width);
+    int maxW = min(x + square_size - offset, xsize);
 
-    float minValue = img[minH * width + minW];
+    float minValue = img[minH * xsize + minW];
 
     for (int j = minH; j < maxH; j++)
     {
         for (int i = minW; i < maxW; i++)
         {
-            float tmp = img[j * width + i];
+            float tmp = img[j * xsize + i];
             if (tmp < minValue) minValue = tmp;
         }
     }
 
-    result[y * width + x] = minValue;
+    result[y * xsize + x] = minValue;
 }
 
 __kernel void clDoMaskEx(
@@ -723,6 +745,8 @@ __kernel void clComputeBlockZeroingOrderEx(
     __global const coeff_t *orig_batch_2,       // 原始图像系数
     __global const float   *orig_image_batch,   // 原始图像pregamma
     __global const float   *mask_scale,         // 原始图像的某个神秘参数
+    const int              block_xsize,
+    const int              block_ysize,
     const int              image_width,
     const int              image_height,
 
@@ -743,6 +767,8 @@ __kernel void clComputeBlockZeroingOrderEx(
 {
     const int block_x = get_global_id(0);
     const int block_y = get_global_id(1);
+
+    if (block_x >= block_xsize || block_y >= block_ysize) return;
 
     channel_info orig_channel[3];
     orig_channel[0].coeff = orig_batch_0;
@@ -3151,16 +3177,16 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
         candidate_channel[c] = &candidate_block[c * 8 * 8];
     }
 
-    uchar yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
+//    uchar yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
     uchar yuv8x8[3 * 8 * 8] = { 0 };      // factor 1 mode output image
 
     for (int c = 0; c < 3; c++)
     {
-        if (mayout_channel[c].factor == 1) {
-            if (factor == 1) {
+//        if (mayout_channel[c].factor == 1) {
+  //          if (factor == 1) {
                 const coeff_t *coeff_block = candidate_channel[c];
                 CoeffToYUV8x8(coeff_block, &yuv8x8[c]);
-            }
+   /*         }
             else {
                 for (int iy = 0; iy < factor; ++iy) {
                     for (int ix = 0; ix < factor; ++ix) {
@@ -3182,7 +3208,8 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
                     }
                 }
             }
-        }
+*/
+ /*       }
         else { 
             if (factor == 1) {
                 int block_xx = block_x / mayout_channel[c].factor;
@@ -3209,9 +3236,10 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
                     image_height);
             }
         }
+*/
     }
 
-    if (factor == 1)
+  //  if (factor == 1)
     {
         float rgb0_c[3][kDCTBlockSize];
         int block_8x8idx = GetOrigBlock(rgb0_c, orig_image_batch, image_width, image_height, block_x, block_y, factor, 0, 0);
@@ -3224,6 +3252,7 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
 
         return ComputeImage8x8Block(rgb0_c, rgb1_c, mask_scale + block_8x8idx * 3);
     }
+/*
     else
     {
         int inside_x = block_x * 16 + 16 > image_width ? image_width - block_x * 16 : 16;
@@ -3255,5 +3284,6 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
         }
         return max_err;
     }
+*/
 }
 
