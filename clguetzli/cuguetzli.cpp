@@ -405,18 +405,19 @@ void cuEdgeDetectorMapEx(
         cuBlurEx(rgb2.ch[i], xsize, ysize, kSigma[i], 0.0, rgb2_blured.ch[i]);
     }
 
+    const size_t res_xsize = (xsize + step - 1) / step;
+    const size_t res_ysize = (ysize + step - 1) / step;
+
 	CUfunction kernel = ocl.kernel[KERNEL_EDGEDETECTOR];
     const void *args[] = { &result,
+        &res_xsize, &res_ysize,
         &rgb_blured.r, &rgb_blured.g, &rgb_blured.b,
         &rgb2_blured.r, &rgb2_blured.g, &rgb2_blured.b,
         &xsize, &ysize, &step };
 
-    const size_t res_xsize = (xsize + step - 1) / step;
-    const size_t res_ysize = (ysize + step - 1) / step;
-
     CUresult err = cuLaunchKernel(kernel,
-        res_xsize, res_ysize, 1,
-        1, 1, 1,
+        BLOCK_COUNT_X(res_xsize), BLOCK_COUNT_Y(res_ysize), 1,
+        BLOCK_SIZE_X, BLOCK_SIZE_Y, 1,
         0,
         ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
@@ -474,18 +475,20 @@ void cuEdgeDetectorLowFreqEx(
         cuBlurEx(rgb2.ch[i], xsize, ysize, kSigma, 0.0, rgb2_blured.ch[i]);
     }
 
+    const size_t res_xsize = (xsize + step - 1) / step;
+    const size_t res_ysize = (ysize + step - 1) / step;
+
 	CUfunction kernel = ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ];
     const void *args[] = { &block_diff_ac,
+        &res_xsize, &res_ysize,
         &rgb_blured.r, &rgb_blured.g, &rgb_blured.b,
         &rgb2_blured.r, &rgb2_blured.g, &rgb2_blured.b,
         &xsize, &ysize, &step };
 
-    const size_t res_xsize = (xsize + step - 1) / step;
-    const size_t res_ysize = (ysize + step - 1) / step;
-
+    
     CUresult err = cuLaunchKernel(kernel,
-        res_xsize, res_ysize, 1,
-        1, 1, 1,
+        BLOCK_COUNT_X(res_xsize), BLOCK_COUNT_Y(res_ysize), 1,
+        BLOCK_SIZE_X, BLOCK_SIZE_Y, 1,
         0,
         ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
@@ -809,12 +812,15 @@ void cuRemoveBorderEx(cu_mem out, const cu_mem in, const size_t xsize, const siz
     int cls = 8 - step;
     int cls2 = (8 - step) / 2;
 
+    int out_xsize = xsize - cls;
+    int out_ysize = ysize - cls;
+
 	CUfunction kernel = ocl.kernel[KERNEL_REMOVEBORDER];
-    const void *args[] = { &out, &in, &xsize, &cls, &cls2 };
+    const void *args[] = { &out, &out_xsize, &out_ysize, &in, &cls, &cls2 };
 
     CUresult err = cuLaunchKernel(kernel,
-        xsize - cls, ysize - cls, 1,
-        1, 1, 1,
+        BLOCK_COUNT_X(out_xsize), BLOCK_COUNT_Y(out_ysize), 1,
+        BLOCK_SIZE_X, BLOCK_SIZE_Y, 1,
         0,
         ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);
@@ -829,11 +835,11 @@ void cuAddBorderEx(cu_mem out, size_t xsize, size_t ysize, int step, cu_mem in)
     int cls = 8 - step;
     int cls2 = (8 - step) / 2;
 	CUfunction kernel = ocl.kernel[KERNEL_ADDBORDER];
-    const void *args[] = { &out, &cls, &cls2, &in };
+    const void *args[] = { &out, &xsize, &ysize, &cls, &cls2, &in };
 
     CUresult err = cuLaunchKernel(kernel,
-        xsize, ysize, 1,
-        1, 1, 1,
+        BLOCK_COUNT_X(xsize), BLOCK_COUNT_Y(ysize), 1,
+        BLOCK_SIZE_X, BLOCK_SIZE_Y, 1,
         0,
         ocl.commandQueue, (void**)args, NULL);
 	LOG_CU_RESULT(err);

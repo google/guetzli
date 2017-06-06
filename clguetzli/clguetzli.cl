@@ -118,9 +118,6 @@ __kernel void clConvolutionXEx(
 
     if (x % step != 0) return;
 
-//    const int xsize = get_global_size(0);
-//    const int ysize = get_global_size(1);
-
     float weight_no_border = 0;
     for (int j = 0; j <= 2 * offset; j++)
     {
@@ -161,9 +158,6 @@ __kernel void clConvolutionYEx(
     if (x >= xsize || y >= ysize) return;
     if (x % step != 0) return;
     if (y % step != 0) return;
-
-//    const int xsize = get_global_size(0);
-//    const int ysize = get_global_size(1);
 
     float weight_no_border = 0;
     for (int j = 0; j <= 2 * offset; j++)
@@ -206,9 +200,6 @@ __kernel void clSquareSampleEx(
     int y_sample = y - y % ystep;
 
     if (x_sample == x && y_sample == y) return;
-
-//    const int xsize = get_global_size(0);
-//    const int ysize = get_global_size(1);
 
     result[y * xsize + x] = image[y_sample * xsize + x_sample];
 }
@@ -255,8 +246,6 @@ __kernel void clMaskHighIntensityChangeEx(
     const int x = get_global_id(0);
     const int y = get_global_id(1);
     if (x >= xsize || y >= ysize) return;
-//    const int xsize = get_global_size(0);
-    //const int ysize = get_global_size(1);
 
     size_t ix = y * xsize + x;
     const double ave[3] = {
@@ -305,6 +294,7 @@ __kernel void clMaskHighIntensityChangeEx(
 
 __kernel void clEdgeDetectorMapEx(
 	__global float *result,
+    const int res_xsize, const int res_ysize,
     __global const float *r, __global const float *g, __global const float* b,
     __global const float *r2, __global const float* g2, __global const float *b2,
     int xsize, int ysize, int step)
@@ -312,8 +302,7 @@ __kernel void clEdgeDetectorMapEx(
     const int res_x = get_global_id(0);
     const int res_y = get_global_id(1);
 
-    const int res_xsize = get_global_size(0);
-    const int res_ysize = get_global_size(1);
+    if (res_x >= res_xsize || res_y >= res_ysize) return;
 
     int pos_x = res_x * step;
     int pos_y = res_y * step;
@@ -346,9 +335,6 @@ __kernel void clBlockDiffMapEx(
 {
     const int res_x = get_global_id(0);
     const int res_y = get_global_id(1);
-
-//    const int res_xsize = get_global_size(0);
-//    const int res_ysize = get_global_size(1);
 
     if (res_x >= res_xsize || res_y >= res_ysize) return;
 
@@ -400,6 +386,7 @@ __kernel void clBlockDiffMapEx(
 
 __kernel void clEdgeDetectorLowFreqEx(
 	__global float *block_diff_ac,
+    const int res_xsize, const int res_ysize, 
     __global const float *r, __global const float *g, __global const float* b,
     __global const float *r2, __global const float* g2, __global const float *b2,
     int xsize, int ysize, int step_)
@@ -407,11 +394,10 @@ __kernel void clEdgeDetectorLowFreqEx(
     const int res_x = get_global_id(0);
     const int res_y = get_global_id(1);
 
+    if (res_x >= res_xsize || res_y >= res_ysize) return;
+
 	const int step = 8;
     if (res_x < step / step_) return;
-
-    const int res_xsize = get_global_size(0);
-    const int res_ysize = get_global_size(1);
 
     int x = (res_x - (step / step_)) * step_;
     int y = res_y * step_;
@@ -472,8 +458,6 @@ __kernel void clDiffPrecomputeEx(
     const int x = get_global_id(0);
     const int y = get_global_id(1);
     if (x >= xsize || y >= ysize) return;
-//    const int xsize = get_global_size(0);
-    //const int ysize = get_global_size(1);
 
     double valsh0[3] = { 0.0 };
     double valsv0[3] = { 0.0 };
@@ -546,9 +530,7 @@ __kernel void clAverage5x5Ex(__global float *img, const int xsize, const int ysi
     const int x = get_global_id(0);
     const int y = get_global_id(1);
     if (x >= xsize || y >= ysize) return;
-//    const int xsize = get_global_size(0);
-//    const int ysize = get_global_size(1);
-	
+
     const int row0 = y * xsize;
 	if (x - 1 >= 0) {
 		img[row0 + x] += img_org[row0 + x - 1];
@@ -588,8 +570,6 @@ __kernel void clMinSquareValEx(__global float* result, const int xsize, const in
     const int y = get_global_id(1);
 
     if (x >= xsize || y >= ysize) return;
-//    const int width = get_global_size(0);
-//    const int height = get_global_size(1);
 
     int minH = offset > y ? 0 : y - offset;
     int maxH = min(y + square_size - offset, ysize);
@@ -620,9 +600,6 @@ __kernel void clDoMaskEx(
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
-
-//    const int xsize = get_global_size(0);
-//    const int ysize = get_global_size(1);
 
 	const double w00 = 232.206464018;
 	const double w11 = 22.9455222245;
@@ -710,23 +687,20 @@ __kernel void clUpsampleSquareRootEx(__global float *diffmap_out, __global const
     }
 }
 
-__kernel void clRemoveBorderEx(__global float *out, __global const float *in, int in_xsize, int s, int s2)
+__kernel void clRemoveBorderEx(__global float *out, const int xsize, const int ysize, __global const float *in, int s, int s2)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
 
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
+    if (x >= xsize || y >= ysize) return;
 
     out[y * xsize + x] = in[(y + s2) * (xsize + s) + x + s2];
 }
 
-__kernel void clAddBorderEx(__global float *out, int s, int s2, __global const float *in)
+__kernel void clAddBorderEx(__global float *out, const int xsize, const int ysize, int s, int s2, __global const float *in)
 {
     const int x = get_global_id(0);
     const int y = get_global_id(1);
-    const int xsize = get_global_size(0);
-    const int ysize = get_global_size(1);
 
 	if (x >= xsize - s ||
 	    y >= ysize - s)
