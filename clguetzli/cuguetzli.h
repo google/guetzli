@@ -1,6 +1,7 @@
 #pragma once
 #include "guetzli/processor.h"
 #include "clguetzli.cl.h"
+#include "ocu.h"
 
 #ifdef __USE_CUDA__
 
@@ -33,6 +34,13 @@ void cuMask(
     const size_t xsize, const size_t ysize,
     const float* r, const float* g, const float* b,
     const float* r2, const float* g2, const float* b2);
+
+void cuDiffmapOpsinDynamicsImageEx(
+    cu_mem result,
+    ocu_channels xyb0,
+    ocu_channels xyb1,
+    const size_t xsize, const size_t ysize,
+    const size_t step);
 
 void cuConvolutionXEx(
     cu_mem result/*out*/,
