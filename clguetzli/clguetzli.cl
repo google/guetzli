@@ -1983,6 +1983,11 @@ __constant static float bias[192] = {
 	0.0
 };
 
+__device__ coeff_t _abs(coeff_t val)
+{
+	return val >= 0 ? val : -val;
+}
+
 // chrisk todo
 // return the count of Non-zero item
 __device__ int MakeInputOrder(__global const coeff_t *block, __global const coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
@@ -1992,7 +1997,7 @@ __device__ int MakeInputOrder(__global const coeff_t *block, __global const coef
 		for (int k = 1; k < block_size; ++k) {
 			int idx = c * block_size + k;
 			if (block[idx] != 0) {
-				float score = abs(orig_block[idx]) * csf[idx] + bias[idx];
+				float score = _abs(orig_block[idx]) * csf[idx] + bias[idx];
 				size = list_push_back(input_order, idx, score);
 			}
 		}
@@ -3103,7 +3108,7 @@ __device__ int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_b
         for (int k = 1; k < block_size; ++k) {
             int idx = c * block_size + k;
             if (block[idx] != 0) {
-                float score = abs(orig_block[idx]) * csf[idx] + bias[idx];
+                float score = _abs(orig_block[idx]) * csf[idx] + bias[idx];
                 size = list_push_back(input_order, idx, score);
             }
         }
