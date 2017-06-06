@@ -64,11 +64,10 @@ ocu_args_d_t& getOcu(void)
 
     char* ptx = nullptr;
     size_t src_size = 0;
-#ifdef _WIN64
+if (sizeof(void*) == 8)
     ReadSourceFromFile("clguetzli/clguetzli.cu.ptx64", &ptx, &src_size);
-#else
+else
     ReadSourceFromFile("clguetzli/clguetzli.cu.ptx32", &ptx, &src_size);
-#endif
 
     CUmodule mod;
     CUjit_option jit_options[2];
