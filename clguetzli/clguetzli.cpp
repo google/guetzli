@@ -378,14 +378,15 @@ void clEdgeDetectorMapEx(
 		clBlurEx(rgb2.ch[i], xsize, ysize, kSigma[i], 0.0, rgb2_blured.ch[i]);
 	}
 
+    const size_t res_xsize = (xsize + step - 1) / step;
+    const size_t res_ysize = (ysize + step - 1) / step;
+
 	cl_kernel kernel = ocl.kernel[KERNEL_EDGEDETECTOR];
     clSetKernelArgEx(kernel, &result,
+        &res_xsize, &res_ysize,
         &rgb_blured.r, &rgb_blured.g, &rgb_blured.b,
         &rgb2_blured.r, &rgb2_blured.g, &rgb2_blured.b,
         &xsize, &ysize, &step);
-
-	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize};
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -442,14 +443,15 @@ void clEdgeDetectorLowFreqEx(
 		clBlurEx(rgb2.ch[i], xsize, ysize, kSigma, 0.0, rgb2_blured.ch[i]);
 	}
 
+    const size_t res_xsize = (xsize + step - 1) / step;
+    const size_t res_ysize = (ysize + step - 1) / step;
+
 	cl_kernel kernel = ocl.kernel[KERNEL_EDGEDETECTORLOWFREQ];
     clSetKernelArgEx(kernel, &block_diff_ac,
+        &res_xsize, &res_ysize,
         &rgb_blured.r, &rgb_blured.g, &rgb_blured.b,
         &rgb2_blured.r, &rgb2_blured.g, &rgb2_blured.b,
         &xsize, &ysize, &step);
-
-	const size_t res_xsize = (xsize + step - 1) / step;
-	const size_t res_ysize = (ysize + step - 1) / step;
 
 	size_t globalWorkSize[2] = { res_xsize, res_ysize };
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
@@ -753,10 +755,13 @@ void clRemoveBorderEx(cl_mem out, const cl_mem in, const size_t xsize, const siz
 	cl_int cls = 8 - step;
 	cl_int cls2 = (8 - step) / 2;
 
-	cl_kernel kernel = ocl.kernel[KERNEL_REMOVEBORDER];
-    clSetKernelArgEx(kernel, &out, &in, &xsize, &cls, &cls2);
+    int out_xsize = xsize - cls;
+    int out_ysize = ysize - cls;
 
-	size_t globalWorkSize[2] = { xsize - cls, ysize - cls};
+	cl_kernel kernel = ocl.kernel[KERNEL_REMOVEBORDER];
+    clSetKernelArgEx(kernel, &out, &out_xsize, &out_ysize, &in, &cls, &cls2);
+
+	size_t globalWorkSize[2] = { out_xsize, out_ysize};
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
     LOG_CL_RESULT(err);
 	err = clFinish(ocl.commandQueue);
@@ -770,7 +775,7 @@ void clAddBorderEx(cl_mem out, size_t xsize, size_t ysize, int step, cl_mem in)
     cl_int cls = 8 - step;
     cl_int cls2 = (8 - step) / 2;
 	cl_kernel kernel = ocl.kernel[KERNEL_ADDBORDER];
-    clSetKernelArgEx(kernel, &out, &cls, &cls2, &in);
+    clSetKernelArgEx(kernel, &out, &xsize, &ysize, &cls, &cls2, &in);
 
 	size_t globalWorkSize[2] = { xsize, ysize};
 	cl_int err = clEnqueueNDRangeKernel(ocl.commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
