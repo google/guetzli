@@ -9,4 +9,4 @@ set debug_opt=%2%
 
 if "%machine_num%" == "" set machine_num=64
 
-nvcc -Xcompiler "/wd 4819" -I"./" -arch=compute_30 --machine %machine_num% %debug_opt% -ptx -o clguetzli\clguetzli.cu.ptx%machine_num%  clguetzli\clguetzli.cu
+nvcc -Xcompiler "/wd 4819" -I"./" -arch=compute_30 -lineinfo -O3 --machine %machine_num% %debug_opt% -ptx -o clguetzli\clguetzli.cu.ptx%machine_num%  clguetzli\clguetzli.cu

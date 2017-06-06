@@ -3072,8 +3072,10 @@ __device__ void CalcOpsinDynamicsImage(__private float rgb[3][kDCTBlockSize])
 
 __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private float rgb1_c[3][kDCTBlockSize], const __global float* mask_scale_block)
 { 
-//    CalcOpsinDynamicsImage(rgb0_c);
-    CalcOpsinDynamicsImage(rgb1_c);
+//    return 0;       // 126ms 
+//    CalcOpsinDynamicsImage(rgb0_c);  -- calc in cpu one time
+    CalcOpsinDynamicsImage(rgb1_c);     
+//    return 0;       // 425ms
 
     float rgb0[3][kDCTBlockSize];
     float rgb1[3][kDCTBlockSize];
@@ -3086,7 +3088,7 @@ __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize],
                                 rgb0_c[0], rgb0_c[1], rgb0_c[2],
                                 rgb1_c[0], rgb1_c[1], rgb1_c[2],
                                 8, 8);
-
+//    return 0;       // 544ms
     // 这里为啥要把float转成double才能继续做计算？
     double b0[3 * kDCTBlockSize];       // 
     double b1[3 * kDCTBlockSize];
@@ -3102,6 +3104,7 @@ __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize],
     double diff_xyz_edge_dc[3] = { 0.0 };
     ButteraugliBlockDiff(b0, b1, diff_xyz_dc, diff_xyz_ac, diff_xyz_edge_dc);
 
+//    return 0;       // 735ms
     double diff = 0.0;
     double diff_edge = 0.0;
 
@@ -3112,6 +3115,8 @@ __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize],
     }
     const double kEdgeWeight = 0.05;
     return sqrt((1 - kEdgeWeight) * diff + kEdgeWeight * diff_edge);
+
+//   750ms
 }
 
 // return the count of Non-zero item
