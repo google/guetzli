@@ -72,6 +72,7 @@ class ButteraugliComparator {
                        const std::vector<float>& edge_detector_map,
                        std::vector<float>* result);
 
+public:
   const size_t xsize_;
   const size_t ysize_;
   const size_t num_pixels_;

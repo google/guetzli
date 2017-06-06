@@ -34,11 +34,7 @@ void cuDiffmapOpsinDynamicsImage(
     const size_t xsize, const size_t ysize,
     const size_t step)
 {
-    const size_t res_xsize = (xsize + step - 1) / step;
-    const size_t res_ysize = (ysize + step - 1) / step;
-
     size_t channel_size = xsize * ysize * sizeof(float);
-    size_t channel_step_size = res_xsize * res_ysize * sizeof(float);
 
     ocu_args_d_t &ocl = getOcu();
     ocu_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
@@ -46,35 +42,12 @@ void cuDiffmapOpsinDynamicsImage(
 
     cu_mem mem_result = ocl.allocMem(channel_size, result);
 
-    cu_mem edge_detector_map = ocl.allocMem(3 * channel_step_size);
-    cu_mem block_diff_dc = ocl.allocMem(3 * channel_step_size);
-    cu_mem block_diff_ac = ocl.allocMem(3 * channel_step_size);
-
-    cuMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
-
-    cuEdgeDetectorMapEx(edge_detector_map, xyb0, xyb1, xsize, ysize, step);
-    cuBlockDiffMapEx(block_diff_dc, block_diff_ac, xyb0, xyb1, xsize, ysize, step);
-    cuEdgeDetectorLowFreqEx(block_diff_ac, xyb0, xyb1, xsize, ysize, step);
-    {
-        ocu_channels mask = ocl.allocMemChannels(channel_size);
-        ocu_channels mask_dc = ocl.allocMemChannels(channel_size);
-        cuMaskEx(mask, mask_dc, xyb0, xyb1, xsize, ysize);
-        cuCombineChannelsEx(mem_result, mask, mask_dc, xsize, ysize, block_diff_dc, block_diff_ac, edge_detector_map, res_xsize, step);
-
-        ocl.releaseMemChannels(mask);
-        ocl.releaseMemChannels(mask_dc);
-    }
-
-    cuCalculateDiffmapEx(mem_result, xsize, ysize, step);
+    cuDiffmapOpsinDynamicsImageEx(mem_result, xyb0, xyb1, xsize, ysize, step);
 
     cuMemcpyDtoH(result, mem_result, channel_size);
 
     ocl.releaseMemChannels(xyb1);
     ocl.releaseMemChannels(xyb0);
-
-    cuMemFree(edge_detector_map);
-    cuMemFree(block_diff_dc);
-    cuMemFree(block_diff_ac);
 
     cuMemFree(mem_result);
 }
@@ -186,6 +159,47 @@ void cuMask(
     ocl.releaseMemChannels(rgb2);
     ocl.releaseMemChannels(mask);
     ocl.releaseMemChannels(mask_dc);
+}
+
+void cuDiffmapOpsinDynamicsImageEx(
+    cu_mem result,
+    ocu_channels xyb0,
+    ocu_channels xyb1,
+    const size_t xsize, const size_t ysize,
+    const size_t step)
+{
+    const size_t res_xsize = (xsize + step - 1) / step;
+    const size_t res_ysize = (ysize + step - 1) / step;
+
+    size_t channel_size = xsize * ysize * sizeof(float);
+    size_t channel_step_size = res_xsize * res_ysize * sizeof(float);
+
+    ocu_args_d_t &ocl = getOcu();
+ 
+    cu_mem edge_detector_map = ocl.allocMem(3 * channel_step_size);
+    cu_mem block_diff_dc = ocl.allocMem(3 * channel_step_size);
+    cu_mem block_diff_ac = ocl.allocMem(3 * channel_step_size);
+
+    cuMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
+
+    cuEdgeDetectorMapEx(edge_detector_map, xyb0, xyb1, xsize, ysize, step);
+    cuBlockDiffMapEx(block_diff_dc, block_diff_ac, xyb0, xyb1, xsize, ysize, step);
+    cuEdgeDetectorLowFreqEx(block_diff_ac, xyb0, xyb1, xsize, ysize, step);
+    {
+        ocu_channels mask = ocl.allocMemChannels(channel_size);
+        ocu_channels mask_dc = ocl.allocMemChannels(channel_size);
+        cuMaskEx(mask, mask_dc, xyb0, xyb1, xsize, ysize);
+        cuCombineChannelsEx(result, mask, mask_dc, xsize, ysize, block_diff_dc, block_diff_ac, edge_detector_map, res_xsize, step);
+
+        ocl.releaseMemChannels(mask);
+        ocl.releaseMemChannels(mask_dc);
+    }
+
+    cuCalculateDiffmapEx(result, xsize, ysize, step);
+
+    cuMemFree(edge_detector_map);
+    cuMemFree(block_diff_dc);
+    cuMemFree(block_diff_ac);
 }
 
 void cuConvolutionEx(

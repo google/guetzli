@@ -30,11 +30,7 @@ void clDiffmapOpsinDynamicsImage(
     const size_t xsize, const size_t ysize,
     const size_t step)
 {
-    const size_t res_xsize = (xsize + step - 1) / step;
-    const size_t res_ysize = (ysize + step - 1) / step;
-
     size_t channel_size = xsize * ysize * sizeof(float);
-    size_t channel_step_size = res_xsize * res_ysize * sizeof(float);
 
     ocl_args_d_t &ocl = getOcl();
     ocl_channels xyb0 = ocl.allocMemChannels(channel_size, r, g, b);
@@ -42,36 +38,13 @@ void clDiffmapOpsinDynamicsImage(
 
     cl_mem mem_result = ocl.allocMem(channel_size, result);
 
-    cl_mem edge_detector_map = ocl.allocMem(3 * channel_step_size);
-    cl_mem block_diff_dc = ocl.allocMem(3 * channel_step_size);
-    cl_mem block_diff_ac = ocl.allocMem(3 * channel_step_size);
-
-    clMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
-
-    clEdgeDetectorMapEx(edge_detector_map, xyb0, xyb1, xsize, ysize, step);
-    clBlockDiffMapEx(block_diff_dc, block_diff_ac, xyb0, xyb1, xsize, ysize, step);
-    clEdgeDetectorLowFreqEx(block_diff_ac, xyb0, xyb1, xsize, ysize, step);
-    {
-        ocl_channels mask = ocl.allocMemChannels(channel_size);
-        ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
-        clMaskEx(mask, mask_dc, xyb0, xyb1, xsize, ysize);
-        clCombineChannelsEx(mem_result, mask, mask_dc, xsize, ysize, block_diff_dc, block_diff_ac, edge_detector_map, res_xsize, step);
-
-        ocl.releaseMemChannels(mask);
-        ocl.releaseMemChannels(mask_dc);
-    }
-
-    clCalculateDiffmapEx(mem_result, xsize, ysize, step);
+    clDiffmapOpsinDynamicsImageEx(mem_result, xyb0, xyb1, xsize, ysize, step);
 
     clEnqueueReadBuffer(ocl.commandQueue, mem_result, false, 0, channel_size, result, 0, NULL, NULL);
     cl_int err = clFinish(ocl.commandQueue);
 
     ocl.releaseMemChannels(xyb1);
     ocl.releaseMemChannels(xyb0);
-
-    clReleaseMemObject(edge_detector_map);
-    clReleaseMemObject(block_diff_dc);
-    clReleaseMemObject(block_diff_ac);
 
     clReleaseMemObject(mem_result);
 }
@@ -182,6 +155,46 @@ void clMask(
     ocl.releaseMemChannels(mask_dc);
 }
 
+void clDiffmapOpsinDynamicsImageEx(
+    cl_mem result,
+    ocl_channels xyb0,
+    ocl_channels xyb1,
+    const size_t xsize, const size_t ysize,
+    const size_t step)
+{
+    const size_t res_xsize = (xsize + step - 1) / step;
+    const size_t res_ysize = (ysize + step - 1) / step;
+
+    size_t channel_size = xsize * ysize * sizeof(float);
+    size_t channel_step_size = res_xsize * res_ysize * sizeof(float);
+
+    ocl_args_d_t &ocl = getOcl();
+ 
+    cl_mem edge_detector_map = ocl.allocMem(3 * channel_step_size);
+    cl_mem block_diff_dc = ocl.allocMem(3 * channel_step_size);
+    cl_mem block_diff_ac = ocl.allocMem(3 * channel_step_size);
+
+    clMaskHighIntensityChangeEx(xyb0, xyb1, xsize, ysize);
+
+    clEdgeDetectorMapEx(edge_detector_map, xyb0, xyb1, xsize, ysize, step);
+    clBlockDiffMapEx(block_diff_dc, block_diff_ac, xyb0, xyb1, xsize, ysize, step);
+    clEdgeDetectorLowFreqEx(block_diff_ac, xyb0, xyb1, xsize, ysize, step);
+    {
+        ocl_channels mask = ocl.allocMemChannels(channel_size);
+        ocl_channels mask_dc = ocl.allocMemChannels(channel_size);
+        clMaskEx(mask, mask_dc, xyb0, xyb1, xsize, ysize);
+        clCombineChannelsEx(result, mask, mask_dc, xsize, ysize, block_diff_dc, block_diff_ac, edge_detector_map, res_xsize, step);
+
+        ocl.releaseMemChannels(mask);
+        ocl.releaseMemChannels(mask_dc);
+    }
+
+    clCalculateDiffmapEx(result, xsize, ysize, step);
+
+    clReleaseMemObject(edge_detector_map);
+    clReleaseMemObject(block_diff_dc);
+    clReleaseMemObject(block_diff_ac);
+}
 void clConvolutionEx(
     cl_mem result/*out*/,
     const cl_mem inp, size_t xsize, size_t ysize,

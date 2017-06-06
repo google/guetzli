@@ -48,6 +48,14 @@ void clMask(
     const float* r,  const float* g,  const float* b,
     const float* r2, const float* g2, const float* b2);
 
+void clDiffmapOpsinDynamicsImageEx(
+    cl_mem result,
+    ocl_channels xyb0,
+    ocl_channels xyb1,
+    const size_t xsize, const size_t ysize,
+    const size_t step);
+
+
 void clConvolutionEx(
     cl_mem result/*out*/,
     const cl_mem inp, size_t xsize, size_t ysize,

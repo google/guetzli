@@ -226,9 +226,11 @@ void Usage() {
       "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
       "                 the limit. Default limit is %d MB.\n"
 	  "  --opencl     - Use OpenCL\n"
-	  "  --cuda       - Use CUDA\n"	 
       "  --checkcl    - Check OpenCL result\n"
+#ifdef __USE_CUDA__
+	  "  --cuda       - Use CUDA\n"	 
       "  --checkcuda  - Check CUDA result\n"
+#endif
       "  --nomemlimit - Do not limit memory usage.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
   exit(1);
 }
@@ -264,15 +266,17 @@ int main(int argc, char** argv) {
 	else if (!strcmp(argv[opt_idx], "--opencl")) {
 		g_mathMode = MODE_OPENCL;
 	}
-	else if (!strcmp(argv[opt_idx], "--cuda")) {
-		g_mathMode = MODE_CUDA;
-	}
     else if (!strcmp(argv[opt_idx], "--checkcl")) {
         g_mathMode = MODE_CHECKCL;
     }
+#ifdef __USE_CUDA__
+	else if (!strcmp(argv[opt_idx], "--cuda")) {
+		g_mathMode = MODE_CUDA;
+	}
     else if (!strcmp(argv[opt_idx], "--checkcuda")) {
         g_mathMode = MODE_CHECKCUDA;
     }
+#endif
 	else if (!strcmp(argv[opt_idx], "--")) {
       opt_idx++;
       break;
