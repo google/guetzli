@@ -1,4 +1,4 @@
-#include "clguetzli\clguetzli.cl"
+#include "clguetzli/clguetzli.cl"
 /*
 __device__ int get_global_id(int dim)
 {
