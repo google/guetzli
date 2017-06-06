@@ -3,7 +3,7 @@
 
 #ifdef __cplusplus
 #ifndef __CUDACC__
-#include "CL\cl.h"
+#include "CL/cl.h"
 #include "cuda.h"
 #endif
 #endif
