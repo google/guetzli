@@ -47,15 +47,33 @@ __device__ void Butteraugli8x8CornerEdgeDetectorDiff(
 
 __device__ int MakeInputOrderEx(const coeff_t block[3*8*8], const coeff_t orig_block[3*8*8], IntFloatPairList *input_order);
 
-__device__ double CompareBlockFactor(const channel_info mayout_channel[3],
+__device__ double Factor2(const channel_info mayout_channel[3],
                         const coeff_t* candidate_block, 
                         const int block_x, 
                         const int block_y, 
                         __global const float *orig_image_batch,
                         __global const float *mask_scale,
                         const int image_width,
-                        const int image_height,
-                        const int factor);
+                        const int image_height);
+
+__device__ double CompareBlockFactor1(const channel_info mayout_channel[3],
+    const coeff_t* candidate_block,
+    const int block_x,
+    const int block_y,
+    __global const float *orig_image_batch,
+    __global const float *mask_scale,
+    const int image_width,
+    const int image_height);
+
+__device__ double CompareBlockFactor(const channel_info mayout_channel[3],
+    const coeff_t* candidate_block,
+    const int block_x,
+    const int block_y,
+    __global const float *orig_image_batch,
+    __global const float *mask_scale,
+    const int image_width,
+    const int image_height,
+    const int factor);
 
 __device__ void floatcopy(float *dst, const float *src, int size);
 __device__ void coeffcopy(coeff_t *dst, const coeff_t *src, int size);
@@ -782,40 +800,37 @@ __kernel void clComputeBlockZeroingOrderEx(
     IntFloatPairList output_order = { 0, output_order_data };
 
     int count = MakeInputOrderEx(mayout_block, orig_block, &input_order);
-
-    coeff_t processed_block[kComputeBlockSize];
-    coeffcopy(processed_block, mayout_block, kComputeBlockSize);
-
+    
     while (input_order.size > 0)
     {
         float best_err = 1e17f;
         int best_i = 0;
         for (int i = 0; i < min(3, input_order.size); i++)
         {
-            coeff_t candidate_block[kComputeBlockSize];
-            coeffcopy(candidate_block, processed_block, kComputeBlockSize);
-
             const int idx = input_order.pData[i].idx;
-            candidate_block[idx] = 0;
+            coeff_t old_coeff = mayout_block[idx];
+            mayout_block[idx] = 0;
+
 
             float max_err = CompareBlockFactor(mayout_channel,
-                                               candidate_block,
+                                               mayout_block,
                                                block_x,
                                                block_y,
                                                orig_image_batch,
                                                mask_scale,
-                                               image_width, 
-                                               image_height, 
+                                               image_width,
+                                               image_height,
                                                factor);
             if (max_err < best_err)
             {
                 best_err = max_err;
                 best_i = i;
             }
+            mayout_block[idx] = old_coeff;
         }
 
         int idx = input_order.pData[best_i].idx;
-        processed_block[idx] = 0;
+        mayout_block[idx] = 0;
         list_erase(&input_order, best_i);
 
         list_push_back(&output_order, idx, best_err);
@@ -3135,6 +3150,142 @@ __device__ int GetOrigBlock(float rgb0_c[3][kDCTBlockSize],
     }
 
     return block_ix;
+}
+
+__device__ double CompareBlockFactor1(const channel_info mayout_channel[3],
+    const coeff_t* candidate_block,
+    const int block_x,
+    const int block_y,
+    __global const float *orig_image_batch,
+    __global const float *mask_scale,
+    const int image_width,
+    const int image_height)
+{
+    const coeff_t *candidate_channel[3];
+    for (int c = 0; c < 3; c++) {
+        candidate_channel[c] = &candidate_block[c * 8 * 8];
+    }
+
+    uchar yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
+    uchar yuv8x8[3 * 8 * 8] = { 0 };      // factor 1 mode output image
+
+    for (int c = 0; c < 3; c++)
+    {
+        if (mayout_channel[c].factor == 1) {
+            const coeff_t *coeff_block = candidate_channel[c];
+            CoeffToYUV8x8(coeff_block, &yuv8x8[c]);
+        }
+        else {
+            int block_xx = block_x / mayout_channel[c].factor;
+            int block_yy = block_y / mayout_channel[c].factor;
+            int ix = block_x % mayout_channel[c].factor;;
+            int iy = block_y % mayout_channel[c].factor;
+
+            int block_16x16idx = block_yy * mayout_channel[c].block_width + block_xx;
+            __global const coeff_t * coeff_block = mayout_channel[c].coeff + block_16x16idx * 8 * 8;
+
+            CoeffToYUV16x16_g(coeff_block, &yuv16x16[c],
+                mayout_channel[c].pixel, block_xx, block_yy,
+                image_width,
+                image_height);
+
+            // copy YUV16x16 corner to YUV8x8
+            Copy16x16To8x8(&yuv16x16[c], &yuv8x8[c], ix, iy);
+        }
+    }
+
+    {
+        float rgb0_c[3][kDCTBlockSize];
+        int block_8x8idx = GetOrigBlock(rgb0_c, orig_image_batch, image_width, image_height, block_x, block_y, 1, 0, 0);
+
+        int inside_x = block_x * 8 + 8 > image_width ? image_width - block_x * 8 : 8;
+        int inside_y = block_y * 8 + 8 > image_height ? image_height - block_y * 8 : 8;
+        float rgb1_c[3][kDCTBlockSize];
+
+        YUVToImage(yuv8x8, rgb1_c[0], rgb1_c[1], rgb1_c[2], 8, 8, inside_x, inside_y);
+
+        return ComputeImage8x8Block(rgb0_c, rgb1_c, mask_scale + block_8x8idx * 3);
+    }
+}
+
+__device__ double Factor2(const channel_info mayout_channel[3],
+    const coeff_t* candidate_block,
+    const int block_x,
+    const int block_y,
+    __global const float *orig_image_batch,
+    __global const float *mask_scale,
+    const int image_width,
+    const int image_height)
+{
+    const int factor = 2;
+    const coeff_t *candidate_channel[3];
+    for (int c = 0; c < 3; c++) {
+        candidate_channel[c] = &candidate_block[c * 8 * 8];
+    }
+
+    uchar yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
+    uchar yuv8x8[3 * 8 * 8] = { 0 };      // factor 1 mode output image
+
+    for (int c = 0; c < 3; c++)
+    {
+        if (mayout_channel[c].factor == 1) {
+                for (int iy = 0; iy < factor; ++iy) {
+                    for (int ix = 0; ix < factor; ++ix) {
+                        int block_xx = block_x * factor + ix;
+                        int block_yy = block_y * factor + iy;
+
+                        ///if (ix != off_x || iy != off_y) continue;
+                        if (block_xx >= mayout_channel[c].block_width ||
+                            block_yy >= mayout_channel[c].block_height)
+                        {
+                            continue;
+                        }
+                        int block_8x8idx = block_yy * mayout_channel[c].block_width + block_xx;
+                        __global const coeff_t * coeff_block = mayout_channel[c].coeff + block_8x8idx * 8 * 8;
+                        CoeffToYUV8x8_g(coeff_block, &yuv8x8[c]);
+
+                        // copy YUV8x8 to YUV1616 corner
+                        Copy8x8To16x16(&yuv8x8[c], &yuv16x16[c], ix, iy);
+                    }
+                }
+        }
+        else {
+                const coeff_t * coeff_block = candidate_channel[c];
+                CoeffToYUV16x16(coeff_block, &yuv16x16[c],
+                    mayout_channel[c].pixel, block_x, block_y,
+                    image_width,
+                    image_height);
+        }
+    }
+
+        int inside_x = block_x * 16 + 16 > image_width ? image_width - block_x * 16 : 16;
+        int inside_y = block_y * 16 + 16 > image_height ? image_height - block_y * 16 : 16;
+
+        float rgb16x16[3][16 * 16];
+        YUVToImage(yuv16x16, rgb16x16[0], rgb16x16[1], rgb16x16[2], 16, 16, inside_x, inside_y);
+
+        double max_err = 0;
+        for (int iy = 0; iy < factor; ++iy) {
+            for (int ix = 0; ix < factor; ++ix) {
+                int block_xx = block_x * factor + ix;
+                int block_yy = block_y * factor + iy;
+
+                if (block_xx * 8 >= image_width ||
+                    block_yy * 8 >= image_height)
+                {
+                    continue;
+                }
+
+                float rgb0_c[3][kDCTBlockSize];
+                int block_8x8idx = GetOrigBlock(rgb0_c, orig_image_batch, image_width, image_height, block_x, block_y, factor, ix, iy);
+
+                float rgb1_c[3][kDCTBlockSize];
+                Copy16x16ToChannel(rgb16x16, rgb1_c[0], rgb1_c[1], rgb1_c[2], ix, iy);
+                double err = ComputeImage8x8Block(rgb0_c, rgb1_c, mask_scale + block_8x8idx * 3);
+                max_err = max(max_err, err);
+            }
+        }
+        return max_err;
 }
 
 __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
