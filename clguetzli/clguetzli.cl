@@ -3152,16 +3152,16 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
         candidate_channel[c] = &candidate_block[c * 8 * 8];
     }
 
-//    uchar yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
+    uchar yuv16x16[3 * 16 * 16] = { 0 };  // factor 2 mode output image
     uchar yuv8x8[3 * 8 * 8] = { 0 };      // factor 1 mode output image
 
     for (int c = 0; c < 3; c++)
     {
-//        if (mayout_channel[c].factor == 1) {
-  //          if (factor == 1) {
+        if (mayout_channel[c].factor == 1) {
+            if (factor == 1) {
                 const coeff_t *coeff_block = candidate_channel[c];
                 CoeffToYUV8x8(coeff_block, &yuv8x8[c]);
-   /*         }
+            }
             else {
                 for (int iy = 0; iy < factor; ++iy) {
                     for (int ix = 0; ix < factor; ++ix) {
@@ -3183,8 +3183,7 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
                     }
                 }
             }
-*/
- /*       }
+        }
         else { 
             if (factor == 1) {
                 int block_xx = block_x / mayout_channel[c].factor;
@@ -3211,10 +3210,9 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
                     image_height);
             }
         }
-*/
     }
 
-  //  if (factor == 1)
+    if (factor == 1)
     {
         float rgb0_c[3][kDCTBlockSize];
         int block_8x8idx = GetOrigBlock(rgb0_c, orig_image_batch, image_width, image_height, block_x, block_y, factor, 0, 0);
@@ -3227,7 +3225,6 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
 
         return ComputeImage8x8Block(rgb0_c, rgb1_c, mask_scale + block_8x8idx * 3);
     }
-/*
     else
     {
         int inside_x = block_x * 16 + 16 > image_width ? image_width - block_x * 16 : 16;
@@ -3259,6 +3256,5 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
         }
         return max_err;
     }
-*/
 }
 
