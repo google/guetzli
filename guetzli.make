@@ -242,3 +242,4 @@ $(OBJDIR)/butteraugli.o: third_party/butteraugli/butteraugli/butteraugli.cc
 -include $(OBJECTS:%.o=%.d)
 ifneq (,$(PCH))
   -include $(OBJDIR)/$(notdir $(PCH)).d
+endif
