@@ -659,7 +659,7 @@ void clDoMask(ocl_channels mask/*in, out*/, ocl_channels mask_dc/*in, out*/, siz
         MakeMask(extmul, extoff, mul, offset, scaler, lut_dcb);
     }
 
-	size_t channel_size = 512 * 3 * sizeof(double);
+	size_t channel_size = 512 * sizeof(double);
 	ocl_channels xyb = ocl.allocMemChannels(channel_size, lut_x, lut_y, lut_b);
     ocl_channels xyb_dc = ocl.allocMemChannels(channel_size, lut_dcx, lut_dcy, lut_dcb);
 
