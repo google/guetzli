@@ -641,7 +641,6 @@ __kernel void clDoMaskEx(
     mask_dc_x[idx] = (float)(InterpolateClampNegative(lut_dc_x, 512, p0));
     mask_dc_y[idx] = (float)(InterpolateClampNegative(lut_dc_y, 512, p1));
     mask_dc_b[idx] = (float)(InterpolateClampNegative(lut_dc_b, 512, p2));
-
 }
 
 __kernel void clCombineChannelsEx(
