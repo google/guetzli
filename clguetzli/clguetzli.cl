@@ -271,9 +271,9 @@ __kernel void clMaskHighIntensityChangeEx(
 
     size_t ix = y * xsize + x;
     const double ave[3] = {
-        (c0_x[ix] + c1_x[ix]) * 0.5,
-        (c0_y[ix] + c1_y[ix]) * 0.5,
-        (c0_b[ix] + c1_b[ix]) * 0.5,
+        (c0_x[ix] + c1_x[ix]) * 0.5f,
+        (c0_y[ix] + c1_y[ix]) * 0.5f,
+        (c0_b[ix] + c1_b[ix]) * 0.5f,
     };
     double sqr_max_diff = -1;
     {
@@ -2992,9 +2992,9 @@ __device__ void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float
         {
             size_t ix = y * xsize + x;
             const double ave[3] = {
-                (c0_x[ix] + c1_x[ix]) * 0.5,
-                (c0_y[ix] + c1_y[ix]) * 0.5,
-                (c0_b[ix] + c1_b[ix]) * 0.5,
+                (c0_x[ix] + c1_x[ix]) * 0.5f,
+                (c0_y[ix] + c1_y[ix]) * 0.5f,
+                (c0_b[ix] + c1_b[ix]) * 0.5f,
             };
             double sqr_max_diff = -1;
             {
