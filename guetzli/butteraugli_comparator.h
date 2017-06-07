@@ -72,7 +72,6 @@ class ButteraugliComparator : public Comparator {
   int block_y_;
   int factor_x_;
   int factor_y_;
-  std::vector<std::vector<float>> rgb_linear_pregamma_;
   std::vector<std::vector<float>> mask_xyz_;
   std::vector<std::vector<std::vector<float>>> per_block_pregamma_;
   ::butteraugli::clButteraugliComparator comparator_;

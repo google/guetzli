@@ -1,0 +1,32 @@
+version: '1.0.1#{build}'
+
+shallow_clone: true
+
+os:
+  - Visual Studio 2015
+
+environment:
+  matrix:
+  - TOOLSET: vs2015
+
+install:
+  - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha11/premake-5.0.0-alpha11-windows.zip' 'premake.zip'
+  - 7z x premake.zip
+  - premake5.exe %TOOLSET%
+  - git clone https://github.com/Microsoft/vcpkg
+  - md vcpkg\downloads\nuget-3.5.0
+  - appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -FileName %appveyor_build_folder%\vcpkg\downloads\nuget-3.5.0\nuget.exe
+  - appveyor DownloadFile https://cmake.org/files/v3.8/cmake-3.8.0-rc1-win32-x86.zip -FileName %appveyor_build_folder%\vcpkg\downloads\cmake-3.8.0-rc1-win32-x86.zip
+  - 7z x %appveyor_build_folder%\vcpkg\downloads\cmake-3.8.0-rc1-win32-x86.zip
+  - cd vcpkg
+  - powershell -exec bypass -File scripts\bootstrap.ps1
+  - vcpkg integrate install
+  - vcpkg install libpng
+  - cd ..
+
+configuration:
+  - Debug
+  - Release
+
+build:
+  project: guetzli.sln

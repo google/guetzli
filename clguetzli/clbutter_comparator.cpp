@@ -10,7 +10,8 @@ namespace butteraugli
 
     }
 
-    void clButteraugliComparator::DiffmapOpsinDynamicsImage(const std::vector<std::vector<float>> &xyb0,
+    void clButteraugliComparator::DiffmapOpsinDynamicsImage(
+        std::vector<std::vector<float>> &xyb0,
         std::vector<std::vector<float>> &xyb1,
         std::vector<float> &result)
     {

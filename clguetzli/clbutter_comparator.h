@@ -11,7 +11,7 @@ namespace butteraugli {
     public:
         clButteraugliComparator(size_t xsize, size_t ysize, int step);
 
-        virtual void DiffmapOpsinDynamicsImage(const std::vector<std::vector<float>> &xyb0,
+        virtual void DiffmapOpsinDynamicsImage(std::vector<std::vector<float>> &xyb0,
             std::vector<std::vector<float>> &xyb1,
             std::vector<float> &result);
 
