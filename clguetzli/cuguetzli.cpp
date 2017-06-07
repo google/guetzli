@@ -4,6 +4,10 @@
 
 #ifdef __USE_CUDA__
 
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#define double float
+#endif
+
 #define cuFinish cuStreamSynchronize
 #define BLOCK_SIZE_X 16
 #define BLOCK_SIZE_Y 16
@@ -884,5 +888,9 @@ void cuCalculateDiffmapEx(cu_mem diffmap/*in,out*/, const size_t xsize, const si
 
     cuMemFree(blurred);
 }
+
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#undef double
+#endif
 
 #endif

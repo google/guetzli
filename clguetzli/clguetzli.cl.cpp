@@ -49,9 +49,11 @@ namespace guetzli
         const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
         const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
         const int num_blocks = block_width * block_height;
-
+#ifdef __USE_DOUBLE_AS_FLOAT__
+        const float* lut = kSrgb8ToLinearTable;
+#else
         const double* lut = kSrgb8ToLinearTable;
-
+#endif
         imgOpsinDynamicsBlockList.resize(num_blocks * 3 * kDCTBlockSize);
         imgMaskXyzScaleBlockList.resize(num_blocks * 3);
         for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y)

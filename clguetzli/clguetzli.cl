@@ -2,6 +2,10 @@
 
 #include  "clguetzli/clguetzli.cl.h"
 
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#define double float
+#endif
+
 #define kBlockEdge      8
 #define kBlockSize      (kBlockEdge * kBlockEdge)
 #define kDCTBlockSize   (kBlockEdge * kBlockEdge)
@@ -3419,3 +3423,6 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
     }
 }
 
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#undef double
+#endif

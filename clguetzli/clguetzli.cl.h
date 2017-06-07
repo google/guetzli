@@ -8,6 +8,8 @@
 #endif
 #endif
 
+#define __USE_DOUBLE_AS_FLOAT__
+
 #ifdef __cplusplus
 #ifndef __CUDACC__
     #define __kernel
