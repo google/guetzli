@@ -130,3 +130,56 @@ namespace guetzli
         return err;
     }
 }
+
+/*
+if (MODE_OPENCL == g_mathMode)
+{
+const int xsize = width_;
+const int ysize = height_;
+std::vector<float>().swap(distmap_);
+distmap_.resize(xsize * ysize);
+
+size_t channel_size = xsize * ysize * sizeof(float);
+ocl_args_d_t &ocl = getOcl();
+ocl_channels xyb1 = ocl.allocMemChannels(channel_size, rgb[0].data(), rgb[1].data(), rgb[2].data());
+ocl_channels xyb0 = ocl.allocMemChannels(channel_size, rgb0[0].data(), rgb0[1].data(), rgb0[2].data());
+
+cl_mem mem_result = ocl.allocMem(channel_size);// , distmap_.data());
+
+clOpsinDynamicsImageEx(xyb1, xsize, ysize);
+clDiffmapOpsinDynamicsImageEx(mem_result, xyb0, xyb1, xsize, ysize, comparator_.step_);
+
+clEnqueueReadBuffer(ocl.commandQueue, mem_result, false, 0, channel_size, distmap_.data(), 0, NULL, NULL);
+clFinish(ocl.commandQueue);
+
+clReleaseMemObject(mem_result);
+ocl.releaseMemChannels(xyb0);
+ocl.releaseMemChannels(xyb1);
+}
+#ifdef __USE_CUDA__
+else if (MODE_CUDA == g_mathMode)
+{
+const int xsize = width_;
+const int ysize = height_;
+std::vector<float>().swap(distmap_);
+distmap_.resize(xsize * ysize);
+
+size_t channel_size = xsize * ysize * sizeof(float);
+ocu_args_d_t &ocl = getOcu();
+ocu_channels xyb1 = ocl.allocMemChannels(channel_size, rgb[0].data(), rgb[1].data(), rgb[2].data());
+ocu_channels xyb0 = ocl.allocMemChannels(channel_size, rgb0[0].data(), rgb0[1].data(), rgb0[2].data());
+
+cu_mem mem_result = ocl.allocMem(channel_size);// , distmap_.data());
+
+cuOpsinDynamicsImageEx(xyb1, xsize, ysize);
+
+cuDiffmapOpsinDynamicsImageEx(mem_result, xyb0, xyb1, xsize, ysize, comparator_.step_);
+
+cuMemcpyDtoH(distmap_.data(), mem_result, channel_size);
+
+cuMemFree(mem_result);
+ocl.releaseMemChannels(xyb0);
+ocl.releaseMemChannels(xyb1);
+}
+#endif
+else*/
