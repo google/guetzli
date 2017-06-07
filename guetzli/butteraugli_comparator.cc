@@ -22,9 +22,9 @@
 #include "guetzli/gamma_correct.h"
 #include "guetzli/score.h"
 
-#include "clguetzli\ocu.h"
-#include "clguetzli\clguetzli.h"
-#include "clguetzli\cuguetzli.h"
+#include "clguetzli/ocu.h"
+#include "clguetzli/clguetzli.h"
+#include "clguetzli/cuguetzli.h"
 
 namespace guetzli {
 
