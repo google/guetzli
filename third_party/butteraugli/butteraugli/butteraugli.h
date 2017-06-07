@@ -49,7 +49,7 @@ class ButteraugliComparator {
   virtual void DiffmapOpsinDynamicsImage(std::vector<std::vector<float>> &xyb0,
                                  std::vector<std::vector<float>> &xyb1,
                                  std::vector<float> &result);
-
+  int step() { return step_;}
  protected:
   virtual void BlockDiffMap(const std::vector<std::vector<float> > &rgb0,
                     const std::vector<std::vector<float> > &rgb1,
@@ -72,7 +72,7 @@ class ButteraugliComparator {
                        const std::vector<float>& edge_detector_map,
                        std::vector<float>* result);
 
-public:
+protected:
   const size_t xsize_;
   const size_t ysize_;
   const size_t num_pixels_;
