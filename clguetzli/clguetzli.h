@@ -163,6 +163,7 @@ namespace guetzli {
             const std::vector<uint8_t>* rgb,
             const float target_distance, ProcessStats* stats);
 
+        void Compare(const OutputImage& img) override;
         void StartBlockComparisons() override;
         void FinishBlockComparisons() override;
 
@@ -170,5 +171,6 @@ namespace guetzli {
     public:
         std::vector<float> imgOpsinDynamicsBlockList;   // [RR..RRGG..GGBB..BB]:blockCount
         std::vector<float> imgMaskXyzScaleBlockList;    // [RGBRGB..RGBRGB]:blockCount
+        std::vector<std::vector<float>> rgb_orig_opsin;
     };
 }
