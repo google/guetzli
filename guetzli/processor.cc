@@ -1056,7 +1056,7 @@ bool Process(const Params& params, ProcessStats* stats,
   std::unique_ptr<ButteraugliComparator> comparator;
   if (jpg.width >= 32 && jpg.height >= 32) {
     comparator.reset(
-        new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+        new ButteraugliComparatorEx(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
