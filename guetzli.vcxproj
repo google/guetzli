@@ -144,7 +144,7 @@
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
-      <PreprocessorDefinitions>PERFTOOLS_DLL_DECL=;ENABLE_OPENCL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__USE_CUDA__;PERFTOOLS_DLL_DECL=;ENABLE_OPENCL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -408,14 +408,14 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clguetzli\clguetzli.cu.ptx64</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)compile.bat 64 -G</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CUDA Code Builder</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cu.ptx</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clguetzli\clguetzli.cu.ptx64</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)compile.bat 32 -G</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CUDA Code Builder</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cu.ptx</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">clguetzli\clguetzli.cu.ptx32</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CUDA Code Builder</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cu.ptx</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">clguetzli\clguetzli.cu.ptx32</Outputs>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </CustomBuild>
