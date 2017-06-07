@@ -5,6 +5,10 @@
 
 #ifdef __USE_CUDA__
 
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#define double float
+#endif
+
 void cuOpsinDynamicsImage(
 	float *r, float *g, float *b, 
 	const size_t xsize, const size_t ysize);
@@ -123,5 +127,9 @@ void cuRemoveBorderEx(cu_mem out, const cu_mem in, const size_t xsize, const siz
 void cuAddBorderEx(cu_mem out, const size_t xsize, const size_t ysize, const int step, const cu_mem in);
 
 void cuCalculateDiffmapEx(cu_mem diffmap/*in,out*/, const size_t xsize, const size_t ysize, const int step);
+
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#undef double
+#endif
 
 #endif

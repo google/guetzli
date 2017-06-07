@@ -4,6 +4,10 @@
 #include <vector>
 #include "cl.hpp"
 
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#define double float
+#endif
+
 extern MATH_MODE g_mathMode = MODE_CPU;
 
 void clOpsinDynamicsImage(float *r, float *g, float *b, const size_t xsize, const size_t ysize)
@@ -820,3 +824,7 @@ void clCalculateDiffmapEx(cl_mem diffmap/*in,out*/, const size_t xsize, const si
 
 	clReleaseMemObject(blurred);
 }
+
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#undef double
+#endif
