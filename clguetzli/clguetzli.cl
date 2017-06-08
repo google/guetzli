@@ -832,6 +832,10 @@ __kernel void clComputeBlockZeroingOrderEx(
             mayout_block[idx] = old_coeff;
         }
 
+        if (best_err >= BlockErrorLimit)
+        {   // err队列是逐渐增大的，如果这里已经超过ErrorLimit，后续的计算就是冗余的了
+            break;
+        }
         int idx = input_order.pData[best_i].idx;
         mayout_block[idx] = 0;
         list_erase(&input_order, best_i);
