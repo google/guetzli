@@ -26,3 +26,5 @@ rem echo "!dest_path!!fileName!"
 
 set CURRENT_TIME=%time:~0,2%:%time:~3,2%:%time:~6,2%
 echo CUDA Time End = %CURRENT_TIME%
+
+pause
