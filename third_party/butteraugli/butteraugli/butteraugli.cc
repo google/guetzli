@@ -1319,9 +1319,18 @@ void _MinSquareVal(size_t square_size, size_t offset,
     const size_t minh = offset > y ? 0 : y - offset;
     const size_t maxh = std::min<size_t>(ysize, y + square_size - offset);
     for (size_t x = 0; x < xsize; ++x) {
+#ifdef __USE_C__
+      float min = values[x + minh * xsize];
+#else
       double min = values[x + minh * xsize];
+#endif
       for (size_t j = minh + 1; j < maxh; ++j) {
+#ifdef __USE_C__
+        min = std::min<float>(min, values[x + j * xsize]);
+#else
         min = fmin(min, values[x + j * xsize]);
+#endif
+
       }
       tmp[x + y * xsize] = static_cast<float>(min);
     }

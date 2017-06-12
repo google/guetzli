@@ -450,6 +450,12 @@ void Processor::ComputeBlockZeroingOrder(
             block_x, block_y, &processed_block[c * kDCTBlockSize]);
       }
     }
+#ifdef __USE_C__
+    if (best_err >= comparator_->BlockErrorLimit())
+    {   // err队列是逐渐增大的，如果这里已经超过ErrorLimit，后续的计算就是冗余的了
+        break;
+    }
+#endif
   }
   // Make the block error values monotonic.
   float min_err = 1e10;

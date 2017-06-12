@@ -16,6 +16,7 @@ ifeq ($(config),release)
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Release/guetzli
   DEFINES += -D__USE_CUDA__
+  DEFINES += -D__USE_C__
   INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
