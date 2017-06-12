@@ -1,4 +1,5 @@
 #!/bin/bash
 
-cp ./guetzli /data/pic_test/
-cp ./clguetzli/* /data/pic_test/clguetzli/
+mkdir clguetzli
+cp ../../bin/Release/guetzli guetzli
+cp ../../clguetzli/* clguetzli/
