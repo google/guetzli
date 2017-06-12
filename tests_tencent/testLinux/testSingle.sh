@@ -1,4 +1,8 @@
 #!/bin/bash
+file=$1
+if [ "$file" == ""  ]; then
+    file="1.jpg"
+fi
 
 # arg1=start, arg2=end, format: %s.%N  
 function calcTimeCost() {  
@@ -19,18 +23,18 @@ function calcTimeCost() {
 
 echo "opencl"
 start=$(date +%s.%N)
-./guetzli --opencl 1.jpg 1.opencl.jpg
+./guetzli --opencl $file ${file%.*}.opencl.jpg
 end=$(date +%s.%N)
 calcTimeCost $start $end
 
 echo "cuda"
 start=$(date +%s.%N)
-./guetzli --cuda 1.jpg 1.cuda.jpg
+./guetzli --cuda $file ${file%.*}.cuda.jpg
 end=$(date +%s.%N)
 calcTimeCost $start $end
 
 echo "C"
 start=$(date +%s.%N)
-./guetzli 1.jpg 1.opencl.jpg
+./guetzli $file ${file%.*}.cout.jpg
 end=$(date +%s.%N)
 calcTimeCost $start $end
