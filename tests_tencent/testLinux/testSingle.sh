@@ -28,3 +28,9 @@ start=$(date +%s.%N)
 ./guetzli --cuda 1.jpg 1.cuda.jpg
 end=$(date +%s.%N)
 calcTimeCost $start $end
+
+echo "C"
+start=$(date +%s.%N)
+./guetzli 1.jpg 1.opencl.jpg
+end=$(date +%s.%N)
+calcTimeCost $start $end
