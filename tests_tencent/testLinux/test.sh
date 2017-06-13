@@ -36,29 +36,29 @@ end=$(date +%s.%N)
 calcTimeCost $start $end
 cp ./guetzli.cuda.csv ./$out_dir
 
-echo "WebP"
-echo "Src,Dist,Cost,Ret,Before,After,Rate,SSIM,PSNR" > ./webp.csv
-start=$(date +%s.%N)
-find $src -name "*.jpg" -exec ./test_webp.sh {} \;
-end=$(date +%s.%N)
-calcTimeCost $start $end
-cp ./webp.csv ./$out_dir
+#echo "WebP"
+#echo "Src,Dist,Cost,Ret,Before,After,Rate,SSIM,PSNR" > ./webp.csv
+#start=$(date +%s.%N)
+#find $src -name "*.jpg" -exec ./test_webp.sh {} \;
+#end=$(date +%s.%N)
+#calcTimeCost $start $end
+#cp ./webp.csv ./$out_dir
 
-echo "SharpP"
-echo "Src,Dist,Cost,Ret,Before,After,Rate,SSIM,PSNR" > ./sharpp.csv
-start=$(date +%s.%N)
-find $src -name "*.jpg" -exec ./test_tpg.sh {} \;
-end=$(date +%s.%N)
-calcTimeCost $start $end
-cp ./sharpp.csv ./$out_dir
+#echo "SharpP"
+#echo "Src,Dist,Cost,Ret,Before,After,Rate,SSIM,PSNR" > ./sharpp.csv
+#start=$(date +%s.%N)
+#find $src -name "*.jpg" -exec ./test_tpg.sh {} \;
+#end=$(date +%s.%N)
+#calcTimeCost $start $end
+#cp ./sharpp.csv ./$out_dir
 
-echo "Guetzli OpenCl"
-echo "Src,Dist,Cost,Ret,Before,After,Rate,SSIM,PSNR" > ./guetzli.cl.csv
-start=$(date +%s.%N)
-find $src -name "*.jpg" -exec ./test_guetzli_cl.sh {} \;
-end=$(date +%s.%N)
-calcTimeCost $start $end
-cp ./guetzli.cl.csv ./$out_dir
+#echo "Guetzli OpenCl"
+#echo "Src,Dist,Cost,Ret,Before,After,Rate,SSIM,PSNR" > ./guetzli.cl.csv
+#start=$(date +%s.%N)
+#find $src -name "*.jpg" -exec ./test_guetzli_cl.sh {} \;
+#end=$(date +%s.%N)
+#calcTimeCost $start $end
+#cp ./guetzli.cl.csv ./$out_dir
 
 #echo "Guetzli C"
 #echo "Src,Dist,Cost,Ret,Before,After,Rate,SSIM,PSNR" > ./guetzli.c.csv
@@ -66,4 +66,4 @@ cp ./guetzli.cl.csv ./$out_dir
 #find $src -name "*.jpg" -exec ./test_guetzli_c.sh {} \;
 #end=$(date +%s.%N)
 #calcTimeCost $start $end
-cp ./guetzli.c.csv ./$out_dir
+#cp ./guetzli.c.csv ./$out_dir
