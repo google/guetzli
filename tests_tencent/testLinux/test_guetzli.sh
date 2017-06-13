@@ -55,7 +55,7 @@ function calcTimeCost() {
 }
 
 start=$(date +%s.%N)
-./guetzli --cuda $src $dist
+./guetzli --quality 85 --cuda $src $dist
 suc=$?
 end=$(date +%s.%N)
 calcTimeCost $start $end
