@@ -14,6 +14,7 @@
 enum MATH_MODE
 {
     MODE_CPU = 0,
+	MODE_CPU_OPT,
     MODE_OPENCL,
     MODE_CUDA,
     MODE_CHECKCL,

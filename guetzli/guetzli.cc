@@ -228,6 +228,7 @@ void Usage() {
       "                 the limit. Default limit is %d MB.\n"
 	  "  --opencl     - Use OpenCL\n"
       "  --checkcl    - Check OpenCL result\n"
+	  "  --c          - Use c opt version\n"
 #ifdef __USE_CUDA__
 	  "  --cuda       - Use CUDA\n"	 
       "  --checkcuda  - Check CUDA result\n"
@@ -270,6 +271,10 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[opt_idx], "--checkcl")) {
         g_mathMode = MODE_CHECKCL;
     }
+	else if (!strcmp(argv[opt_idx], "--c"))
+	{
+		g_mathMode = MODE_CPU_OPT;
+	}
 #ifdef __USE_CUDA__
 	else if (!strcmp(argv[opt_idx], "--cuda")) {
 		g_mathMode = MODE_CUDA;

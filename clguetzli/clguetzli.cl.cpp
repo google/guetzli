@@ -61,7 +61,6 @@ namespace guetzli
 
     void ButteraugliComparatorEx::Compare(const OutputImage& img)
     {
-
         if (MODE_OPENCL == g_mathMode)
         {
             std::vector<std::vector<float> > rgb1(3, std::vector<float>(width_ * height_));
@@ -124,11 +123,21 @@ namespace guetzli
             distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
         }
 #endif
-        else
+        else if (MODE_CPU_OPT == g_mathMode)
         {
-            ButteraugliComparator::Compare(img);
-        }
+			std::vector<std::vector<float> > rgb0 = rgb_orig_opsin;
 
+			std::vector<std::vector<float> > rgb(3, std::vector<float>(width_ * height_));
+			img.ToLinearRGB(&rgb);
+			::butteraugli::OpsinDynamicsImage(width_, height_, rgb);
+			std::vector<float>().swap(distmap_);
+			comparator_.DiffmapOpsinDynamicsImage(rgb0, rgb, distmap_);
+			distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
+        }
+		else
+		{
+			ButteraugliComparator::Compare(img);
+		}
     }
 
     void ButteraugliComparatorEx::StartBlockComparisons()
