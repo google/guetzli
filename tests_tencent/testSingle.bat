@@ -2,30 +2,49 @@
 @call copy.bat
 
 @set exe="guetzli.exe"
+@set ns=0
 
-@set file=big
+@set file=%1
 @set q=95
 
-@rem set CURRENT_TIME=%time:~0,2%:%time:~3,2%:%time:~6,2%
-@rem echo CUDA Time Start = %CURRENT_TIME% --------------
+if "%file%"=="" (
+	set file=timg
+)
 
-@rem %exe% --cuda --quality %q% %file%.jpg %file%.cuda.jpg
+call :time2sec %time%
+set time1=%ns%
+%exe% --cuda --quality %q% %file%.jpg %file%.%q%.cuda.jpg
+call :time2sec %time%
+set time2=%ns%
+set /a  diff=%time2%  - %time1%
+calc_ssim_psnr -i %file%.jpg -o %file%.%q%.cuda.jpg
+echo cuda quality %q% time = %diff%
 
-@rem set CURRENT_TIME=%time:~0,2%:%time:~3,2%:%time:~6,2%
-@rem echo CUDA Time End   = %CURRENT_TIME% --------------
+call :time2sec %time%
+set time1=%ns%
+%exe% --opencl --quality %q% %file%.jpg %file%.%q%.opencl.jpg
+call :time2sec %time%
+set time2=%ns%
+set /a  diff=%time2%  - %time1%
+calc_ssim_psnr -i %file%.jpg -o %file%.%q%.opencl.jpg
+echo opencl quality %q% time = %diff%
 
-@rem set CURRENT_TIME=%time:~0,2%:%time:~3,2%:%time:~6,2%
-@rem echo Opencl Time Start = %CURRENT_TIME% ------------
+call :time2sec %time%
+set time1=%ns%
+%exe% --quality %q% %file%.jpg %file%.%q%.cout.jpg
+call :time2sec %time%
+set time2=%ns%
+set /a  diff=%time2%  - %time1%
+calc_ssim_psnr -i %file%.jpg -o %file%.%q%.cout.jpg
+echo c quality %q% time = %diff%
 
-@rem %exe% --opencl %file%.jpg %file%.opencl.jpg
-
-@rem set CURRENT_TIME=%time:~0,2%:%time:~3,2%:%time:~6,2%
-@rem echo Opencl Time End   = %CURRENT_TIME% ------------
-
-set CURRENT_TIME=%time:~0,2%:%time:~3,2%:%time:~6,2%
-echo C Time Start = %CURRENT_TIME% ------------
-
-%exe% --quality %q% %file%.jpg %file%.cout.jpg
-
-set CURRENT_TIME=%time:~0,2%:%time:~3,2%:%time:~6,2%
-echo C Time End   = %CURRENT_TIME% ------------
+goto :eof
+ 
+:time2sec
+rem 将时间转换成秒数，保存到ns中
+set tt=%1
+set hh=%tt:~0,2%
+set mm=%tt:~3,2%
+set ss=%tt:~6,2%
+set /a ns=(%hh%*60+%mm%)*60+%ss%
+goto :eof
