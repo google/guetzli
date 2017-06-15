@@ -409,53 +409,54 @@ void Processor::ComputeBlockZeroingOrder(
   memcpy(processed_block, block, sizeof(processed_block));
   comparator_->SwitchBlock(block_x, block_y, factor_x, factor_y);
   while (!input_order.empty()) {
-    float best_err = 1e17f;
-    int best_i = 0;
-    for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
-                                         input_order.size());
-         ++i) {
-      coeff_t candidate_block[kBlockSize];
-      memcpy(candidate_block, processed_block, sizeof(candidate_block));
-      const int idx = input_order[i].first;
-      candidate_block[idx] = 0;
-      for (int c = 0; c < 3; ++c) {
-        if (comp_mask & (1 << c)) {
-          img->component(c).SetCoeffBlock(
-              block_x, block_y, &candidate_block[c * kDCTBlockSize]);
-        }
-      }
-      float max_err = 0;
-      for (int iy = 0; iy < factor_y; ++iy) {
-        for (int ix = 0; ix < factor_x; ++ix) {
-          int block_xx = block_x * factor_x + ix;
-          int block_yy = block_y * factor_y + iy;
-          if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
-            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy, candidate_block, comp_mask));
-            max_err = std::max(max_err, err);
-          }
-        }
-      }
-      if (max_err < best_err) {
-        best_err = max_err;
-        best_i = i;
-      }
-    }
-    int idx = input_order[best_i].first;
-    processed_block[idx] = 0;
-    input_order.erase(input_order.begin() + best_i);
-    output_order->push_back({idx, best_err});
-    for (int c = 0; c < 3; ++c) {
-      if (comp_mask & (1 << c)) {
-        img->component(c).SetCoeffBlock(
-            block_x, block_y, &processed_block[c * kDCTBlockSize]);
-      }
-    }
-#ifdef __USE_C__
-    if (best_err >= comparator_->BlockErrorLimit())
-    {   // err队列是逐渐增大的，如果这里已经超过ErrorLimit，后续的计算就是冗余的了
-        break;
-    }
-#endif
+	  float best_err = 1e17f;
+	  int best_i = 0;
+	  for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
+		  input_order.size());
+		  ++i) {
+		  coeff_t candidate_block[kBlockSize];
+		  memcpy(candidate_block, processed_block, sizeof(candidate_block));
+		  const int idx = input_order[i].first;
+		  candidate_block[idx] = 0;
+		  for (int c = 0; c < 3; ++c) {
+			  if (comp_mask & (1 << c)) {
+				  img->component(c).SetCoeffBlock(
+					  block_x, block_y, &candidate_block[c * kDCTBlockSize]);
+			  }
+		  }
+		  float max_err = 0;
+		  for (int iy = 0; iy < factor_y; ++iy) {
+			  for (int ix = 0; ix < factor_x; ++ix) {
+				  int block_xx = block_x * factor_x + ix;
+				  int block_yy = block_y * factor_y + iy;
+				  if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
+					  float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy, candidate_block, comp_mask));
+					  max_err = std::max(max_err, err);
+				  }
+			  }
+		  }
+		  if (max_err < best_err) {
+			  best_err = max_err;
+			  best_i = i;
+		  }
+	  }
+	  int idx = input_order[best_i].first;
+	  processed_block[idx] = 0;
+	  input_order.erase(input_order.begin() + best_i);
+	  output_order->push_back({ idx, best_err });
+	  for (int c = 0; c < 3; ++c) {
+		  if (comp_mask & (1 << c)) {
+			  img->component(c).SetCoeffBlock(
+				  block_x, block_y, &processed_block[c * kDCTBlockSize]);
+		  }
+	  }
+	  if (MODE_CPU_OPT == g_mathMode)
+	  {
+		  if (best_err >= comparator_->BlockErrorLimit())
+		  {   // err队列是逐渐增大的，如果这里已经超过ErrorLimit，后续的计算就是冗余的了
+			  break;
+		  }
+	  }
   }
   // Make the block error values monotonic.
   float min_err = 1e10;
@@ -622,7 +623,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
 #endif
     }
 
-    if (MODE_CPU == g_mathMode || MODE_CHECKCL == g_mathMode)
+    if (MODE_CPU_OPT == g_mathMode || MODE_CPU == g_mathMode || MODE_CHECKCL == g_mathMode)
     {
         output_order_cpu.resize(num_blocks * kBlockSize);
         output_order = output_order_cpu.data();

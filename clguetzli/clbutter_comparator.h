@@ -15,19 +15,35 @@ namespace butteraugli {
             std::vector<std::vector<float>> &xyb1,
             std::vector<float> &result);
 
+		virtual void DiffmapOpsinDynamicsImageOpt(std::vector<std::vector<float>> &xyb0,
+			std::vector<std::vector<float>> &xyb1,
+			std::vector<float> &result);
+
         virtual void BlockDiffMap(const std::vector<std::vector<float> > &rgb0,
             const std::vector<std::vector<float> > &rgb1,
             std::vector<float>* block_diff_dc,
             std::vector<float>* block_diff_ac);
 
+		virtual void BlockDiffMapOpt(const std::vector<std::vector<float> > &rgb0,
+			const std::vector<std::vector<float> > &rgb1,
+			std::vector<float>* block_diff_dc,
+			std::vector<float>* block_diff_ac);
 
         virtual void EdgeDetectorMap(const std::vector<std::vector<float> > &rgb0,
             const std::vector<std::vector<float> > &rgb1,
             std::vector<float>* edge_detector_map);
 
+		virtual void EdgeDetectorMapOpt(const std::vector<std::vector<float> > &rgb0,
+			const std::vector<std::vector<float> > &rgb1,
+			std::vector<float>* edge_detector_map);
+
         virtual void EdgeDetectorLowFreq(const std::vector<std::vector<float> > &rgb0,
             const std::vector<std::vector<float> > &rgb1,
             std::vector<float>* block_diff_ac);
+
+		virtual void EdgeDetectorLowFreqOpt(const std::vector<std::vector<float> > &rgb0,
+			const std::vector<std::vector<float> > &rgb1,
+			std::vector<float>* block_diff_ac);
 
         virtual void CombineChannels(const std::vector<std::vector<float> >& scale_xyb,
             const std::vector<std::vector<float> >& scale_xyb_dc,
@@ -35,6 +51,13 @@ namespace butteraugli {
             const std::vector<float>& block_diff_ac,
             const std::vector<float>& edge_detector_map,
             std::vector<float>* result);
+
+		virtual void CombineChannelsOpt(const std::vector<std::vector<float> >& scale_xyb,
+			const std::vector<std::vector<float> >& scale_xyb_dc,
+			const std::vector<float>& block_diff_dc,
+			const std::vector<float>& block_diff_ac,
+			const std::vector<float>& edge_detector_map,
+			std::vector<float>* result);
     };
 
     void _MinSquareVal(size_t square_size, size_t offset, size_t xsize, size_t ysize, float *values);
