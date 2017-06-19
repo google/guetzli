@@ -19,7 +19,7 @@ ocu_args_d_t& getOcu(void)
     CUcontext ctxt;
     CUstream  stream;
 
-    err = cuCtxCreate(&ctxt, CU_CTX_SCHED_BLOCKING_SYNC, dev);
+    err = cuCtxCreate(&ctxt, CU_CTX_SCHED_AUTO, dev);
     LOG_CU_RESULT(err);
 
     char name[1024];
