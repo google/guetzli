@@ -7,21 +7,23 @@
 
 #include "cuguetzli.h"
 
-#ifdef __USE_DOUBLE_AS_FLOAT__
-#define double float
-#endif
-
 enum MATH_MODE
 {
-    MODE_CPU = 0,
+	MODE_CPU = 0,
 	MODE_CPU_OPT,
-    MODE_OPENCL,
-    MODE_CUDA,
-    MODE_CHECKCL,
-    MODE_CHECKCUDA
+	MODE_OPENCL,
+	MODE_CUDA,
+	MODE_CHECKCL,
+	MODE_CHECKCUDA
 };
 
 extern MATH_MODE g_mathMode;
+
+#ifdef __USE_OPENCL__
+
+#ifdef __USE_DOUBLE_AS_FLOAT__
+#define double float
+#endif
 
 void clOpsinDynamicsImage(
     float *r, float *g, float *b, 
@@ -175,3 +177,5 @@ namespace guetzli {
         std::vector<std::vector<float>> rgb_orig_opsin;
     };
 }
+
+#endif

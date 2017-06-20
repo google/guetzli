@@ -7,6 +7,8 @@
 #include "ocl.h"
 #include "ocu.h"
 
+#ifdef __USE_OPENCL__
+
 #define FLOAT_COMPARE(a, b, c)  floatCompare((a), (b), (c), __FUNCTION__, __LINE__ )
 
 int floatCompare(const float* a, const float* b, size_t size, const char* szFunc, int line)
@@ -447,3 +449,5 @@ void tclOpsinDynamicsImage(const float* r, const float* g, const float* b, size_
 
 	ocl.releaseMemChannels(rgb);
 }
+
+#endif
