@@ -3,6 +3,8 @@
 #include <vector>
 #include "utils.h"
 
+#ifdef __USE_OPENCL__
+
 using namespace std;
 
 int g_idvec[10] = { 0 };
@@ -61,7 +63,19 @@ namespace guetzli
 
     void ButteraugliComparatorEx::Compare(const OutputImage& img)
     {
-        if (MODE_OPENCL == g_mathMode)
+		if (MODE_CPU_OPT == g_mathMode)
+		{
+			std::vector<std::vector<float> > rgb0 = rgb_orig_opsin;
+
+			std::vector<std::vector<float> > rgb(3, std::vector<float>(width_ * height_));
+			img.ToLinearRGB(&rgb);
+			::butteraugli::OpsinDynamicsImage(width_, height_, rgb);
+			std::vector<float>().swap(distmap_);
+			comparator_.DiffmapOpsinDynamicsImage(rgb0, rgb, distmap_);
+			distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
+		}
+#ifdef __USE_OPENCL__
+        else if (MODE_OPENCL == g_mathMode)
         {
             std::vector<std::vector<float> > rgb1(3, std::vector<float>(width_ * height_));
             img.ToLinearRGB(&rgb1);
@@ -92,6 +106,7 @@ namespace guetzli
 
             distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
         }
+#endif
 #ifdef __USE_CUDA__
         else if (MODE_CUDA == g_mathMode)
         {
@@ -123,17 +138,6 @@ namespace guetzli
             distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
         }
 #endif
-        else if (MODE_CPU_OPT == g_mathMode)
-        {
-			std::vector<std::vector<float> > rgb0 = rgb_orig_opsin;
-
-			std::vector<std::vector<float> > rgb(3, std::vector<float>(width_ * height_));
-			img.ToLinearRGB(&rgb);
-			::butteraugli::OpsinDynamicsImage(width_, height_, rgb);
-			std::vector<float>().swap(distmap_);
-			comparator_.DiffmapOpsinDynamicsImage(rgb0, rgb, distmap_);
-			distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
-        }
 		else
 		{
 			ButteraugliComparator::Compare(img);
@@ -240,3 +244,5 @@ namespace guetzli
         return err;
     }
 }
+
+#endif

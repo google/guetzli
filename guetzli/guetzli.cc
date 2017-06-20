@@ -29,6 +29,9 @@
 #include "guetzli/quality.h"
 #include "guetzli/stats.h"
 #include "clguetzli/clguetzli.h"
+#ifdef __USE_GPERFTOOLS__
+#include <google/profiler.h>
+#endif
 
 namespace {
 
@@ -226,8 +229,10 @@ void Usage() {
       "                 Default value is %d.\n"
       "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
       "                 the limit. Default limit is %d MB.\n"
+#ifdef __USE_OPENCL__
 	  "  --opencl     - Use OpenCL\n"
       "  --checkcl    - Check OpenCL result\n"
+#endif
 	  "  --c          - Use c opt version\n"
 #ifdef __USE_CUDA__
 	  "  --cuda       - Use CUDA\n"	 
@@ -240,6 +245,9 @@ void Usage() {
 }  // namespace
 
 int main(int argc, char** argv) {
+#ifdef __USE_GPERFTOOLS__
+	ProfilerStart("guetzli.prof");
+#endif
   std::set_terminate(TerminateHandler);
 
   int verbose = 0;
@@ -265,12 +273,14 @@ int main(int argc, char** argv) {
     } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
       memlimit_mb = -1;
 	}
+#ifdef __USE_OPENCL__
 	else if (!strcmp(argv[opt_idx], "--opencl")) {
 		g_mathMode = MODE_OPENCL;
 	}
     else if (!strcmp(argv[opt_idx], "--checkcl")) {
         g_mathMode = MODE_CHECKCL;
     }
+#endif
 	else if (!strcmp(argv[opt_idx], "--c"))
 	{
 		g_mathMode = MODE_CPU_OPT;
@@ -351,5 +361,8 @@ int main(int argc, char** argv) {
   }
 
   WriteFileOrDie(argv[opt_idx + 1], out_data);
+#ifdef __USE_GPERFTOOLS__
+  ProfilerStop();
+#endif
   return 0;
 }

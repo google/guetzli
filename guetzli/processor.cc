@@ -569,11 +569,14 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
 
     std::vector<CoeffData> output_order_gpu;
     std::vector<CoeffData> output_order_cpu;
-    CoeffData * output_order = NULL;
-    ButteraugliComparatorEx * comp = (ButteraugliComparatorEx*)comparator_;
+
+	CoeffData * output_order = NULL;
 
     if (MODE_OPENCL == g_mathMode || MODE_CUDA == g_mathMode)
     {
+#ifdef __USE_OPENCL__
+		ButteraugliComparatorEx * comp = (ButteraugliComparatorEx*)comparator_;
+
         channel_info orig_channel[3];
         channel_info mayout_channel[3];
 
@@ -606,6 +609,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
                 comp_mask,
                 comp->BlockErrorLimit());
         }
+#endif
 #ifdef __USE_CUDA__
         else
         {
@@ -622,8 +626,11 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
         }
 #endif
     }
-
+#ifdef __USE_OPENCL__
     if (MODE_CPU_OPT == g_mathMode || MODE_CPU == g_mathMode || MODE_CHECKCL == g_mathMode)
+#else
+	if (MODE_CPU_OPT == g_mathMode || MODE_CPU == g_mathMode)
+#endif
     {
         output_order_cpu.resize(num_blocks * kBlockSize);
         output_order = output_order_cpu.data();
@@ -1038,9 +1045,15 @@ bool Process(const Params& params, ProcessStats* stats,
   }
   std::unique_ptr<ButteraugliComparator> comparator;
   if (jpg.width >= 32 && jpg.height >= 32) {
+#ifdef __USE_OPENCL__
     comparator.reset(
         new ButteraugliComparatorEx(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
+#else
+	comparator.reset(
+		new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+			params.butteraugli_target, stats));
+#endif
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
   *jpg_out = out.jpeg_data;
@@ -1062,9 +1075,15 @@ bool Process(const Params& params, ProcessStats* stats,
   }
   std::unique_ptr<ButteraugliComparator> comparator;
   if (jpg.width >= 32 && jpg.height >= 32) {
+#ifdef __USE_OPENCL__
     comparator.reset(
         new ButteraugliComparatorEx(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
+#else
+	  comparator.reset(
+		new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+			params.butteraugli_target, stats));
+#endif
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
   *jpg_out = out.jpeg_data;

@@ -2,6 +2,8 @@
 #include <string.h>
 #include <vector>
 
+#ifdef __USE_OPENCL__
+
 ocl_args_d_t& getOcl(void)
 {
     static bool bInit = false;
@@ -544,3 +546,5 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType)
 
 	return CL_SUCCESS;
 }
+
+#endif

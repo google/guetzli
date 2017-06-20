@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "clguetzli.cl.h"
 
+#ifdef __USE_OPENCL__
+
 // Macros for OpenCL versions
 #define OPENCL_VERSION_1_2  1.2f
 #define OPENCL_VERSION_2_0  2.0f
@@ -61,3 +63,4 @@ struct ocl_args_d_t
 	float            compilerVersion;   // hold the device OpenCL C version (default. 1.2)
 };
 
+#endif
