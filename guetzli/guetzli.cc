@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
   int verbose = 0;
   int quality = kDefaultJPEGQuality;
   int memlimit_mb = kDefaultMemlimitMB;
-
+  guetzli::Params params;
   int opt_idx = 1;
   for(;opt_idx < argc;opt_idx++) {
     if (strnlen(argv[opt_idx], 2) < 2 || argv[opt_idx][0] != '-' || argv[opt_idx][1] != '-')
@@ -254,6 +254,7 @@ int main(int argc, char** argv) {
       memlimit_mb = atoi(argv[opt_idx]);
     } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
       memlimit_mb = -1;
+      params.nomemlimit = true;
     } else if (!strcmp(argv[opt_idx], "--")) {
       opt_idx++;
       break;
@@ -270,7 +271,7 @@ int main(int argc, char** argv) {
   std::string in_data = ReadFileOrDie(argv[opt_idx]);
   std::string out_data;
 
-  guetzli::Params params;
+  
   params.butteraugli_target = static_cast<float>(
       guetzli::ButteraugliScoreForQuality(quality));
 
