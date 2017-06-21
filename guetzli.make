@@ -15,14 +15,14 @@ ifeq ($(config),release)
   TARGETDIR = bin/Release
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Release/guetzli
-  DEFINES += -D__USE_CUDA__
+  DEFINES += -D__USE_OPENCL__ -D__USE_CUDA__ -D__USE_GPERFTOOLS__
   INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -O3 -g -std=c++11 `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -lOpenCL -lcuda
+  LIBS += -lOpenCL -lcuda -lprofiler -lunwind
   LDDEPS +=
   ALL_LDFLAGS += $(LDFLAGS) -L"$(OPENCL_LIB)" `pkg-config --libs libpng || libpng-config --ldflags`
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
@@ -42,14 +42,14 @@ ifeq ($(config),debug)
   TARGETDIR = bin/Debug
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Debug/guetzli
-  DEFINES += -D__USE_CUDA__
+  DEFINES += -D__USE_OPENCL__ -D__USE_CUDA__ -D__USE_GPERFTOOLS__
   INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -lOpenCL -lcuda
+  LIBS += -lOpenCL -lcuda -lprofiler -lunwind
   LDDEPS +=
   ALL_LDFLAGS += $(LDFLAGS) -L"$(OPENCL_LIB)" `pkg-config --libs libpng || libpng-config --ldflags`
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
@@ -70,6 +70,7 @@ OBJECTS := \
 	$(OBJDIR)/clguetzli.o \
 	$(OBJDIR)/clguetzli_test.o \
 	$(OBJDIR)/cuguetzli.o \
+	$(OBJDIR)/cumem_pool.o \
 	$(OBJDIR)/ocl.o \
 	$(OBJDIR)/ocu.o \
 	$(OBJDIR)/utils.o \
@@ -164,6 +165,9 @@ $(OBJDIR)/clguetzli_test.o: clguetzli/clguetzli_test.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/cuguetzli.o: clguetzli/cuguetzli.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/cumem_pool.o: clguetzli/cumem_pool.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/ocl.o: clguetzli/ocl.cpp
