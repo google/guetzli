@@ -148,10 +148,10 @@ bool ProcessSOF(const uint8_t* data, const size_t len,
       c->height_in_blocks = jpg->MCU_rows * c->v_samp_factor;
       const uint64_t num_blocks =
           static_cast<uint64_t>(c->width_in_blocks) * c->height_in_blocks;
-      if (num_blocks > (1ull << 21)) {
+      if (num_blocks > (1ull << 21) && memlimit_mb != -1) {
         // Refuse to allocate more than 1 GB of memory for the coefficients,
         // that is 2M blocks x 64 coeffs x 2 bytes per coeff x max 4 components.
-        // TODO(user) Add this limit to a GuetzliParams struct.
+        // Ignore if --nomemlimit is set 
         fprintf(stderr, "Image too large.\n");
         jpg->error = JPEG_IMAGE_TOO_LARGE;
         return false;
