@@ -29,7 +29,7 @@ struct ocu_args_d_t
     CUmodule    mod;
     CUcontext   ctxt;
     CUdevice    dev;
-    ocu_mem_pool_t mem_pool;
+    cu_mem_pool_t mem_pool;
 };
 
 
