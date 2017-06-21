@@ -119,11 +119,11 @@ namespace guetzli
             distmap_.resize(xsize * ysize);
 
             size_t channel_size = xsize * ysize * sizeof(float);
-            ocu_args_d_t &ocl = getOcu();
-            ocu_channels xyb0 = ocl.allocMemChannels(channel_size, rgb_orig_opsin[0].data(), rgb_orig_opsin[1].data(), rgb_orig_opsin[2].data());
-            ocu_channels xyb1 = ocl.allocMemChannels(channel_size, rgb1[0].data(), rgb1[1].data(), rgb1[2].data());
+            ocu_args_d_t &ocu = getOcu();
+            ocu_channels xyb0 = ocu.allocMemChannels(channel_size, rgb_orig_opsin[0].data(), rgb_orig_opsin[1].data(), rgb_orig_opsin[2].data());
+            ocu_channels xyb1 = ocu.allocMemChannels(channel_size, rgb1[0].data(), rgb1[1].data(), rgb1[2].data());
             
-            cu_mem mem_result = ocl.allocMem(channel_size);
+            cu_mem mem_result = ocu.allocMem(channel_size);
 
             cuOpsinDynamicsImageEx(xyb1, xsize, ysize);
 
@@ -131,9 +131,9 @@ namespace guetzli
 
             cuMemcpyDtoH(distmap_.data(), mem_result, channel_size);
 
-            cuMemFree(mem_result);
-            ocl.releaseMemChannels(xyb0);
-            ocl.releaseMemChannels(xyb1);
+            ocu.releaseMem(mem_result);
+            ocu.releaseMemChannels(xyb0);
+            ocu.releaseMemChannels(xyb1);
 
             distance_ = ::butteraugli::ButteraugliScoreFromDiffmap(distmap_);
         }

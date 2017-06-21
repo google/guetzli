@@ -108,6 +108,7 @@ else
     ocu.commandQueue = stream;
     ocu.mod = mod;
     ocu.ctxt = ctxt;
+    ocu.mem_pool.commandQueue = ocu.commandQueue;
 
     return ocu;
 }
@@ -125,23 +126,18 @@ ocu_args_d_t::~ocu_args_d_t()
 {
     cuModuleUnload(mod);
     cuCtxDestroy(ctxt);
+    mem_pool.drain();
 //    cuStreamDestroy(commandQueue);
 }
 
 cu_mem ocu_args_d_t::allocMem(size_t s, const void *init)
 {
-    cu_mem mem;
-    cuMemAlloc(&mem, s);
-    if (init)
-    {
-        cuMemcpyHtoDAsync(mem, init, s, commandQueue);
-    }
-    else
-    {
-        cuMemsetD8Async(mem, 0, s, commandQueue);
-    }
+    return mem_pool.allocMem(s, init);
+}
 
-    return mem;
+void ocu_args_d_t::releaseMem(cu_mem mem)
+{
+    mem_pool.releaseMem(mem);
 }
 
 ocu_channels ocu_args_d_t::allocMemChannels(size_t s, const void *c0, const void *c1, const void *c2)
@@ -161,7 +157,7 @@ void ocu_args_d_t::releaseMemChannels(ocu_channels &rgb)
 {
     for (int i = 0; i < 3; i++)
     {
-        cuMemFree(rgb.ch[i]);
+        releaseMem(rgb.ch[i]);
         rgb.ch[i] = NULL;
     }
 }

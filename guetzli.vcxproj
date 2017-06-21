@@ -144,7 +144,7 @@
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
-      <PreprocessorDefinitions>__USE_CUDA__;PERFTOOLS_DLL_DECL=;ENABLE_OPENCL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__USE_CUDA__;__USE_OPENCL__;PERFTOOLS_DLL_DECL=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -162,6 +162,9 @@
     <CustomBuild>
       <Message>CUDA CU</Message>
     </CustomBuild>
+    <Intel_OpenCL_Build_Rules>
+      <Device>3</Device>
+    </Intel_OpenCL_Build_Rules>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -188,7 +191,7 @@
       <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>PERFTOOLS_DLL_DECL=;ENABLE_OPENCL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PERFTOOLS_DLL_DECL=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -206,6 +209,7 @@
     <ClInclude Include="clguetzli\clguetzli.h" />
     <ClInclude Include="clguetzli\clguetzli_test.h" />
     <ClInclude Include="clguetzli\cuguetzli.h" />
+    <ClInclude Include="clguetzli\cumem_pool.h" />
     <ClInclude Include="clguetzli\ocl.h" />
     <ClInclude Include="clguetzli\ocu.h" />
     <ClInclude Include="clguetzli\utils.h" />
@@ -305,6 +309,7 @@
     <ClCompile Include="clguetzli\clguetzli.cpp" />
     <ClCompile Include="clguetzli\clguetzli_test.cpp" />
     <ClCompile Include="clguetzli\cuguetzli.cpp" />
+    <ClCompile Include="clguetzli\cumem_pool.cpp" />
     <ClCompile Include="clguetzli\ocl.cpp" />
     <ClCompile Include="clguetzli\ocu.cpp" />
     <ClCompile Include="clguetzli\utils.cpp" />
