@@ -2,29 +2,31 @@
 
 #ifdef __USE_CUDA__
 
-bool compare_size(const ocu_mem_block_t& first, const ocu_mem_block_t& second)
+bool compare_size(const cu_mem_block_t& first, const cu_mem_block_t& second)
 {
     return (first.size < second.size);
 }
 
-ocu_mem_pool_t::ocu_mem_pool_t()
-    :alloc_count(0)
+cu_mem_pool_t::cu_mem_pool_t()
+    : alloc_count(0)
+    , total_mem_request(0)
 {
 
 }
 
-ocu_mem_pool_t::~ocu_mem_pool_t()
+cu_mem_pool_t::~cu_mem_pool_t()
 {
 
 }
 
-cu_mem ocu_mem_pool_t::allocMem(size_t s, const void *init)
+cu_mem cu_mem_pool_t::allocMem(size_t s, const void *init)
 {
     alloc_count++;
-    ocu_mem_block_t *block_candidate = NULL;
-    for (std::list<ocu_mem_block_t>::iterator iter = mem_pool.begin(); iter != mem_pool.end(); iter++)
+    total_mem_request += s;
+    cu_mem_block_t *block_candidate = NULL;
+    for (std::list<cu_mem_block_t>::iterator iter = mem_pool.begin(); iter != mem_pool.end(); iter++)
     {
-        ocu_mem_block_t *block = &(*iter);
+        cu_mem_block_t *block = &(*iter);
         if (block->status == 0 && block->size >= s) {
             block_candidate = block;
             break;
@@ -36,12 +38,11 @@ cu_mem ocu_mem_pool_t::allocMem(size_t s, const void *init)
         block_candidate->used = s;
 
         mem = block_candidate->mem;
-        //LogError("mem_pool reuse mem:%lld, used:%lld.\r\n", block_candidate->size, block_candidate->used);
     }
     else {
         cu_mem new_mem;
         cuMemAlloc(&new_mem, s);
-        ocu_mem_block_t mem_block;
+        cu_mem_block_t mem_block;
         mem_block.size = s;
         mem_block.used = s;
         mem_block.mem = new_mem;
@@ -50,7 +51,6 @@ cu_mem ocu_mem_pool_t::allocMem(size_t s, const void *init)
         mem_pool.sort(compare_size);
 
         mem = new_mem;
-        //LogError("mem_pool new mem:%lld, used:%lld.\r\n", mem_block.size, mem_block.used);
     }
     if (init)
     {
@@ -62,27 +62,14 @@ cu_mem ocu_mem_pool_t::allocMem(size_t s, const void *init)
     }
 
     return mem;
-
-    //cu_mem mem;
-    //cuMemAlloc(&mem, s);
-    //if (init)
-    //{
-    //    cuMemcpyHtoDAsync(mem, init, s, commandQueue);
-    //}
-    //else
-    //{
-    //    cuMemsetD8Async(mem, 0, s, commandQueue);
-    //}
-
-    //return mem;
 }
 
-void ocu_mem_pool_t::releaseMem(cu_mem mem)
+void cu_mem_pool_t::releaseMem(cu_mem mem)
 {
-    ocu_mem_block_t *block_candidate = NULL;
-    for (std::list<ocu_mem_block_t>::iterator iter = mem_pool.begin(); iter != mem_pool.end(); iter++)
+    cu_mem_block_t *block_candidate = NULL;
+    for (std::list<cu_mem_block_t>::iterator iter = mem_pool.begin(); iter != mem_pool.end(); iter++)
     {
-        ocu_mem_block_t *block = &(*iter);
+        cu_mem_block_t *block = &(*iter);
         if (block->mem == mem) {
             block_candidate = block;
             break;
@@ -96,16 +83,14 @@ void ocu_mem_pool_t::releaseMem(cu_mem mem)
         cuMemFree(mem);
         LogError("mem_pool release mem:%lld can not be found.\r\n", mem);
     }
-
-    //LogError("mem_pool release mem:%lld, used:%lld.\r\n", block_candidate->size, block_candidate->used);
 }
 
-void ocu_mem_pool_t::drain()
+void cu_mem_pool_t::drain()
 {
     size_t total_mem = 0;
     size_t total_block = mem_pool.size();
-    ocu_mem_block_t *block_candidate = NULL;
-    for (std::list<ocu_mem_block_t>::iterator iter = mem_pool.begin(); iter != mem_pool.end(); iter++)
+    cu_mem_block_t *block_candidate = NULL;
+    for (std::list<cu_mem_block_t>::iterator iter = mem_pool.begin(); iter != mem_pool.end(); iter++)
     {
         if (iter->status == 0) {
             total_mem += iter->size;
@@ -114,7 +99,7 @@ void ocu_mem_pool_t::drain()
         }
     }
 
-    LogError("mem_pool has %u blocks, and total memory is:%f kb, total alloc count:%d.\r\n", total_block, (float)(total_mem) / 1024, alloc_count);
+    LogError("mem_pool has %u blocks, and total pool memory is:%f kb, total memory request:%f kb, total alloc count:%d.\r\n", total_block, (float)(total_mem) / 1024, (float)(total_mem_request) / 1024, alloc_count);
 }
 
 #endif
