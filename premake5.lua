@@ -42,10 +42,10 @@ workspace "guetzli"
   project "guetzli"
     kind "ConsoleApp"
     filter "action:gmake"
-	  defines { "__USE_CUDA__" }
+	  defines { "__USE_OPENCL__", "__USE_CUDA__", "__USE_GPERFTOOLS__" }
       linkoptions { "`pkg-config --libs libpng || libpng-config --ldflags`" }
       buildoptions { "`pkg-config --cflags libpng || libpng-config --cflags`" }
-      links { "OpenCL", "cuda" }
+      links { "OpenCL", "cuda", "profiler", "unwind" }
     filter "action:vs*"
       links { "shlwapi" }
     filter {}
