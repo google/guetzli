@@ -70,6 +70,7 @@ OBJECTS := \
 	$(OBJDIR)/clguetzli.o \
 	$(OBJDIR)/clguetzli_test.o \
 	$(OBJDIR)/cuguetzli.o \
+	$(OBJDIR)/cumem_pool.o \
 	$(OBJDIR)/ocl.o \
 	$(OBJDIR)/ocu.o \
 	$(OBJDIR)/utils.o \
@@ -163,6 +164,9 @@ $(OBJDIR)/clguetzli_test.o: clguetzli/clguetzli_test.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/cuguetzli.o: clguetzli/cuguetzli.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/cumem_pool.o: clguetzli/cumem_pool.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/ocl.o: clguetzli/ocl.cpp
