@@ -34,6 +34,7 @@ struct Params {
   bool use_silver_screen = false;
   int zeroing_greedy_lookahead = 3;
   bool new_zeroing_model = true;
+  bool nomemlimit = false;
 };
 
 bool Process(const Params& params, ProcessStats* stats,
