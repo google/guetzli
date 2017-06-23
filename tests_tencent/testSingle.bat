@@ -4,39 +4,55 @@
 @set exe="guetzli.exe"
 @set ns=0
 
-@set file=%1
-@set q=95
+@set input_file=%1
+@set q=%2
 
-if "%file%"=="" (
-	set file=timg
+if "%input_file%"=="" (
+	set input_file=1.jpg
+)
+
+if "%q%"=="" (
+	set q=95
+)
+
+for %%i in ("%input_file%") do (
+	set extName=%%~xi
+	set fileName=%%~ni
+	set path=%%~dpi
 )
 
 call :time2sec %time%
 set time1=%ns%
-%exe% --cuda --quality %q% %file%.jpg %file%.%q%.cuda.jpg
+set output_file=%path%%fileName%.cuda%extName%
+	%exe% --cuda --quality %q% %input_file% %output_file%
 call :time2sec %time%
 set time2=%ns%
 set /a  diff=%time2%  - %time1%
-calc_ssim_psnr -i %file%.jpg -o %file%.%q%.cuda.jpg
+	calc_ssim_psnr -i %file%.jpg -o %output_file%
 echo cuda quality %q% time = %diff%
+echo ---------------------------------------
 
 call :time2sec %time%
 set time1=%ns%
-%exe% --opencl --quality %q% %file%.jpg %file%.%q%.opencl.jpg
+set output_file=%path%%fileName%.opencl%extName%
+	%exe% --opencl --quality %q% %input_file% %output_file%
 call :time2sec %time%
 set time2=%ns%
 set /a  diff=%time2%  - %time1%
-calc_ssim_psnr -i %file%.jpg -o %file%.%q%.opencl.jpg
+	calc_ssim_psnr -i %file%.jpg -o %output_file%
 echo opencl quality %q% time = %diff%
+echo ---------------------------------------
 
 call :time2sec %time%
 set time1=%ns%
-%exe% --quality %q% %file%.jpg %file%.%q%.cout.jpg
+set output_file=%path%%fileName%.cout%extName%
+	%exe% --c --quality %q% %input_file% %output_file%
 call :time2sec %time%
 set time2=%ns%
 set /a  diff=%time2%  - %time1%
-calc_ssim_psnr -i %file%.jpg -o %file%.%q%.cout.jpg
+	calc_ssim_psnr -i %file%.jpg -o %output_file%
 echo c quality %q% time = %diff%
+echo ---------------------------------------
 
 goto :eof
  
@@ -46,5 +62,6 @@ set tt=%1
 set hh=%tt:~0,2%
 set mm=%tt:~3,2%
 set ss=%tt:~6,2%
-set /a ns=(%hh%*60+%mm%)*60+%ss%
+set ms=%tt:~9,2%
+set /a ns=((%hh%*60+%mm%)*60+%ss%)*1000+ms
 goto :eof
