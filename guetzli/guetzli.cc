@@ -28,6 +28,10 @@
 #include "guetzli/processor.h"
 #include "guetzli/quality.h"
 #include "guetzli/stats.h"
+#if _WIN32 | _WIN64
+#include <fcntl.h>
+#include <io.h>
+#endif
 
 namespace {
 
@@ -160,6 +164,12 @@ std::string ReadFileOrDie(const char* filename) {
     exit(1);
   }
 
+#if _WIN32 | _WIN64
+  if (read_from_stdin) {
+    _setmode(_fileno(stdin), _O_BINARY);
+  }
+#endif
+
   std::string result;
   off_t buffer_size = 8192;
 
@@ -196,6 +206,12 @@ void WriteFileOrDie(const char* filename, const std::string& contents) {
     perror("Can't open output file for writing");
     exit(1);
   }
+
+#if _WIN32 | _WIN64
+  if (write_to_stdout) {
+    _setmode(_fileno(stdout), _O_BINARY);
+  }
+#endif
   if (fwrite(contents.data(), 1, contents.size(), f) != contents.size()) {
     perror("fwrite");
     exit(1);
@@ -204,6 +220,11 @@ void WriteFileOrDie(const char* filename, const std::string& contents) {
     perror("fclose");
     exit(1);
   }
+#if _WIN32 | _WIN64
+  if (write_to_stdout) {
+    _setmode(_fileno(stdout), _O_TEXT);
+  }
+#endif
 }
 
 void TerminateHandler() {
