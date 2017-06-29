@@ -209,7 +209,7 @@ void WriteFileOrDie(const char* filename, const std::string& contents) {
 
 #if _WIN32 | _WIN64
   if (write_to_stdout) {
-    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(f), _O_BINARY);
   }
 #endif
   if (fwrite(contents.data(), 1, contents.size(), f) != contents.size()) {
@@ -220,11 +220,6 @@ void WriteFileOrDie(const char* filename, const std::string& contents) {
     perror("fclose");
     exit(1);
   }
-#if _WIN32 | _WIN64
-  if (write_to_stdout) {
-    _setmode(_fileno(stdout), _O_TEXT);
-  }
-#endif
 }
 
 void TerminateHandler() {
