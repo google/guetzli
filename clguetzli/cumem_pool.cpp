@@ -27,14 +27,14 @@ cu_mem cu_mem_pool_t::allocMem(size_t s, const void *init)
     for (std::list<cu_mem_block_t>::iterator iter = mem_pool.begin(); iter != mem_pool.end(); iter++)
     {
         cu_mem_block_t *block = &(*iter);
-        if (block->status == 0 && block->size >= s) {
+        if (block->status == MBS_IDLE && block->size >= s) {
             block_candidate = block;
             break;
         }
     }
     cu_mem mem = NULL;
     if (block_candidate != NULL) {
-        block_candidate->status = 1;
+        block_candidate->status = MBS_BUSY;
         block_candidate->used = s;
 
         mem = block_candidate->mem;
@@ -46,7 +46,7 @@ cu_mem cu_mem_pool_t::allocMem(size_t s, const void *init)
         mem_block.size = s;
         mem_block.used = s;
         mem_block.mem = new_mem;
-        mem_block.status = 1;
+        mem_block.status = MBS_BUSY;
         mem_pool.push_back(mem_block);
         mem_pool.sort(compare_size);
 
@@ -76,7 +76,7 @@ void cu_mem_pool_t::releaseMem(cu_mem mem)
         }
     }
     if (block_candidate != NULL) {
-        block_candidate->status = 0;
+        block_candidate->status = MBS_IDLE;
         block_candidate->used = 0;
     }
     else {
@@ -92,7 +92,7 @@ void cu_mem_pool_t::drain()
     cu_mem_block_t *block_candidate = NULL;
     for (std::list<cu_mem_block_t>::iterator iter = mem_pool.begin(); iter != mem_pool.end(); iter++)
     {
-        if (iter->status == 0) {
+        if (iter->status == MBS_IDLE) {
             total_mem += iter->size;
             cuMemFree(iter->mem);
             iter = mem_pool.erase(iter);
