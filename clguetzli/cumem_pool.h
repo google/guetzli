@@ -6,16 +6,22 @@
 #include <cuda.h>
 #include "ocl.h"
 
+enum mem_block_status
+{
+    MBS_IDLE,
+    MBS_BUSY,
+};
+
 struct cu_mem_block_t
 {
     cu_mem_block_t()
-        :status(0)
+        :status(MBS_IDLE)
         , used(0)
     {}
     ~cu_mem_block_t()
     {}
 
-    int status;
+    mem_block_status status;
     size_t size;
     size_t used;
     cu_mem mem;
