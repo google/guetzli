@@ -33,6 +33,8 @@
 #include "guetzli/quantize.h"
 #include "clguetzli/clguetzli.h"
 
+#include "third_party/libjpeg/jpeglib.h"
+
 namespace guetzli {
 
 namespace {
@@ -1033,10 +1035,7 @@ bool Process(const Params& params, ProcessStats* stats,
   }
   std::vector<uint8_t> rgb = DecodeJpegToRGB(jpg);
   if (rgb.empty()) {
-    fprintf(stderr, "Unsupported input JPEG file (e.g. unsupported "
-            "downsampling mode).\nPlease provide the input image as "
-            "a PNG file.\n");
-    return false;
+    return ProcessUnsupportedJpegData(params,stats,data,jpg_out);
   }
   GuetzliOutput out;
   ProcessStats dummy_stats;
@@ -1050,14 +1049,48 @@ bool Process(const Params& params, ProcessStats* stats,
         new ButteraugliComparatorEx(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
 #else
-	comparator.reset(
-		new ButteraugliComparator(jpg.width, jpg.height, &rgb,
-			params.butteraugli_target, stats));
+   comparator.reset(
+       new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+           params.butteraugli_target, stats));
 #endif
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
   *jpg_out = out.jpeg_data;
   return ok;
+}
+
+bool ProcessUnsupportedJpegData(const Params& params, ProcessStats* stats,
+	const std::string& data,
+	std::string* jpg_out) {
+	struct jpeg_decompress_struct cinfo;
+	struct jpeg_error_mgr jerr;
+	cinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_decompress(&cinfo);
+	jpeg_mem_src(&cinfo, (unsigned char*)data.c_str(), data.length());
+
+	int rc = jpeg_read_header(&cinfo, TRUE);
+	if (rc != 1) {
+		fprintf(stderr, "File does not seem to be a normal JPEG\n");
+		exit(EXIT_FAILURE);
+	}
+
+	cinfo.out_color_space = JCS_RGB; //force RGB output
+	jpeg_start_decompress(&cinfo);
+	int xsize = cinfo.output_width;
+	int ysize = cinfo.output_height;
+	int pixel_size = cinfo.output_components;
+	unsigned long bmp_size = xsize * ysize * pixel_size;
+	unsigned char *bmp_buffer = (unsigned char*)malloc(bmp_size);
+	int row_stride = cinfo.output_width * cinfo.output_components;
+	JSAMPARRAY buffer = (*cinfo.mem->alloc_sarray)
+		((j_common_ptr)&cinfo, JPOOL_IMAGE, row_stride, 1);
+	while (cinfo.output_scanline < cinfo.output_height) {
+		unsigned char *buffer_array[1];
+		buffer_array[0] = bmp_buffer + (cinfo.output_scanline) * row_stride;
+		jpeg_read_scanlines(&cinfo, buffer_array, 1);
+	}
+	std::vector<uint8_t> temp_rgb(bmp_buffer, bmp_buffer + bmp_size);
+	return Process(params, stats, temp_rgb, xsize, ysize, jpg_out);
 }
 
 bool Process(const Params& params, ProcessStats* stats,
