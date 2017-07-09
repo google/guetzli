@@ -31,6 +31,7 @@ workspace "guetzli"
         "guetzli/*.h",
         "third_party/butteraugli/butteraugli/butteraugli.cc",
         "third_party/butteraugli/butteraugli/butteraugli.h",
+        "third_party/libjpeg/*.h",
         "clguetzli/*.cpp",
         "clguetzli/*.h"
       }
@@ -45,7 +46,7 @@ workspace "guetzli"
 	  defines { "__USE_OPENCL__", "__USE_CUDA__", "__USE_GPERFTOOLS__" }
       linkoptions { "`pkg-config --libs libpng || libpng-config --ldflags`" }
       buildoptions { "`pkg-config --cflags libpng || libpng-config --cflags`" }
-      links { "OpenCL", "cuda", "profiler", "unwind" }
+      links { "OpenCL", "cuda", "profiler", "unwind", "jpeg" }
     filter "action:vs*"
       links { "shlwapi" }
     filter {}
@@ -55,6 +56,7 @@ workspace "guetzli"
         "guetzli/*.h",
         "third_party/butteraugli/butteraugli/butteraugli.cc",
         "third_party/butteraugli/butteraugli/butteraugli.h",
+        "third_party/libjpeg/*.h",
         "clguetzli/*.cpp",
         "clguetzli/*.h"
       }
