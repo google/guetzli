@@ -22,7 +22,7 @@ ifeq ($(config),release)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -O3 -g -std=c++11 `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -lOpenCL -lcuda -lprofiler -lunwind
+  LIBS += -lOpenCL -lcuda -lprofiler -lunwind -ljpeg
   LDDEPS +=
   ALL_LDFLAGS += $(LDFLAGS) -L"$(OPENCL_LIB)" `pkg-config --libs libpng || libpng-config --ldflags`
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
@@ -49,7 +49,7 @@ ifeq ($(config),debug)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -lOpenCL -lcuda -lprofiler -lunwind
+  LIBS += -lOpenCL -lcuda -lprofiler -lunwind -ljpeg
   LDDEPS +=
   ALL_LDFLAGS += $(LDFLAGS) -L"$(OPENCL_LIB)" `pkg-config --libs libpng || libpng-config --ldflags`
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
