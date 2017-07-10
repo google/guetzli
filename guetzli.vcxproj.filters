@@ -22,6 +22,9 @@
     <Filter Include="clguetzli">
       <UniqueIdentifier>{64847a89-ca39-4556-ba0e-d6875c4d39ca}</UniqueIdentifier>
     </Filter>
+    <Filter Include="third_party\libjpeg">
+      <UniqueIdentifier>{1ac67559-7330-41c7-9a6d-10c3abee000e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="guetzli\butteraugli_comparator.h">
@@ -170,6 +173,15 @@
     </ClInclude>
     <ClInclude Include="clguetzli\cumem_pool.h">
       <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\libjpeg\jconfig.h">
+      <Filter>third_party\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\libjpeg\jmorecfg.h">
+      <Filter>third_party\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="third_party\libjpeg\jpeglib.h">
+      <Filter>third_party\libjpeg</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
