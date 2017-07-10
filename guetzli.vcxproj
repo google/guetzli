@@ -154,7 +154,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <ForceSymbolReferences>
       </ForceSymbolReferences>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32;C:\Users\tongzhan\GitHub\guetzli\third_party\libjpeg\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32;third_party\libjpeg\x86</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -171,7 +171,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\gperftools-gperftools-2.5\src;third_party\gperftools-gperftools-2.5\src\windows;third_party\libjpeg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__USE_CUDA__;__USE_OPENCL__;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -179,9 +179,9 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;jpeg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;third_party\libjpeg\x64</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
@@ -189,7 +189,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(CUDA_PATH)\include;third_party\butteraugli;third_party\libpng;third_party\zlib;third_party\libjpeg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__USE_CUDA__;__USE_OPENCL__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -197,11 +197,11 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;OpenCL.lib;shlwapi.lib;jpeg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <ForceSymbolReferences>
       </ForceSymbolReferences>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32;third_party\libjpeg\x86</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent />
     <Intel_OpenCL_Build_Rules>
@@ -244,6 +244,9 @@
     <ClInclude Include="guetzli\score.h" />
     <ClInclude Include="guetzli\stats.h" />
     <ClInclude Include="third_party\butteraugli\butteraugli\butteraugli.h" />
+    <ClInclude Include="third_party\libjpeg\jconfig.h" />
+    <ClInclude Include="third_party\libjpeg\jmorecfg.h" />
+    <ClInclude Include="third_party\libjpeg\jpeglib.h" />
     <ClInclude Include="third_party\libpng\png.h" />
     <ClInclude Include="third_party\libpng\pngconf.h" />
     <ClInclude Include="third_party\libpng\pngpriv.h" />
