@@ -17,15 +17,19 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     downloading an
     [archive](https://github.com/google/guetzli/archive/master.zip) and
     unpacking it.
-2.  Install [libpng](http://www.libpng.org/pub/png/libpng.html).
+2.  Install [libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/).
     If using your operating system
     package manager, install development versions of the packages if the
     distinction exists.
-    *   On Ubuntu, do `apt-get install libpng-dev`.
-    *   On Fedora, do `dnf install libpng-devel`. 
-    *   On Arch Linux, do `pacman -S libpng`.
-    *   On Alpine Linux, do `apk add libpng-dev`.
-3.  Run `make` and expect the binary to be created in `bin/Release/guetzli`.
+    *   On Ubuntu, do `apt-get install libpng-dev libjpeg8-dev`.
+    *   On Fedora, do `dnf install libpng-devel libjpeg-devel`. 
+    *   On Arch Linux, do `pacman -S libpng libjpeg`.
+    *   On Alpine Linux, do `apk add libpng-dev libjpeg`.
+3.  [CUDA](https://developer.nvidia.com/cuda-zone) & [OpenCL](https://www.khronos.org/opencl/) support options are open by default.
+    *   Follow the [Installation Guide for Linux ](https://developer.nvidia.com/compute/cuda/8.0/Prod2/docs/sidebar/CUDA_Installation_Guide_Linux-pdf) to setup [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit).
+    *   If you do not need CUDA/OpenCL, please remove the `__USE_CUDA__`/`__USE_OPENCL__` macro definition and `OpenCL`/`cuda` links in `premake5.lua`. 
+4.  Run `./compile.sh 64` or `./compile.sh 32` to build the 64-bit or 32-bit [ptx](http://docs.nvidia.com/cuda/parallel-thread-execution) file for CUDA if necessary.
+5.  Run `make` and expect the binary to be created in `bin/Release/guetzli`.
 
 ## On Windows
 
@@ -35,11 +39,14 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     unpacking it.
 2.  Install [Visual Studio 2015](https://www.visualstudio.com) and
     [vcpkg](https://github.com/Microsoft/vcpkg)
-3.  Install `libpng` using vcpkg: `.\vcpkg install libpng`.
+3.  Install `libpng` and `libjpeg-turbo` using vcpkg: `.\vcpkg install libpng libjpeg-turbo`.
 4.  Cause the installed packages to be available system-wide: `.\vcpkg integrate
     install`. If you prefer not to do this, refer to [vcpkg's
     documentation](https://github.com/Microsoft/vcpkg/blob/master/docs/EXAMPLES.md#example-1-2).
-5.  Open the Visual Studio project enclosed in the repository and build it.
+5.  `CUDA` & `OpenCL` support options are open by default.
+    *   Follow the [Installation Guide for Microsoft Windows](https://developer.nvidia.com/compute/cuda/8.0/Prod2/docs/sidebar/CUDA_Installation_Guide_Windows-pdf) to setup `CUDA Toolkit`.
+    *   If you do not need CUDA/OpenCL, please remove `__USE_CUDA__`/`__USE_OPENCL__` from `Property Pages->Configuration Properties->C/C++->Preprocessor->Preprocessor Definitions` and remove `OpenCL.lib`/`cuda.lib` from `Property Pages->Configuration Properties->Linker->Input->Additional Dependencies`.
+6.  Open the Visual Studio project enclosed in the repository and build it.
 
 ## On macOS
 
@@ -81,8 +88,8 @@ To try out Guetzli you need to [build](#building) or
 binary reads a PNG or JPEG image and creates an optimized JPEG image:
 
 ```bash
-guetzli [--quality Q] [--verbose] original.png output.jpg
-guetzli [--quality Q] [--verbose] original.jpg output.jpg
+guetzli [--c|--cuda|--opencl] [--quality Q] [--verbose] original.png output.jpg
+guetzli [--c|--cuda|--opencl] [--quality Q] [--verbose] original.jpg output.jpg
 ```
 
 Note that Guetzli is designed to work on high quality images. You should always
@@ -94,7 +101,7 @@ image](https://github.com/google/guetzli/releases/download/v0/bees.png).
 
 You can pass a `--quality Q` parameter to set quality in units equivalent to
 libjpeg quality. You can also pass a `--verbose` flag to see a trace of encoding
-attempts made.
+attempts made. You can pass a `--c` parameter to enable the procedure optimization or `--cuda` parameter to use the CUDA acceleration or `--opencl` to use the OpenCL acceleration.
 
 Please note that JPEG images do not support alpha channel (transparency). If the
 input is a PNG with an alpha channel, it will be overlaid on black background
