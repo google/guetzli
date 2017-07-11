@@ -13,17 +13,8 @@
     <Filter Include="third_party\butteraugli\butteraugli">
       <UniqueIdentifier>{FD6FCB41-6929-36EC-F288-50C65E41EC5B}</UniqueIdentifier>
     </Filter>
-    <Filter Include="third_party\libpng">
-      <UniqueIdentifier>{40be58d6-6dfc-45a3-8ca1-7d1b14051ddc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="third_party\zlib">
-      <UniqueIdentifier>{cb89c1ac-8399-4814-88f2-4b69576bc9f9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="clguetzli">
       <UniqueIdentifier>{64847a89-ca39-4556-ba0e-d6875c4d39ca}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="third_party\libjpeg">
-      <UniqueIdentifier>{1ac67559-7330-41c7-9a6d-10c3abee000e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -105,48 +96,6 @@
     <ClInclude Include="third_party\butteraugli\butteraugli\butteraugli.h">
       <Filter>third_party\butteraugli\butteraugli</Filter>
     </ClInclude>
-    <ClInclude Include="third_party\libpng\png.h">
-      <Filter>third_party\libpng</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\libpng\pngconf.h">
-      <Filter>third_party\libpng</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\libpng\pngpriv.h">
-      <Filter>third_party\libpng</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\crc32.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\deflate.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\gzguts.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\inffast.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\inffixed.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\inflate.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\inftrees.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\trees.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\zconf.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\zlib.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\zlib\zutil.h">
-      <Filter>third_party\zlib</Filter>
-    </ClInclude>
     <ClInclude Include="clguetzli\utils.h">
       <Filter>clguetzli</Filter>
     </ClInclude>
@@ -173,15 +122,6 @@
     </ClInclude>
     <ClInclude Include="clguetzli\cumem_pool.h">
       <Filter>clguetzli</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\libjpeg\jconfig.h">
-      <Filter>third_party\libjpeg</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\libjpeg\jmorecfg.h">
-      <Filter>third_party\libjpeg</Filter>
-    </ClInclude>
-    <ClInclude Include="third_party\libjpeg\jpeglib.h">
-      <Filter>third_party\libjpeg</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -248,96 +188,6 @@
     <ClCompile Include="third_party\butteraugli\butteraugli\butteraugli.cc">
       <Filter>third_party\butteraugli\butteraugli</Filter>
     </ClCompile>
-    <ClCompile Include="third_party\libpng\png.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngerror.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngget.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngmem.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngpread.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngread.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngrio.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngrtran.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngrutil.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngset.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngtrans.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngwio.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngwrite.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngwtran.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\libpng\pngwutil.c">
-      <Filter>third_party\libpng</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\adler32.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\compress.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\crc32.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\deflate.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\gzclose.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\gzlib.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\gzread.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\gzwrite.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\infback.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\inffast.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\inflate.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\inftrees.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\trees.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\uncompr.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\zlib\zutil.c">
-      <Filter>third_party\zlib</Filter>
-    </ClCompile>
     <ClCompile Include="clguetzli\utils.cpp">
       <Filter>clguetzli</Filter>
     </ClCompile>
@@ -365,23 +215,6 @@
     <ClCompile Include="clguetzli\cumem_pool.cpp">
       <Filter>clguetzli</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="third_party\libpng\pngwin.def">
-      <Filter>third_party\libpng</Filter>
-    </None>
-    <None Include="third_party\zlib\inffas32.asm">
-      <Filter>third_party\zlib</Filter>
-    </None>
-    <None Include="third_party\zlib\match32.asm">
-      <Filter>third_party\zlib</Filter>
-    </None>
-    <None Include="third_party\zlib\match686.asm">
-      <Filter>third_party\zlib</Filter>
-    </None>
-    <None Include="third_party\zlib\zlib.def">
-      <Filter>third_party\zlib</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Intel_OpenCL_Build_Rules Include="clguetzli\clguetzli.cl">

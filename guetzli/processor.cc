@@ -33,7 +33,7 @@
 #include "guetzli/quantize.h"
 #include "clguetzli/clguetzli.h"
 
-#include "third_party/libjpeg/jpeglib.h"
+#include "jpeglib.h"
 
 namespace guetzli {
 
