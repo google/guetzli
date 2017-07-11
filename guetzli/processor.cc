@@ -455,7 +455,8 @@ void Processor::ComputeBlockZeroingOrder(
 	  if (MODE_CPU_OPT == g_mathMode)
 	  {
 		  if (best_err >= comparator_->BlockErrorLimit())
-		  {   // err队列是逐渐增大的，如果这里已经超过ErrorLimit，后续的计算就是冗余的了
+		  {   
+              // The input_order is an ascent vector, break when best_err exceed the error limit.
 			  break;
 		  }
 	  }
@@ -567,7 +568,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
     const int num_blocks = block_width * block_height;
 
 
-    comparator_->StartBlockComparisons(); // 初始化一些参数，主要是对原图进行一些处理
+    comparator_->StartBlockComparisons();
 
     std::vector<CoeffData> output_order_gpu;
     std::vector<CoeffData> output_order_cpu;
