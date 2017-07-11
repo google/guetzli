@@ -15,7 +15,7 @@ ifeq ($(config),release)
   TARGETDIR = bin/Release
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Release/guetzli
-  DEFINES += -D__USE_OPENCL__ -D__USE_CUDA__ -D__USE_GPERFTOOLS__
+  DEFINES += -D__USE_OPENCL__ -D__USE_CUDA__
   INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
@@ -42,7 +42,7 @@ ifeq ($(config),debug)
   TARGETDIR = bin/Debug
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Debug/guetzli
-  DEFINES += -D__USE_OPENCL__ -D__USE_CUDA__ -D__USE_GPERFTOOLS__
+  DEFINES += -D__USE_OPENCL__ -D__USE_CUDA__
   INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)

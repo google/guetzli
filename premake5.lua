@@ -31,7 +31,6 @@ workspace "guetzli"
         "guetzli/*.h",
         "third_party/butteraugli/butteraugli/butteraugli.cc",
         "third_party/butteraugli/butteraugli/butteraugli.h",
-        "third_party/libjpeg/*.h",
         "clguetzli/*.cpp",
         "clguetzli/*.h"
       }
@@ -43,7 +42,7 @@ workspace "guetzli"
   project "guetzli"
     kind "ConsoleApp"
     filter "action:gmake"
-	  defines { "__USE_OPENCL__", "__USE_CUDA__", "__USE_GPERFTOOLS__" }
+	  defines { "__USE_OPENCL__", "__USE_CUDA__" }
       linkoptions { "`pkg-config --libs libpng || libpng-config --ldflags`" }
       buildoptions { "`pkg-config --cflags libpng || libpng-config --cflags`" }
       links { "OpenCL", "cuda", "profiler", "unwind", "jpeg" }
@@ -56,7 +55,6 @@ workspace "guetzli"
         "guetzli/*.h",
         "third_party/butteraugli/butteraugli/butteraugli.cc",
         "third_party/butteraugli/butteraugli/butteraugli.h",
-        "third_party/libjpeg/*.h",
         "clguetzli/*.cpp",
         "clguetzli/*.h"
       }
