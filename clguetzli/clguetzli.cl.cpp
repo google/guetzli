@@ -212,35 +212,6 @@ namespace guetzli
     double ButteraugliComparatorEx::CompareBlock(const OutputImage& img, int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const
     {
         double err = ButteraugliComparator::CompareBlock(img, off_x, off_y, candidate_block, comp_mask);
-/*
-        if (g_checkOpenCL)
-        {
-            channel_info mayout_channel[3];
-            for (int c = 0; c < 3; c++)
-            {
-                mayout_channel[c].block_height = img.component(c).height_in_blocks();
-                mayout_channel[c].block_width = img.component(c).width_in_blocks();
-                mayout_channel[c].factor = img.component(c).factor_x();
-                mayout_channel[c].pixel = img.component(c).pixels();
-                mayout_channel[c].coeff = img.component(c).coeffs();
-            }
-
-            double err2 = CompareBlockFactor(mayout_channel,
-                candidate_block,
-                block_x_,
-                block_y_,
-                imgOpsinDynamicsBlockList.data(),
-                imgMaskXyzScaleBlockList.data(),
-                width_,
-                height_,
-                factor_x_);
-
-            if (fabs(err - err2) > 0.001)
-            {
-                LogError("CompareBlock miss %s(%d) \r\n", __FUNCTION__, __LINE__);
-            }
-        }
-*/
         return err;
     }
 }

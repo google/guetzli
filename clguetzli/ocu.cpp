@@ -32,35 +32,6 @@ ocu_args_d_t& getOcu(void)
     cuDeviceGetAttribute(&proc_count, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, dev);
     cuDeviceGetAttribute(&thread_count, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR, dev);
     LogError("CUDA Adapter:%s Ver%d.%d MP %d MaxThread Per MP %d)\r\n", name, cap_major, cap_minor, proc_count, thread_count);
-/*
-    char* source = nullptr;
-    size_t src_size = 0;
-    ReadSourceFromFile("clguetzli/clguetzli.cl", &source, &src_size);
-
-    nvrtcProgram prog;
-    const char *opts[] = { "-arch=compute_30", "-default-device", "-G", "-I\"./\"", "--fmad=false" };
-    nvrtcCreateProgram(&prog, source, "clguetzli.cl", 0, NULL, NULL);
-    nvrtcResult compile_result;// = nvrtcCompileProgram(prog, 3, opts);
-    if (NVRTC_SUCCESS != compile_result)
-    {
-        // Obtain compilation log from the program.
-        size_t logSize = 0;
-        nvrtcGetProgramLogSize(prog, &logSize);
-        char *log = new char[logSize];
-        nvrtcGetProgramLog(prog, log);
-
-        LogError("BuildInfo:\r\n%s\r\n", log);
-
-        delete[] log;
-    }
-
-    delete[] source;
-    // Obtain PTX from the program.
-    size_t ptxSize = 0;
-    nvrtcGetPTXSize(prog, &ptxSize);
-    char *ptx = new char[ptxSize];
-    nvrtcGetPTX(prog, ptx);
-*/
 
     char* ptx = nullptr;
     size_t src_size = 0;
@@ -127,7 +98,6 @@ ocu_args_d_t::~ocu_args_d_t()
     cuModuleUnload(mod);
     cuCtxDestroy(ctxt);
     mem_pool.drain();
-//    cuStreamDestroy(commandQueue);
 }
 
 cu_mem ocu_args_d_t::allocMem(size_t s, const void *init)
