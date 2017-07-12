@@ -2,8 +2,8 @@ workspace "guetzli"
   configurations { "Release", "Debug" }
   language "C++"
   flags { "C++11" }
-  includedirs { ".", "third_party/butteraugli", "clguetzli", "$(OPENCL_INC)" }
-  libdirs { "$(OPENCL_LIB)" }
+  includedirs { ".", "third_party/butteraugli", "clguetzli" }
+  libdirs {}
 
   filter "action:vs*"
     platforms { "x86_64", "x86" }
@@ -42,10 +42,10 @@ workspace "guetzli"
   project "guetzli"
     kind "ConsoleApp"
     filter "action:gmake"
-	  defines { "__USE_OPENCL__", "__USE_CUDA__" }
+	  --defines { "__USE_OPENCL__", "__USE_CUDA__", "__SUPPORT_FULL_JPEG__" }
       linkoptions { "`pkg-config --libs libpng || libpng-config --ldflags`" }
       buildoptions { "`pkg-config --cflags libpng || libpng-config --cflags`" }
-      links { "OpenCL", "cuda", "profiler", "unwind", "jpeg" }
+      --links { "OpenCL", "cuda", "profiler", "unwind", "jpeg" }
     filter "action:vs*"
       links { "shlwapi" }
     filter {}

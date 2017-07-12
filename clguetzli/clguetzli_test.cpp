@@ -1,3 +1,5 @@
+#ifdef __USE_OPENCL__
+
 #include <CL/cl.h>
 #include <math.h>
 #include <assert.h>
@@ -6,8 +8,6 @@
 #include "clguetzli.h"
 #include "ocl.h"
 #include "ocu.h"
-
-#ifdef __USE_OPENCL__
 
 #define FLOAT_COMPARE(a, b, c)  floatCompare((a), (b), (c), __FUNCTION__, __LINE__ )
 

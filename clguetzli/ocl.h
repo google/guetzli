@@ -1,10 +1,10 @@
 #pragma once
 
+#ifdef __USE_OPENCL__
+
 #include "CL/cl.h"
 #include "utils.h"
 #include "clguetzli.cl.h"
-
-#ifdef __USE_OPENCL__
 
 // Macros for OpenCL versions
 #define OPENCL_VERSION_1_2  1.2f

@@ -16,7 +16,7 @@ ifeq ($(config),release)
   TARGET = $(TARGETDIR)/libguetzli_static.a
   OBJDIR = obj/Release/guetzli_static
   DEFINES +=
-  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
+  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --static --cflags libpng || libpng-config --static --cflags`
@@ -24,7 +24,7 @@ ifeq ($(config),release)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
   LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) -L"$(OPENCL_LIB)" `pkg-config --static --libs libpng || libpng-config --static --ldflags`
+  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --static --libs libpng || libpng-config --static --ldflags`
   LINKCMD = $(AR) -rcs "$@" $(OBJECTS)
   define PREBUILDCMDS
   endef
@@ -43,7 +43,7 @@ ifeq ($(config),debug)
   TARGET = $(TARGETDIR)/libguetzli_static.a
   OBJDIR = obj/Debug/guetzli_static
   DEFINES +=
-  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
+  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --static --cflags libpng || libpng-config --static --cflags`
@@ -51,7 +51,7 @@ ifeq ($(config),debug)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
   LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) -L"$(OPENCL_LIB)" `pkg-config --static --libs libpng || libpng-config --static --ldflags`
+  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --static --libs libpng || libpng-config --static --ldflags`
   LINKCMD = $(AR) -rcs "$@" $(OBJECTS)
   define PREBUILDCMDS
   endef

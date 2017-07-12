@@ -33,7 +33,9 @@
 #include "guetzli/quantize.h"
 #include "clguetzli/clguetzli.h"
 
+#ifdef __SUPPORT_FULL_JPEG__
 #include "jpeglib.h"
+#endif
 
 namespace guetzli {
 
@@ -1063,6 +1065,7 @@ bool Process(const Params& params, ProcessStats* stats,
 bool ProcessUnsupportedJpegData(const Params& params, ProcessStats* stats,
 	const std::string& data,
 	std::string* jpg_out) {
+#ifdef __SUPPORT_FULL_JPEG__
 	struct jpeg_decompress_struct cinfo;
 	struct jpeg_error_mgr jerr;
 	cinfo.err = jpeg_std_error(&jerr);
@@ -1092,6 +1095,12 @@ bool ProcessUnsupportedJpegData(const Params& params, ProcessStats* stats,
 	}
 	std::vector<uint8_t> temp_rgb(bmp_buffer, bmp_buffer + bmp_size);
 	return Process(params, stats, temp_rgb, xsize, ysize, jpg_out);
+#else
+	fprintf(stderr, "Unsupported input JPEG file (e.g. unsupported "
+		"downsampling mode).\nPlease provide the input image as "
+		"a PNG file.\n");
+	return false;
+#endif
 }
 
 bool Process(const Params& params, ProcessStats* stats,

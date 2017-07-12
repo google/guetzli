@@ -1,6 +1,8 @@
 #ifndef __CLGUETZLI_CL_H__
 #define __CLGUETZLI_CL_H__
 
+#ifdef __USE_OPENCL__
+
 #ifdef __cplusplus
 #ifndef __CUDACC__
 #include "CL/cl.h"
@@ -149,3 +151,5 @@
     }channel_info;
 
 #endif /*__CLGUETZLI_CL_H__*/
+
+#endif // __USE_OPENCL__
