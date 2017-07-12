@@ -1,3 +1,4 @@
+#ifdef __USE_OPENCL__
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 #include  "clguetzli/clguetzli.cl.h"
@@ -3408,3 +3409,5 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
 #ifdef __USE_DOUBLE_AS_FLOAT__
 #undef double
 #endif
+
+#endif __USE_OPENCL__

@@ -15,16 +15,16 @@ ifeq ($(config),release)
   TARGETDIR = bin/Release
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Release/guetzli
-  DEFINES += -D__USE_OPENCL__ -D__USE_CUDA__
-  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
+  DEFINES +=
+  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -O3 -g -std=c++11 `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -lOpenCL -lcuda -lprofiler -lunwind -ljpeg
+  LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) -L"$(OPENCL_LIB)" `pkg-config --libs libpng || libpng-config --ldflags`
+  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --libs libpng || libpng-config --ldflags`
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
   define PREBUILDCMDS
   endef
@@ -42,16 +42,16 @@ ifeq ($(config),debug)
   TARGETDIR = bin/Debug
   TARGET = $(TARGETDIR)/guetzli
   OBJDIR = obj/Debug/guetzli
-  DEFINES += -D__USE_OPENCL__ -D__USE_CUDA__
-  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli -I"$(OPENCL_INC)"
+  DEFINES +=
+  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 `pkg-config --cflags libpng || libpng-config --cflags`
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -lOpenCL -lcuda -lprofiler -lunwind -ljpeg
+  LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) -L"$(OPENCL_LIB)" `pkg-config --libs libpng || libpng-config --ldflags`
+  ALL_LDFLAGS += $(LDFLAGS) `pkg-config --libs libpng || libpng-config --ldflags`
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
   define PREBUILDCMDS
   endef

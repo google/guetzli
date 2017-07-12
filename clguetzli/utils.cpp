@@ -19,6 +19,7 @@
  * Intel Corporation is the author of the Materials, and requests that all
  * problem reports or change requests be submitted to it directly
  *****************************************************************************/
+#ifdef __USE_OPENCL__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,3 +98,5 @@ int ReadSourceFromFile(const char* fileName, char** source, size_t* sourceSize)
     return errorCode;
 }
 #pragma warning( pop )
+
+#endif

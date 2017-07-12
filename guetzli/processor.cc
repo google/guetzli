@@ -33,7 +33,9 @@
 #include "guetzli/quantize.h"
 #include "clguetzli/clguetzli.h"
 
+#ifdef __SUPPORT_FULL_JPEG__
 #include "jpeglib.h"
+#endif
 
 namespace guetzli {
 
@@ -668,6 +670,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
         }
     }
 
+#ifdef __USE_OPENCL__
     if (MODE_CHECKCL == g_mathMode)
     {
         int count = 0;
@@ -685,6 +688,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
             LogError("CHK %s(%d) %d:%d\r\n", "SelectFrequencyMasking", __LINE__, count, check_size);
         }
     }
+#endif
 
     std::vector<int> candidate_coeff_offsets(num_blocks + 1);
     std::vector<uint8_t> candidate_coeffs;
@@ -1063,6 +1067,7 @@ bool Process(const Params& params, ProcessStats* stats,
 bool ProcessUnsupportedJpegData(const Params& params, ProcessStats* stats,
 	const std::string& data,
 	std::string* jpg_out) {
+#ifdef __SUPPORT_FULL_JPEG__
 	struct jpeg_decompress_struct cinfo;
 	struct jpeg_error_mgr jerr;
 	cinfo.err = jpeg_std_error(&jerr);
@@ -1092,6 +1097,12 @@ bool ProcessUnsupportedJpegData(const Params& params, ProcessStats* stats,
 	}
 	std::vector<uint8_t> temp_rgb(bmp_buffer, bmp_buffer + bmp_size);
 	return Process(params, stats, temp_rgb, xsize, ysize, jpg_out);
+#else
+	fprintf(stderr, "Unsupported input JPEG file (e.g. unsupported "
+		"downsampling mode).\nPlease provide the input image as "
+		"a PNG file.\n");
+	return false;
+#endif
 }
 
 bool Process(const Params& params, ProcessStats* stats,
