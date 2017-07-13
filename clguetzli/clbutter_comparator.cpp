@@ -730,9 +730,9 @@ void MaskHighIntensityChangeOpt(
 		for (size_t x = 0; x < xsize; ++x) {
 			size_t ix = y * xsize + x;
 			const float ave[3] = {
-				(c0[0][ix] + c1[0][ix]) * 0.5,
-				(c0[1][ix] + c1[1][ix]) * 0.5,
-				(c0[2][ix] + c1[2][ix]) * 0.5,
+				static_cast<float>((c0[0][ix] + c1[0][ix]) * 0.5),
+				static_cast<float>((c0[1][ix] + c1[1][ix]) * 0.5),
+				static_cast<float>((c0[2][ix] + c1[2][ix]) * 0.5),
 			};
 			float sqr_max_diff = -1;
 			{
