@@ -8,6 +8,10 @@ cc_library(
             "guetzli/*.h",
             "guetzli/*.cc",
             "guetzli/*.inc",
+			"clguetzli/*.cpp",
+            "clguetzli/*.h",
+            "clguetzli/*.hpp"
+
         ],
         exclude = ["guetzli/guetzli.cc"],
     ),

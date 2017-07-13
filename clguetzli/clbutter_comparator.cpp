@@ -1735,9 +1735,8 @@ namespace butteraugli
         float border_ratio,
         float* __restrict__ result)
     {
-        _Convolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
-
 #ifdef __USE_OPENCL__
+		_Convolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
         if (MODE_CHECKCL == g_mathMode && xsize > 8 && ysize > 8)
         {
             tclConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);

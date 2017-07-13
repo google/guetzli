@@ -40,9 +40,11 @@
 #include <algorithm>
 #include <array>
 
+#ifdef __USE_OPENCL__
 #include "clguetzli/clbutter_comparator.h"
 #include "clguetzli/clguetzli.h"
 #include "clguetzli/clguetzli_test.h"
+#endif
 
 // Restricted pointers speed up Convolution(); MSVC uses a different keyword.
 #ifdef _MSC_VER
@@ -112,17 +114,28 @@ void _Blur(size_t xsize, size_t ysize, float* channel, double sigma,
   int dxsize = (xsize + xstep - 1) / xstep;
   int dysize = (ysize + ystep - 1) / ystep;
   std::vector<float> tmp(dxsize * ysize);
+#ifdef __USE_OPENCL__
   Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
               border_ratio,
               tmp.data());
+#else
+  _Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
+	          border_ratio,
+	          tmp.data());
+#endif
   float* output = channel;
   std::vector<float> downsampled_output;
   if (xstep > 1) {
     downsampled_output.resize(dxsize * dysize);
     output = downsampled_output.data();
   }
+#ifdef __USE_OPENCL__
   Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
               border_ratio, output);
+#else
+  _Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
+	          border_ratio, output);
+#endif
   if (xstep > 1) {
     for (size_t y = 0; y < ysize; y++) {
       for (size_t x = 0; x < xsize; x++) {
@@ -1022,7 +1035,11 @@ void _CalculateDiffmap(const size_t xsize, const size_t ysize,
             += static_cast<float>(mul1) * blurred[y * (xsize - s) + x];
       }
     }
+#ifdef __USE_OPENCL__
     ScaleImage(scale, diffmap);
+#else
+	_ScaleImage(scale, diffmap);
+#endif
   }
 }
 
@@ -1054,7 +1071,11 @@ void ButteraugliComparator::DiffmapOpsinDynamicsImage(
     CombineChannels(mask_xyb, mask_xyb_dc, block_diff_dc, block_diff_ac,
                     edge_detector_map, &result);
   }
+#ifdef __USE_OPENCL__
   CalculateDiffmap(xsize_, ysize_, step_, &result);
+#else
+  _CalculateDiffmap(xsize_, ysize_, step_, &result);
+#endif
 }
 
 void ButteraugliComparator::BlockDiffMap(
@@ -1366,7 +1387,11 @@ void _Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
   std::vector<float> result = *diffs;
   std::vector<float> tmp0 = *diffs;
   std::vector<float> tmp1 = *diffs;
+#ifdef __USE_OPENCL__
   ScaleImage(w, &tmp1);
+#else
+  _ScaleImage(w, &tmp1);
+#endif
   for (int y = 0; y < ysize; y++) {
     const int row0 = y * xsize;
     result[row0 + 1] += tmp0[row0];
@@ -1405,7 +1430,11 @@ void _Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
     }
   }
   *diffs = result;
+#ifdef __USE_OPENCL__
   ScaleImage(scale, diffs);
+#else
+  _ScaleImage(scale, diffs);
+#endif
 }
 
 void _DiffPrecompute(
@@ -1473,6 +1502,7 @@ void _Mask(const std::vector<std::vector<float> > &xyb0,
   for (int i = 0; i < 3; ++i) {
     (*mask)[i].resize(xsize * ysize);
   }
+#ifdef __USE_OPENCL__
   DiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
   for (int i = 0; i < 3; ++i) {
     Average5x5(xsize, ysize, &(*mask)[i]);
@@ -1484,6 +1514,19 @@ void _Mask(const std::vector<std::vector<float> > &xyb0,
     };
     Blur(xsize, ysize, (*mask)[i].data(), sigma[i], 0.0);
   }
+#else
+  _DiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
+  for (int i = 0; i < 3; ++i) {
+	  _Average5x5(xsize, ysize, &(*mask)[i]);
+	  _MinSquareVal(4, 0, xsize, ysize, (*mask)[i].data());
+	  static const double sigma[3] = {
+		  9.65781083553,
+		  14.2644604355,
+		  4.53358927369,
+	  };
+	  _Blur(xsize, ysize, (*mask)[i].data(), sigma[i], 0.0);
+  }
+#endif
   static const double w00 = 232.206464018;
   static const double w11 = 22.9455222245;
   static const double w22 = 503.962310606;
@@ -1510,10 +1553,17 @@ void _Mask(const std::vector<std::vector<float> > &xyb0,
       (*mask_dc)[2][idx] = static_cast<float>(MaskDcB(p2));
     }
   }
+#ifdef __USE_OPENCL__
   for (int i = 0; i < 3; ++i) {
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask)[i]);
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask_dc)[i]);
   }
+#else
+  for (int i = 0; i < 3; ++i) {
+    _ScaleImage(kGlobalScale * kGlobalScale, &(*mask)[i]);
+    _ScaleImage(kGlobalScale * kGlobalScale, &(*mask_dc)[i]);
+  }
+#endif
 }
 
 }  // namespace butteraugli
