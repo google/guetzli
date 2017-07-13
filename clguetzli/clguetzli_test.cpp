@@ -1,3 +1,10 @@
+/*
+* OpenCL test cases
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #ifdef __USE_OPENCL__
 
 #include <CL/cl.h>

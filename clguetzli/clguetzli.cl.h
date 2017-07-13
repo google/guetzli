@@ -1,3 +1,10 @@
+/*
+* OpenCL/CUDA edition implementation of ButteraugliComparator.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #ifndef __CLGUETZLI_CL_H__
 #define __CLGUETZLI_CL_H__
 

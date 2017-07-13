@@ -1,3 +1,10 @@
+/*
+* OpenCL/CUDA edition implementation of butter_comparator.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #pragma once
 #include <vector>
 #include "butteraugli/butteraugli.h"

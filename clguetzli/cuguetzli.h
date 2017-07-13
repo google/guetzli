@@ -1,3 +1,10 @@
+/*
+* CUDA edition implementation of guetzli.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #pragma once
 #include "guetzli/processor.h"
 #include "clguetzli.cl.h"

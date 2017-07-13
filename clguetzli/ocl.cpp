@@ -1,3 +1,9 @@
+/*
+* OpenCL Manager
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*/
 #include "ocl.h"
 #include <string.h>
 #include <vector>

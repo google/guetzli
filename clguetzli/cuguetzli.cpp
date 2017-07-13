@@ -1,3 +1,10 @@
+/*
+* CUDA edition implementation of guetzli.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #include "cuguetzli.h"
 #include <algorithm>
 #include "ocu.h"

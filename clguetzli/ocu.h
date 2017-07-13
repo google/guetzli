@@ -1,3 +1,8 @@
+/*
+* CUDA Manager
+*
+* Author: strongtu@tencent.com
+*/
 #pragma once
 
 #ifdef __USE_CUDA__

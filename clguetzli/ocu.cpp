@@ -1,3 +1,8 @@
+/*
+* CUDA Manager
+*
+* Author: strongtu@tencent.com
+*/
 #include "ocu.h"
 
 #ifdef __USE_CUDA__
