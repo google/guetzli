@@ -51,7 +51,7 @@ class Comparator {
   // the resulting per-block distance. The interpretation of the returned
   // distance depends on the comparator used.
   virtual double CompareBlock(const OutputImage& img,
-                              int off_x, int off_y) const = 0;
+                              int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const = 0;
 
   // Returns the combined score of the output image in the last Compare() call
   // (or the baseline image, if Compare() was not called yet), based on output

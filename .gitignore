@@ -15,3 +15,5 @@ ipch/
 *.cachefile
 *.VC.db
 *.VC.VC.opendb
+guetzli.vcxproj.user
+clguetzli/clguetzli.cu.ptx*
