@@ -38,7 +38,6 @@ matrix:
 
 
 install:
-- jdk_switcher use oraclejdk8
 - ./.travis.sh install
 script:
 - ./.travis.sh script
