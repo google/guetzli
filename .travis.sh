@@ -14,9 +14,10 @@ case "$1" in
 	    "bazel")
 		case "${TRAVIS_OS_NAME}" in
 		    "linux")
-			wget https://github.com/bazelbuild/bazel/releases/download/0.5.2/bazel_0.5.2-linux-x86_64.deb
-			echo 'b14c8773dab078d3422fe4082f3ab4d9e14f02313c3b3eb4b5b40c44ce29ed59  bazel_0.5.2-linux-x86_64.deb' | sha256sum -c --strict || exit 1
-			sudo dpkg -i bazel_0.5.2-linux-x86_64.deb
+			sudo apt-get remove oracle-java9-installer
+			wget https://github.com/bazelbuild/bazel/releases/download/0.4.5/bazel_0.4.5-linux-x86_64.deb
+			echo 'b494d0a413e4703b6cd5312403bea4d92246d6425b3be68c9bfbeb8cc4db8a55  bazel_0.4.5-linux-x86_64.deb' | sha256sum -c --strict || exit 1
+			sudo dpkg -i bazel_0.4.5-linux-x86_64.deb
 			;;
 		    "osx")
 			brew install bazel
