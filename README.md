@@ -99,3 +99,56 @@ attempts made.
 Please note that JPEG images do not support alpha channel (transparency). If the
 input is a PNG with an alpha channel, it will be overlaid on black background
 before encoding.
+
+# Extra features
+
+**Note:** Please make sure that you can build guetzli successfully before adding the following features.
+
+## Enable CUDA/OpenCL support
+
+**Note:** Before adding [CUDA](https://developer.nvidia.com/cuda-zone) support, please [check](http://developer.nvidia.com/cuda-gpus) whether your GPU support CUDA or not.
+
+**Note:** If you don't have an NVIDIA card that support CUDA, you can try [OpenCL](https://www.khronos.org/opencl/) instead. You can install any of the OpenCL SDKs, such as [Intel OpenCL SDK](https://software.intel.com/en-us/intel-opencl), [AMD OpenCL SDK](http://developer.amd.com/tools-and-sdks/opencl-zone/), etc.
+
+**Note:** The steps for adding OpenCL support is very similar with adding CUDA support, so the following introduction will be only for CUDA.
+
+### On POSIX systems
+1. Follow the [Installation Guide for Linux ](https://developer.nvidia.com/compute/cuda/8.0/Prod2/docs/sidebar/CUDA_Installation_Guide_Linux-pdf) to setup [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit).
+2. Edit `premake5.lua`, add `defines { "__USE_OPENCL__", "__USE_CUDA__" }` and `links { "OpenCL", "cuda" }` under `filter "action:gmake"`. Then do `premake5 --os=linux gmake` to update the makefile.
+3. Run `make` and expect the binary to be created in `bin/Release/guetzli`.
+4. Run `./compile.sh 64` or `./compile.sh 32` to build the 64 or 32 bits [ptx](http://docs.nvidia.com/cuda/parallel-thread-execution) file, and the ptx file will be copied to `bin/Release/clguetzli`.
+
+### On Windows
+1. Follow the [Installation Guide for Microsoft Windows](https://developer.nvidia.com/compute/cuda/8.0/Prod2/docs/sidebar/CUDA_Installation_Guide_Windows-pdf) to setup `CUDA Toolkit`.
+2. Open the Visual Studio project and edit the project `Property Pages` as follows:
+    * Add `__USE_OPENCL__` and `__USE_CUDA__` to preprocessor definitions.
+    * Add `OpenCL.lib` and `cuda.lib` to additional dependencies.
+    * Add `$(CUDA_PATH)\include` to include directories.
+    * Add `$(CUDA_PATH)\lib\Win32` or `$(CUDA_PATH)\lib\x64` to library directories.
+3. Build it.
+
+### Usage
+```bash
+guetzli [--c|--cuda|--opencl] [other options] original.png output.jpg
+guetzli [--c|--cuda|--opencl] [other options] original.jpg output.jpg
+```
+You can pass a `--c` parameter to enable the procedure optimization or `--cuda` parameter to use the CUDA acceleration or `--opencl` to use the OpenCL acceleration.
+
+If you have any question about CUDA/OpenCL support, please contact strongtu@tencent.com, ianhuang@tencent.com or chriskzhou@tencent.com.
+
+## Enable full JPEG format support
+### On POSIX systems
+1. Install [libjpeg](http://libjpeg.sourceforge.net/).
+    If using your operating system
+    package manager, install development versions of the packages if the
+    distinction exists.
+    *   On Ubuntu, do `apt-get install libjpeg8-dev`.
+    *   On Fedora, do `dnf install libjpeg-devel`. 
+    *   On Arch Linux, do `pacman -S libjpeg`.
+    *   On Alpine Linux, do `apk add libjpeg`.
+2. Edit `premake5.lua`, add `defines {"__SUPPORT_FULL_JPEG__"}` and `links { "jpeg" }` under `filter "action:gmake"`. Then do `premake5 --os=linux gmake` to update the makefile.
+3. Run `make` and expect the binary to be created in `bin/Release/guetzli`
+### On Windows
+1. Install `libjpeg-turbo` using vcpkg: `.\vcpkg install libjpeg-turbo`
+2. Open the Visual Studio project and add `__SUPPORT_FULL_JPEG__` to preprocessor definitions in the project `Property Pages`.
+3. Build it.
