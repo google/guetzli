@@ -670,6 +670,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
         }
     }
 
+#ifdef __USE_OPENCL__
     if (MODE_CHECKCL == g_mathMode)
     {
         int count = 0;
@@ -687,6 +688,7 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, co
             LogError("CHK %s(%d) %d:%d\r\n", "SelectFrequencyMasking", __LINE__, count, check_size);
         }
     }
+#endif
 
     std::vector<int> candidate_coeff_offsets(num_blocks + 1);
     std::vector<uint8_t> candidate_coeffs;
