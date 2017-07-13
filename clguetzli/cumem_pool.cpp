@@ -1,3 +1,9 @@
+/*
+ * Memory Pool for CUDA
+ *
+ * Author: ianhuang@tencent.com
+ */
+
 #include "cumem_pool.h"
 
 #ifdef __USE_CUDA__

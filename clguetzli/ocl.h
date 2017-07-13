@@ -1,3 +1,9 @@
+/*
+* OpenCL Manager
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*/
 #pragma once
 
 #ifdef __USE_OPENCL__

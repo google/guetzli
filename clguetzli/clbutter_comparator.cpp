@@ -1,3 +1,10 @@
+/*
+* OpenCL/CUDA edition implementation of butter_comparator.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #include "clbutter_comparator.h"
 #include "clguetzli.h"
 #include "clguetzli_test.h"

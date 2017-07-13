@@ -1,3 +1,8 @@
+/*
+* Memory Pool for CUDA
+*
+* Author: ianhuang@tencent.com
+*/
 #pragma once
 
 #ifdef __USE_CUDA__

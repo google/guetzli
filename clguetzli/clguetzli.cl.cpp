@@ -1,3 +1,10 @@
+/*
+* OpenCL/CUDA edition implementation of ButteraugliComparator.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #include <algorithm>
 #include <stdint.h>
 #include <vector>
