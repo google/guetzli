@@ -14,6 +14,7 @@ matrix:
             - wget
             - libjpeg-progs
             - netpbm
+            - oracle-java8-installer
 
     - os: osx
       env: BUILD_SYSTEM=bazel
@@ -37,6 +38,7 @@ matrix:
 
 
 install:
+- jdk_switcher use oraclejdk8
 - ./.travis.sh install
 script:
 - ./.travis.sh script
