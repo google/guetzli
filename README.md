@@ -115,17 +115,20 @@ before encoding.
 ### On POSIX systems
 1. Follow the [Installation Guide for Linux ](https://developer.nvidia.com/compute/cuda/8.0/Prod2/docs/sidebar/CUDA_Installation_Guide_Linux-pdf) to setup [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit).
 2. Edit `premake5.lua`, add `defines { "__USE_OPENCL__", "__USE_CUDA__" }` and `links { "OpenCL", "cuda" }` under `filter "action:gmake"`. Then do `premake5 --os=linux gmake` to update the makefile.
-3. Run `make` and expect the binary to be created in `bin/Release/guetzli`.
-4. Run `./compile.sh 64` or `./compile.sh 32` to build the 64 or 32 bits [ptx](http://docs.nvidia.com/cuda/parallel-thread-execution) file, and the ptx file will be copied to `bin/Release/clguetzli`.
+3. Edit `clguetzli/clguetzli.cl` and add `#define __USE_OPENCL__` at first line.
+4. Run `make` and expect the binary to be created in `bin/Release/guetzli`.
+5. Run `./compile.sh 64` or `./compile.sh 32` to build the 64 or 32 bits [ptx](http://docs.nvidia.com/cuda/parallel-thread-execution) file, and the ptx file will be copied to `bin/Release/clguetzli`.
 
 ### On Windows
 1. Follow the [Installation Guide for Microsoft Windows](https://developer.nvidia.com/compute/cuda/8.0/Prod2/docs/sidebar/CUDA_Installation_Guide_Windows-pdf) to setup `CUDA Toolkit`.
-2. Open the Visual Studio project and edit the project `Property Pages` as follows:
+2. Copy `<vs2015 dir>\VC\bin\amd64\vcvars64.bat` as `<guetzli dir>\vcvars64.bat`
+3. Open the Visual Studio project and edit the project `Property Pages` as follows:
     * Add `__USE_OPENCL__` and `__USE_CUDA__` to preprocessor definitions.
     * Add `OpenCL.lib` and `cuda.lib` to additional dependencies.
     * Add `$(CUDA_PATH)\include` to include directories.
     * Add `$(CUDA_PATH)\lib\Win32` or `$(CUDA_PATH)\lib\x64` to library directories.
-3. Build it.
+4. Edit `clguetzli/clguetzli.cl` and add `#define __USE_OPENCL__` at first line.
+5. Build it.
 
 ### Usage
 ```bash

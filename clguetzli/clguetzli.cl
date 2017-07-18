@@ -3417,4 +3417,4 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
 #undef double
 #endif
 
-#endif __USE_OPENCL__
+#endif //__USE_OPENCL__
