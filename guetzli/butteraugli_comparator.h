@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "butteraugli/butteraugli.h"
+#include "clguetzli/clbutter_comparator.h"
 #include "guetzli/comparator.h"
 #include "guetzli/jpeg_data.h"
 #include "guetzli/output_image.h"
@@ -44,7 +45,7 @@ class ButteraugliComparator : public Comparator {
                    int factor_x, int factor_y) override;
 
   double CompareBlock(const OutputImage& img,
-                      int off_x, int off_y) const override;
+                      int off_x, int off_y, const coeff_t* candidate_block, const int comp_mask) const override;
 
   double ScoreOutputSize(int size) const override;
 
@@ -62,7 +63,7 @@ class ButteraugliComparator : public Comparator {
       int factor_y, const std::vector<float>& distmap,
       std::vector<float>* block_weight) override;
 
- private:
+ protected:
   const int width_;
   const int height_;
   const float target_distance_;
@@ -73,7 +74,7 @@ class ButteraugliComparator : public Comparator {
   int factor_y_;
   std::vector<std::vector<float>> mask_xyz_;
   std::vector<std::vector<std::vector<float>>> per_block_pregamma_;
-  ::butteraugli::ButteraugliComparator comparator_;
+  ::butteraugli::clButteraugliComparator comparator_;
   float distance_;
   std::vector<float> distmap_;
   ProcessStats* stats_;

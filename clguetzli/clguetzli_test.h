@@ -1,3 +1,10 @@
+/*
+* OpenCL test cases
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #pragma once
 #include "ocl.h"
 

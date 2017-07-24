@@ -51,6 +51,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\IntelOpenCL.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -78,6 +79,8 @@
     <IntDir>obj\x86\Release\guetzli\</IntDir>
     <TargetName>guetzli</TargetName>
     <TargetExt>.exe</TargetExt>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(VC_IncludeThirdParty)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(VC_LibThirdParty_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -92,6 +95,8 @@
     <IntDir>obj\x86\Debug\guetzli\</IntDir>
     <TargetName>guetzli</TargetName>
     <TargetExt>.exe</TargetExt>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(VC_IncludeThirdParty)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(VC_LibThirdParty_x86)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -103,6 +108,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -110,18 +116,35 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;third_party\libjpeg\x64</AdditionalLibraryDirectories>
     </Link>
+    <CustomBuild>
+      <Command>"$(INTELOCLSDKROOT)bin\x64\ioc64.exe" -cmd=build -input="%(FullPath)" -output="x64\Release\%(Filename).out" -VS -device=GPU -simd=default -targetos=current            -bo="           "</Command>
+    </CustomBuild>
+    <CustomBuild>
+      <Message>OpenCL Code Builder</Message>
+    </CustomBuild>
+    <CustomBuild>
+      <LinkObjects>false</LinkObjects>
+    </CustomBuild>
+    <Intel_OpenCL_Build_Rules />
+    <PostBuildEvent />
+    <PreBuildEvent />
+    <PreBuildEvent />
+    <PreBuildEvent />
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>.;third_party\butteraugli;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,7 +152,20 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <ForceSymbolReferences>
+      </ForceSymbolReferences>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32;third_party\libjpeg\x86</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <CustomBuild>
+      <Message>CUDA CU</Message>
+    </CustomBuild>
+    <Intel_OpenCL_Build_Rules>
+      <Device>3</Device>
+    </Intel_OpenCL_Build_Rules>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -138,13 +174,16 @@
       <AdditionalIncludeDirectories>.;third_party\butteraugli;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;third_party\libjpeg\x64</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -153,15 +192,32 @@
       <AdditionalIncludeDirectories>.;third_party\butteraugli;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <ForceSymbolReferences>
+      </ForceSymbolReferences>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\Win32;third_party\libjpeg\x86</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent />
+    <Intel_OpenCL_Build_Rules>
+      <Device>3</Device>
+    </Intel_OpenCL_Build_Rules>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="clguetzli\clbutter_comparator.h" />
+    <ClInclude Include="clguetzli\clguetzli.cl.h" />
+    <ClInclude Include="clguetzli\clguetzli.h" />
+    <ClInclude Include="clguetzli\clguetzli_test.h" />
+    <ClInclude Include="clguetzli\cuguetzli.h" />
+    <ClInclude Include="clguetzli\cumem_pool.h" />
+    <ClInclude Include="clguetzli\ocl.h" />
+    <ClInclude Include="clguetzli\ocu.h" />
+    <ClInclude Include="clguetzli\utils.h" />
     <ClInclude Include="guetzli\butteraugli_comparator.h" />
     <ClInclude Include="guetzli\color_transform.h" />
     <ClInclude Include="guetzli\comparator.h" />
@@ -190,6 +246,15 @@
     <ClInclude Include="third_party\butteraugli\butteraugli\butteraugli.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="clguetzli\clbutter_comparator.cpp" />
+    <ClCompile Include="clguetzli\clguetzli.cl.cpp" />
+    <ClCompile Include="clguetzli\clguetzli.cpp" />
+    <ClCompile Include="clguetzli\clguetzli_test.cpp" />
+    <ClCompile Include="clguetzli\cuguetzli.cpp" />
+    <ClCompile Include="clguetzli\cumem_pool.cpp" />
+    <ClCompile Include="clguetzli\ocl.cpp" />
+    <ClCompile Include="clguetzli\ocu.cpp" />
+    <ClCompile Include="clguetzli\utils.cpp" />
     <ClCompile Include="guetzli\butteraugli_comparator.cc" />
     <ClCompile Include="guetzli\dct_double.cc" />
     <ClCompile Include="guetzli\debug_print.cc" />
@@ -212,7 +277,36 @@
     <ClCompile Include="guetzli\score.cc" />
     <ClCompile Include="third_party\butteraugli\butteraugli\butteraugli.cc" />
   </ItemGroup>
+  <ItemGroup>
+    <Intel_OpenCL_Build_Rules Include="clguetzli\clguetzli.cl">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </Intel_OpenCL_Build_Rules>
+    <CustomBuild Include="clguetzli\clguetzli.cu">
+      <FileType>Document</FileType>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CUDA Code Builder</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)compile.bat 64</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)compile.bat 32</Command>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clguetzli\clguetzli.cu.ptx64</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)compile.bat 64 -G</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CUDA Code Builder</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clguetzli\clguetzli.cu.ptx64</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)compile.bat 32 -G</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CUDA Code Builder</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">clguetzli\clguetzli.cu.ptx32</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CUDA Code Builder</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">clguetzli\clguetzli.cu.ptx32</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </CustomBuild>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\IntelOpenCL.targets" />
   </ImportGroup>
 </Project>

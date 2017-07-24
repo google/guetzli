@@ -2,7 +2,8 @@ workspace "guetzli"
   configurations { "Release", "Debug" }
   language "C++"
   flags { "C++11" }
-  includedirs { ".", "third_party/butteraugli" }
+  includedirs { ".", "third_party/butteraugli", "clguetzli" }
+  libdirs {}
 
   filter "action:vs*"
     platforms { "x86_64", "x86" }
@@ -29,7 +30,9 @@ workspace "guetzli"
         "guetzli/*.cc",
         "guetzli/*.h",
         "third_party/butteraugli/butteraugli/butteraugli.cc",
-        "third_party/butteraugli/butteraugli/butteraugli.h"
+        "third_party/butteraugli/butteraugli/butteraugli.h",
+        "clguetzli/*.cpp",
+        "clguetzli/*.h"
       }
     removefiles "guetzli/guetzli.cc"
     filter "action:gmake"
@@ -39,8 +42,10 @@ workspace "guetzli"
   project "guetzli"
     kind "ConsoleApp"
     filter "action:gmake"
+	  --defines { "__USE_OPENCL__", "__USE_CUDA__", "__SUPPORT_FULL_JPEG__" }
       linkoptions { "`pkg-config --libs libpng || libpng-config --ldflags`" }
       buildoptions { "`pkg-config --cflags libpng || libpng-config --cflags`" }
+      --links { "OpenCL", "cuda", "profiler", "unwind", "jpeg" }
     filter "action:vs*"
       links { "shlwapi" }
     filter {}
@@ -49,5 +54,7 @@ workspace "guetzli"
         "guetzli/*.cc",
         "guetzli/*.h",
         "third_party/butteraugli/butteraugli/butteraugli.cc",
-        "third_party/butteraugli/butteraugli/butteraugli.h"
+        "third_party/butteraugli/butteraugli/butteraugli.h",
+        "clguetzli/*.cpp",
+        "clguetzli/*.h"
       }

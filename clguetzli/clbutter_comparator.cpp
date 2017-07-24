@@ -1,3 +1,10 @@
+/*
+* OpenCL/CUDA edition implementation of butter_comparator.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #include "clbutter_comparator.h"
 #include "clguetzli.h"
 #include "clguetzli_test.h"
@@ -730,9 +737,9 @@ void MaskHighIntensityChangeOpt(
 		for (size_t x = 0; x < xsize; ++x) {
 			size_t ix = y * xsize + x;
 			const float ave[3] = {
-				(c0[0][ix] + c1[0][ix]) * 0.5,
-				(c0[1][ix] + c1[1][ix]) * 0.5,
-				(c0[2][ix] + c1[2][ix]) * 0.5,
+				static_cast<float>((c0[0][ix] + c1[0][ix]) * 0.5),
+				static_cast<float>((c0[1][ix] + c1[1][ix]) * 0.5),
+				static_cast<float>((c0[2][ix] + c1[2][ix]) * 0.5),
 			};
 			float sqr_max_diff = -1;
 			{
@@ -1735,9 +1742,8 @@ namespace butteraugli
         float border_ratio,
         float* __restrict__ result)
     {
-        _Convolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
-
 #ifdef __USE_OPENCL__
+		_Convolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);
         if (MODE_CHECKCL == g_mathMode && xsize > 8 && ysize > 8)
         {
             tclConvolution(xsize, ysize, xstep, len, offset, multipliers, inp, border_ratio, result);

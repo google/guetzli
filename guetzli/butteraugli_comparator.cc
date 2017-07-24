@@ -22,6 +22,10 @@
 #include "guetzli/gamma_correct.h"
 #include "guetzli/score.h"
 
+#include "clguetzli/ocu.h"
+#include "clguetzli/clguetzli.h"
+#include "clguetzli/cuguetzli.h"
+
 namespace guetzli {
 
 std::vector<std::vector<float> > ComputeOpsinDynamicsImage(
@@ -107,7 +111,9 @@ void ButteraugliComparator::SwitchBlock(int block_x, int block_y,
 }
 
 double ButteraugliComparator::CompareBlock(const OutputImage& img,
-                                           int off_x, int off_y) const {
+                                           int off_x, int off_y, 
+                                           const coeff_t* candidate_block,
+                                           const int comp_mask) const {
   int block_x = block_x_ * factor_x_ + off_x;
   int block_y = block_y_ * factor_y_ + off_y;
   int xmin = 8 * block_x;

@@ -1,5 +1,14 @@
+/*
+* OpenCL/CUDA edition implementation of ButteraugliComparator.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #ifndef __CLGUETZLI_CL_H__
 #define __CLGUETZLI_CL_H__
+
+#ifdef __USE_OPENCL__
 
 #ifdef __cplusplus
 #ifndef __CUDACC__
@@ -149,3 +158,5 @@
     }channel_info;
 
 #endif /*__CLGUETZLI_CL_H__*/
+
+#endif // __USE_OPENCL__

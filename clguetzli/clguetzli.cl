@@ -1,3 +1,11 @@
+/*
+* OpenCL Kernels
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
+#ifdef __USE_OPENCL__
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 #include  "clguetzli/clguetzli.cl.h"
@@ -13,7 +21,7 @@
 #define kBlockHalf      (kBlockEdge * kBlockEdgeHalf)
 #define kComputeBlockSize (kBlockSize * 3)
 
-// IntFloatPair是为了模拟output_order input_order的vector
+// IntFloatPair: opencl version of output_order/input_order
 typedef struct __IntFloatPair
 {
     int   idx;
@@ -734,21 +742,20 @@ __kernel void clAddBorderEx(__global float *out, const int xsize, const int ysiz
 
 }
 
-// batch是指已经二维块展开为了一维块
 __kernel void clComputeBlockZeroingOrderEx(
-    __global const coeff_t *orig_batch_0,       // 原始图像系数
-    __global const coeff_t *orig_batch_1,       // 原始图像系数
-    __global const coeff_t *orig_batch_2,       // 原始图像系数
-    __global const float   *orig_image_batch,   // 原始图像pregamma
-    __global const float   *mask_scale,         // 原始图像的某个神秘参数
+    __global const coeff_t *orig_batch_0,       // Coeffs of Original image.
+    __global const coeff_t *orig_batch_1,       // Coeffs of Original image.
+    __global const coeff_t *orig_batch_2,       // Coeffs of Original image.
+    __global const float   *orig_image_batch,   // pregamma of Original image..
+    __global const float   *mask_scale,         // mask_scale of Original image..
     const int              block_xsize,
     const int              block_ysize,
     const int              image_width,
     const int              image_height,
 
-    __global const coeff_t *mayout_batch_0,     // 输出备选图的系数
-    __global const coeff_t *mayout_batch_1,     // 输出备选图的系数
-    __global const coeff_t *mayout_batch_2,     // 输出备选图的系数
+    __global const coeff_t *mayout_batch_0,     // Coeffs of output image.
+    __global const coeff_t *mayout_batch_1,     // Coeffs of output image.
+    __global const coeff_t *mayout_batch_2,     // Coeffs of output image.
     __global const ushort  *mayout_pixel_0,
     __global const ushort  *mayout_pixel_1,
     __global const ushort  *mayout_pixel_2,
@@ -756,8 +763,8 @@ __kernel void clComputeBlockZeroingOrderEx(
     const channel_info     mayout_channel_0,
     const channel_info     mayout_channel_1,
     const channel_info     mayout_channel_2,
-    const int factor,                                 // 当前参与运算的factor
-    const int comp_mask,                              // 当前参与运算的channel
+    const int factor,                                 // Current factor in computing.
+    const int comp_mask,                              // Current channel in computing.
     const float BlockErrorLimit,
     __global CoeffData *output_order_list/*out*/)
 {
@@ -779,7 +786,7 @@ __kernel void clComputeBlockZeroingOrderEx(
     mayout_channel[1].pixel = mayout_pixel_1;
     mayout_channel[2].pixel = mayout_pixel_2;
 
-    int block_idx = 0;        // 根据下面mask命中的channel来计算indx
+    int block_idx = 0;
 
     coeff_t mayout_block[kComputeBlockSize] = { 0 };
     coeff_t orig_block[kComputeBlockSize]   = { 0 };
@@ -833,7 +840,7 @@ __kernel void clComputeBlockZeroingOrderEx(
         }
 
         if (best_err >= BlockErrorLimit)
-        {   // err队列是逐渐增大的，如果这里已经超过ErrorLimit，后续的计算就是冗余的了
+        {   // The input_order is an ascent vector, break when best_err exceed the error limit.
             break;
         }
         int idx = input_order.pData[best_i].idx;
@@ -843,7 +850,6 @@ __kernel void clComputeBlockZeroingOrderEx(
         list_push_back(&output_order, idx, best_err);
     }
 
-    // 注意output_order这里的resize就是把尾部的置位0
     float min_err = 1e10;
     for (int i = output_order.size - 1; i >= 0; --i) {
         min_err = min(min_err, output_order.pData[i].err);
@@ -855,7 +861,7 @@ __kernel void clComputeBlockZeroingOrderEx(
     int out_count = 0;
     for (int i = 0; i < kComputeBlockSize && i < output_order.size; i++)
     {
-        // 过滤较大的err，这部分进入后端计算没有意义
+        // err exceeding the limit is no need to continue.
         if (output_order.pData[i].err <= BlockErrorLimit)
         {
             output_block[out_count].idx = output_order.pData[i].idx;
@@ -1573,8 +1579,6 @@ __device__ void RgbToXyb(double r, double g, double b, double *valx, double *val
     *valz = b;
 }
 
-// chrisk todo
-// return size
 __device__ int list_push_back(IntFloatPairList* list, int i, float f)
 {
 	list->pData[list->size].idx = i;
@@ -1582,8 +1586,6 @@ __device__ int list_push_back(IntFloatPairList* list, int i, float f)
     return ++list->size;
 }
 
-// chrisk todo
-// remove idx and return size
 __device__ int list_erase(IntFloatPairList* list, int idx)
 {
 	for (int i = idx; i < list->size - 1; i++)
@@ -1594,7 +1596,6 @@ __device__ int list_erase(IntFloatPairList* list, int idx)
     return --list->size;
 }
 
-// chrisk todo
 __device__  int SortInputOrder(DCTScoreData* input_order, int size)
 {
 	int i, j;
@@ -2010,8 +2011,6 @@ __device__ coeff_t _abs(coeff_t val)
 	return val >= 0 ? val : -val;
 }
 
-// chrisk todo
-// return the count of Non-zero item
 __device__ int MakeInputOrder(__global const coeff_t *block, __global const coeff_t *orig_block, IntFloatPairList *input_order, int block_size)
 {
 	int size = 0;
@@ -2763,7 +2762,6 @@ __device__ void YUVToImage(__private uchar yuv[3 * 8 * 8], float* r, float* g, f
 #undef lut
 }
 
-// chrisk todo
 __device__ void BlockToImage(__private const coeff_t block[8*8*3], float r[8*8], float g[8*8], float b[8*8], int inside_x, int inside_y)
 {
 	uchar idct[3][8 * 8];
@@ -2927,11 +2925,8 @@ __device__ void Convolution(size_t xsize, size_t ysize,
 	}
 }
 
-// ian todo
-// 计算结果输出到output
 __device__ void BlurEx(const float *r, int xsize, int ysize, double kSigma, double border_ratio, float *output)
 {
-    // 参考clBlurEx2的实现，sigma = 1.1，这时step、diff都将特化为固定值
 	const double sigma = 1.1;
 	double m = 2.25;  // Accuracy increases when m is increased.
 	const double scaler = -0.41322314049586772; // when sigma=1.1, scaler is -0.41322314049586772
@@ -2953,7 +2948,6 @@ __device__ void BlurEx(const float *r, int xsize, int ysize, double kSigma, doub
               border_ratio, output);
 }
 
-// ian todo
 __device__ void OpsinDynamicsImageBlock(__private float *r, __private float *g, __private float *b,
                             __private const float *r_blurred, __private const float *g_blurred, __private const float *b_blurred,
                             int size)
@@ -2983,7 +2977,6 @@ __device__ void OpsinDynamicsImageBlock(__private float *r, __private float *g, 
   }
 }
 
-// chrisk todo
 __device__ void MaskHighIntensityChangeBlock(float *xyb0_x, float *xyb0_y, float *xyb0_b,
     float *xyb1_x, float *xyb1_y, float *xyb1_b,
     const float *c0_x, const float *c0_y, const float *c0_b,
@@ -3079,10 +3072,7 @@ __device__ void CalcOpsinDynamicsImage(__private float rgb[3][kDCTBlockSize])
 
 __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize], __private float rgb1_c[3][kDCTBlockSize], const __global float* mask_scale_block)
 { 
-//    return 0;       // 126ms 
-//    CalcOpsinDynamicsImage(rgb0_c);  -- calc in cpu one time
     CalcOpsinDynamicsImage(rgb1_c);     
-//    return 0;       // 425ms
 
     float rgb0[3][kDCTBlockSize];
     float rgb1[3][kDCTBlockSize];
@@ -3095,9 +3085,8 @@ __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize],
                                 rgb0_c[0], rgb0_c[1], rgb0_c[2],
                                 rgb1_c[0], rgb1_c[1], rgb1_c[2],
                                 8, 8);
-//    return 0;       // 544ms
-    // 这里为啥要把float转成double才能继续做计算？
-    double b0[3 * kDCTBlockSize];       // 
+
+    double b0[3 * kDCTBlockSize];       
     double b1[3 * kDCTBlockSize];
     for (int c = 0; c < 3; ++c) {
         for (int ix = 0; ix < kDCTBlockSize; ++ix) {
@@ -3111,7 +3100,6 @@ __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize],
     double diff_xyz_edge_dc[3] = { 0.0 };
     ButteraugliBlockDiff(b0, b1, diff_xyz_dc, diff_xyz_ac, diff_xyz_edge_dc);
 
-//    return 0;       // 735ms
     double diff = 0.0;
     double diff_edge = 0.0;
 
@@ -3123,7 +3111,6 @@ __device__ double ComputeImage8x8Block(__private float rgb0_c[3][kDCTBlockSize],
     const double kEdgeWeight = 0.05;
     return sqrt((1 - kEdgeWeight) * diff + kEdgeWeight * diff_edge);
 
-//   750ms
 }
 
 // return the count of Non-zero item
@@ -3429,3 +3416,5 @@ __device__ double CompareBlockFactor(const channel_info mayout_channel[3],
 #ifdef __USE_DOUBLE_AS_FLOAT__
 #undef double
 #endif
+
+#endif //__USE_OPENCL__

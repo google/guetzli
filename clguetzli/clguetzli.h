@@ -1,3 +1,10 @@
+/*
+* OpenCL edition implementation of guetzli.
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
 #pragma once
 #include <vector>
 #include "guetzli/processor.h"

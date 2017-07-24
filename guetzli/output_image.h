@@ -37,6 +37,8 @@ class OutputImageComponent {
   int width_in_blocks() const { return width_in_blocks_; }
   int height_in_blocks() const { return height_in_blocks_; }
   const coeff_t* coeffs() const { return &coeffs_[0]; }
+  const uint16_t* pixels() const { return &pixels_[0]; }
+  size_t pixels_size() const { return pixels_.size(); }
   const int* quant() const { return &quant_[0]; }
   bool IsAllZero() const;
 

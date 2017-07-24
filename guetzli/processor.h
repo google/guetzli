@@ -26,6 +26,11 @@
 
 namespace guetzli {
 
+struct CoeffData {
+    int idx;
+    float block_err;
+};
+    
 struct Params {
   float butteraugli_target = 1.0;
   bool clear_metadata = true;
@@ -48,6 +53,9 @@ struct GuetzliOutput {
 bool ProcessJpegData(const Params& params, const JPEGData& jpg_in,
                      Comparator* comparator, GuetzliOutput* out,
                      ProcessStats* stats);
+bool ProcessUnsupportedJpegData(const Params& params,
+	ProcessStats* stats, const std::string& data,
+	std::string* jpg_out);
 
 // Sets *out to a jpeg encoded string that will decode to an image that is
 // visually indistinguishable from the input rgb image.

@@ -1,3 +1,12 @@
+/*
+* OpenCL test cases
+*
+* Author: strongtu@tencent.com
+*         ianhuang@tencent.com
+*         chriskzhou@tencent.com
+*/
+#ifdef __USE_OPENCL__
+
 #include <CL/cl.h>
 #include <math.h>
 #include <assert.h>
@@ -6,8 +15,6 @@
 #include "clguetzli.h"
 #include "ocl.h"
 #include "ocu.h"
-
-#ifdef __USE_OPENCL__
 
 #define FLOAT_COMPARE(a, b, c)  floatCompare((a), (b), (c), __FUNCTION__, __LINE__ )
 
@@ -69,7 +76,6 @@ void tclMaskHighIntensityChange(const float* r, const float* g, const float* b,
 	ocl.releaseMemChannels(xyb1);
 }
 
-// strong to
 void tclEdgeDetectorMap(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize, size_t step,
@@ -101,7 +107,6 @@ void tclEdgeDetectorMap(const float* r, const float* g, const float* b,
 	clReleaseMemObject(edge);
 }
 
-// strong todo
 void tclBlockDiffMap(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize, size_t step,
@@ -140,7 +145,6 @@ void tclBlockDiffMap(const float* r, const float* g, const float* b,
 	clReleaseMemObject(block_diff_dc);
 }
 
-// strong to
 void tclEdgeDetectorLowFreq(const float* r, const float* g, const float* b,
 	const float* r2, const float* g2, const float* b2,
 	size_t xsize, size_t ysize, size_t step,
@@ -258,7 +262,6 @@ void tclCombineChannels(const float *mask_xyb_x, const float *mask_xyb_y, const 
 	clReleaseMemObject(cl_result);
 }
 
-// ian todo
 void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	const size_t step,
 	const float *diffmap, size_t org_len,
@@ -278,7 +281,6 @@ void tclCalculateDiffmap(const size_t xsize, const size_t ysize,
 	clReleaseMemObject(mem_diffmap);
 }
 
-// chrisk todo
 void tclBlur(const float* channel, size_t xsize, size_t ysize, double sigma, double border_ratio, const float* result)
 {
     size_t channel_size = xsize * ysize * sizeof(float);
@@ -299,7 +301,6 @@ void tclBlur(const float* channel, size_t xsize, size_t ysize, double sigma, dou
     clReleaseMemObject(r);
 }
 
-// chrisk todo
 void tclConvolution(size_t xsize, size_t ysize,
 	size_t xstep,
 	size_t len, size_t offset,
@@ -333,7 +334,6 @@ void tclConvolution(size_t xsize, size_t ysize,
 	clReleaseMemObject(m);
 }
 
-// ian todo
 void tclDiffPrecompute(
   const std::vector<std::vector<float> > &xyb0,
   const std::vector<std::vector<float> > &xyb1,
@@ -366,7 +366,6 @@ void tclDiffPrecompute(
   ocl.releaseMemChannels(cl_mask);
 }
 
-// ian todo
 void tclAverage5x5(int xsize, int ysize, const std::vector<float> &diffs_org, const std::vector<float> &diffs_cmp)
 {
   cl_int err = 0;
@@ -382,7 +381,6 @@ void tclAverage5x5(int xsize, int ysize, const std::vector<float> &diffs_org, co
   clReleaseMemObject(mem_diff);
 }
 
-// chrisk todo
 void tclMinSquareVal(const float *img, size_t square_size, size_t offset,
 	size_t xsize, size_t ysize,
 	const float *result)
@@ -422,7 +420,6 @@ void tclScaleImage(double scale, const float *result_org, const float *result_cm
     clReleaseMemObject(mem_result_org);
 }
 
-// strong todo
 void tclOpsinDynamicsImage(const float* r, const float* g, const float* b, size_t xsize, size_t ysize,
 	const float* result_r, const float* result_g, const float* result_b)
 {
