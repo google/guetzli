@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="guetzli">
@@ -12,6 +12,9 @@
     </Filter>
     <Filter Include="third_party\butteraugli\butteraugli">
       <UniqueIdentifier>{FD6FCB41-6929-36EC-F288-50C65E41EC5B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="clguetzli">
+      <UniqueIdentifier>{64847a89-ca39-4556-ba0e-d6875c4d39ca}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -93,6 +96,33 @@
     <ClInclude Include="third_party\butteraugli\butteraugli\butteraugli.h">
       <Filter>third_party\butteraugli\butteraugli</Filter>
     </ClInclude>
+    <ClInclude Include="clguetzli\utils.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\ocl.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\clguetzli.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\clguetzli_test.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\clbutter_comparator.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\clguetzli.cl.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\ocu.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\cuguetzli.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
+    <ClInclude Include="clguetzli\cumem_pool.h">
+      <Filter>clguetzli</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="guetzli\butteraugli_comparator.cc">
@@ -158,5 +188,42 @@
     <ClCompile Include="third_party\butteraugli\butteraugli\butteraugli.cc">
       <Filter>third_party\butteraugli\butteraugli</Filter>
     </ClCompile>
+    <ClCompile Include="clguetzli\utils.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\ocl.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\clguetzli.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\clguetzli_test.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\clguetzli.cl.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\clbutter_comparator.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\ocu.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\cuguetzli.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+    <ClCompile Include="clguetzli\cumem_pool.cpp">
+      <Filter>clguetzli</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Intel_OpenCL_Build_Rules Include="clguetzli\clguetzli.cl">
+      <Filter>clguetzli</Filter>
+    </Intel_OpenCL_Build_Rules>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="clguetzli\clguetzli.cu">
+      <Filter>clguetzli</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

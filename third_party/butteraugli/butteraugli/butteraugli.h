@@ -45,33 +45,34 @@ class ButteraugliComparator {
 
   // Computes the butteraugli map between xyb0 and xyb1 and updates result.
   // Both xyb0 and xyb1 are in opsin-dynamics space.
-  // NOTE: The xyb0 and xyb1 images are mutated by this function in-place.
-  void DiffmapOpsinDynamicsImage(std::vector<std::vector<float>> &xyb0,
+// NOTE: The xyb0 and xyb1 images are mutated by this function in-place.
+  virtual void DiffmapOpsinDynamicsImage(std::vector<std::vector<float>> &xyb0,
                                  std::vector<std::vector<float>> &xyb1,
                                  std::vector<float> &result);
-
- private:
-  void BlockDiffMap(const std::vector<std::vector<float> > &rgb0,
+  int step() { return step_;}
+ protected:
+  virtual void BlockDiffMap(const std::vector<std::vector<float> > &rgb0,
                     const std::vector<std::vector<float> > &rgb1,
                     std::vector<float>* block_diff_dc,
                     std::vector<float>* block_diff_ac);
 
 
-  void EdgeDetectorMap(const std::vector<std::vector<float> > &rgb0,
+  virtual void EdgeDetectorMap(const std::vector<std::vector<float> > &rgb0,
                        const std::vector<std::vector<float> > &rgb1,
                        std::vector<float>* edge_detector_map);
 
-  void EdgeDetectorLowFreq(const std::vector<std::vector<float> > &rgb0,
+  virtual void EdgeDetectorLowFreq(const std::vector<std::vector<float> > &rgb0,
                            const std::vector<std::vector<float> > &rgb1,
                            std::vector<float>* block_diff_ac);
 
-  void CombineChannels(const std::vector<std::vector<float> >& scale_xyb,
+  virtual void CombineChannels(const std::vector<std::vector<float> >& scale_xyb,
                        const std::vector<std::vector<float> >& scale_xyb_dc,
                        const std::vector<float>& block_diff_dc,
                        const std::vector<float>& block_diff_ac,
                        const std::vector<float>& edge_detector_map,
                        std::vector<float>* result);
 
+protected:
   const size_t xsize_;
   const size_t ysize_;
   const size_t num_pixels_;

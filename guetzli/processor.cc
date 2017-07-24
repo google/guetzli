@@ -31,6 +31,11 @@
 #include "guetzli/jpeg_data_writer.h"
 #include "guetzli/output_image.h"
 #include "guetzli/quantize.h"
+#include "clguetzli/clguetzli.h"
+
+#ifdef __SUPPORT_FULL_JPEG__
+#include "jpeglib.h"
+#endif
 
 namespace guetzli {
 
@@ -38,10 +43,6 @@ namespace {
 
 static const size_t kBlockSize = 3 * kDCTBlockSize;
 
-struct CoeffData {
-  int idx;
-  float block_err;
-};
 struct QuantData {
   int q[3][kDCTBlockSize];
   size_t jpg_size;
@@ -57,11 +58,21 @@ class Processor {
   void SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
                               const uint8_t comp_mask, const double target_mul,
                               bool stop_early);
+
+  void SelectFrequencyBackEnd(const JPEGData& jpg, OutputImage* img,
+      const uint8_t comp_mask,
+      const double target_mul,
+      bool stop_early,
+      std::vector<int> &candidate_coeff_offsets,
+      std::vector<uint8_t>& candidate_coeffs,
+      std::vector<float> &candidate_coeff_errors);
+
   void ComputeBlockZeroingOrder(
       const coeff_t block[kBlockSize], const coeff_t orig_block[kBlockSize],
       const int block_x, const int block_y, const int factor_x,
       const int factor_y, const uint8_t comp_mask, OutputImage* img,
       std::vector<CoeffData>* output_order);
+
   bool SelectQuantMatrix(const JPEGData& jpg_in, const bool downsample,
                          int best_q[3][kDCTBlockSize],
                          OutputImage* img);
@@ -402,47 +413,55 @@ void Processor::ComputeBlockZeroingOrder(
   memcpy(processed_block, block, sizeof(processed_block));
   comparator_->SwitchBlock(block_x, block_y, factor_x, factor_y);
   while (!input_order.empty()) {
-    float best_err = 1e17f;
-    int best_i = 0;
-    for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
-                                         input_order.size());
-         ++i) {
-      coeff_t candidate_block[kBlockSize];
-      memcpy(candidate_block, processed_block, sizeof(candidate_block));
-      const int idx = input_order[i].first;
-      candidate_block[idx] = 0;
-      for (int c = 0; c < 3; ++c) {
-        if (comp_mask & (1 << c)) {
-          img->component(c).SetCoeffBlock(
-              block_x, block_y, &candidate_block[c * kDCTBlockSize]);
-        }
-      }
-      float max_err = 0;
-      for (int iy = 0; iy < factor_y; ++iy) {
-        for (int ix = 0; ix < factor_x; ++ix) {
-          int block_xx = block_x * factor_x + ix;
-          int block_yy = block_y * factor_y + iy;
-          if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
-            float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy));
-            max_err = std::max(max_err, err);
-          }
-        }
-      }
-      if (max_err < best_err) {
-        best_err = max_err;
-        best_i = i;
-      }
-    }
-    int idx = input_order[best_i].first;
-    processed_block[idx] = 0;
-    input_order.erase(input_order.begin() + best_i);
-    output_order->push_back({idx, best_err});
-    for (int c = 0; c < 3; ++c) {
-      if (comp_mask & (1 << c)) {
-        img->component(c).SetCoeffBlock(
-            block_x, block_y, &processed_block[c * kDCTBlockSize]);
-      }
-    }
+	  float best_err = 1e17f;
+	  int best_i = 0;
+	  for (size_t i = 0; i < std::min<size_t>(params_.zeroing_greedy_lookahead,
+		  input_order.size());
+		  ++i) {
+		  coeff_t candidate_block[kBlockSize];
+		  memcpy(candidate_block, processed_block, sizeof(candidate_block));
+		  const int idx = input_order[i].first;
+		  candidate_block[idx] = 0;
+		  for (int c = 0; c < 3; ++c) {
+			  if (comp_mask & (1 << c)) {
+				  img->component(c).SetCoeffBlock(
+					  block_x, block_y, &candidate_block[c * kDCTBlockSize]);
+			  }
+		  }
+		  float max_err = 0;
+		  for (int iy = 0; iy < factor_y; ++iy) {
+			  for (int ix = 0; ix < factor_x; ++ix) {
+				  int block_xx = block_x * factor_x + ix;
+				  int block_yy = block_y * factor_y + iy;
+				  if (8 * block_xx < img->width() && 8 * block_yy < img->height()) {
+					  float err = static_cast<float>(comparator_->CompareBlock(*img, ix, iy, candidate_block, comp_mask));
+					  max_err = std::max(max_err, err);
+				  }
+			  }
+		  }
+		  if (max_err < best_err) {
+			  best_err = max_err;
+			  best_i = i;
+		  }
+	  }
+	  int idx = input_order[best_i].first;
+	  processed_block[idx] = 0;
+	  input_order.erase(input_order.begin() + best_i);
+	  output_order->push_back({ idx, best_err });
+	  for (int c = 0; c < 3; ++c) {
+		  if (comp_mask & (1 << c)) {
+			  img->component(c).SetCoeffBlock(
+				  block_x, block_y, &processed_block[c * kDCTBlockSize]);
+		  }
+	  }
+	  if (MODE_CPU_OPT == g_mathMode)
+	  {
+		  if (best_err >= comparator_->BlockErrorLimit())
+		  {   
+              // The input_order is an ascent vector, break when best_err exceed the error limit.
+			  break;
+		  }
+	  }
   }
   // Make the block error values monotonic.
   float min_err = 1e10;
@@ -536,58 +555,188 @@ size_t EstimateDCSize(const JPEGData& jpg) {
 
 }  // namespace
 
-void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
-                                       const uint8_t comp_mask,
-                                       const double target_mul,
-                                       bool stop_early) {
-  const int width = img->width();
-  const int height = img->height();
-  const int ncomp = jpg.components.size();
-  const int last_c = Log2FloorNonZero(comp_mask);
-  if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
-  const int factor_x = img->component(last_c).factor_x();
-  const int factor_y = img->component(last_c).factor_y();
-  const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
-  const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
-  const int num_blocks = block_width * block_height;
+void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img, const uint8_t comp_mask, 
+                                       const double target_mul, bool stop_early)
+{
+    const int width = img->width();
+    const int height = img->height();
+    const int ncomp = jpg.components.size();
+    const int last_c = Log2FloorNonZero(comp_mask);
+    if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
+    const int factor_x = img->component(last_c).factor_x();
+    const int factor_y = img->component(last_c).factor_y();
+    const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
+    const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
+    const int num_blocks = block_width * block_height;
 
-  std::vector<int> candidate_coeff_offsets(num_blocks + 1);
-  std::vector<uint8_t> candidate_coeffs;
-  std::vector<float> candidate_coeff_errors;
-  candidate_coeffs.reserve(60 * num_blocks);
-  candidate_coeff_errors.reserve(60 * num_blocks);
-  std::vector<CoeffData> block_order;
-  block_order.reserve(3 * kDCTBlockSize);
-  comparator_->StartBlockComparisons();
-  for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
-    for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
-      coeff_t block[kBlockSize] = { 0 };
-      coeff_t orig_block[kBlockSize] = { 0 };
-      for (int c = 0; c < 3; ++c) {
-        if (comp_mask & (1 << c)) {
-          assert(img->component(c).factor_x() == factor_x);
-          assert(img->component(c).factor_y() == factor_y);
-          img->component(c).GetCoeffBlock(block_x, block_y,
-                                          &block[c * kDCTBlockSize]);
-          const JPEGComponent& comp = jpg.components[c];
-          int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
-          memcpy(&orig_block[c * kDCTBlockSize],
-                 &comp.coeffs[jpg_block_ix * kDCTBlockSize],
-                 kDCTBlockSize * sizeof(orig_block[0]));
+
+    comparator_->StartBlockComparisons();
+
+    std::vector<CoeffData> output_order_gpu;
+    std::vector<CoeffData> output_order_cpu;
+
+	CoeffData * output_order = NULL;
+
+    if (MODE_OPENCL == g_mathMode || MODE_CUDA == g_mathMode)
+    {
+#ifdef __USE_OPENCL__
+		ButteraugliComparatorEx * comp = (ButteraugliComparatorEx*)comparator_;
+
+        channel_info orig_channel[3];
+        channel_info mayout_channel[3];
+
+        for (int c = 0; c < 3; c++)
+        {
+            mayout_channel[c].factor = img->component(c).factor_x();
+            mayout_channel[c].block_width = img->component(c).width_in_blocks();
+            mayout_channel[c].block_height = img->component(c).height_in_blocks();
+            mayout_channel[c].coeff = img->component(c).coeffs();
+            mayout_channel[c].pixel = img->component(c).pixels();
+
+            orig_channel[c].factor = jpg.components[c].v_samp_factor;
+            orig_channel[c].block_width = jpg.components[c].width_in_blocks;
+            orig_channel[c].block_height = jpg.components[c].height_in_blocks;
+            orig_channel[c].coeff = jpg.components[c].coeffs.data();
         }
-      }
-      block_order.clear();
-      ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x,
-                               factor_y, comp_mask, img, &block_order);
-      candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
-      for (size_t i = 0; i < block_order.size(); ++i) {
-        candidate_coeffs.push_back(block_order[i].idx);
-        candidate_coeff_errors.push_back(block_order[i].block_err);
-      }
+        output_order_gpu.resize(num_blocks * kBlockSize);
+        output_order = output_order_gpu.data();
+
+        if (MODE_OPENCL == g_mathMode)
+        {
+            clComputeBlockZeroingOrder(output_order,
+                orig_channel,
+                comp->imgOpsinDynamicsBlockList.data(),
+                comp->imgMaskXyzScaleBlockList.data(),
+                width,
+                height,
+                mayout_channel,
+                factor_x,
+                comp_mask,
+                comp->BlockErrorLimit());
+        }
+#endif
+#ifdef __USE_CUDA__
+        else
+        {
+            cuComputeBlockZeroingOrder(output_order,
+                orig_channel,
+                comp->imgOpsinDynamicsBlockList.data(),
+                comp->imgMaskXyzScaleBlockList.data(),
+                width,
+                height,
+                mayout_channel,
+                factor_x,
+                comp_mask,
+                comp->BlockErrorLimit());
+        }
+#endif
     }
-  }
-  comparator_->FinishBlockComparisons();
-  candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
+#ifdef __USE_OPENCL__
+    if (MODE_CPU_OPT == g_mathMode || MODE_CPU == g_mathMode || MODE_CHECKCL == g_mathMode)
+#else
+	if (MODE_CPU_OPT == g_mathMode || MODE_CPU == g_mathMode)
+#endif
+    {
+        output_order_cpu.resize(num_blocks * kBlockSize);
+        output_order = output_order_cpu.data();
+        for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
+            for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
+                coeff_t block[kBlockSize] = { 0 };
+                coeff_t orig_block[kBlockSize] = { 0 };
+                for (int c = 0; c < 3; ++c) {
+                    if (comp_mask & (1 << c)) {
+                        assert(img->component(c).factor_x() == factor_x);
+                        assert(img->component(c).factor_y() == factor_y);
+                        img->component(c).GetCoeffBlock(block_x, block_y,
+                            &block[c * kDCTBlockSize]);
+                        const JPEGComponent& comp = jpg.components[c];
+                        int jpg_block_ix = block_y * comp.width_in_blocks + block_x;
+                        memcpy(&orig_block[c * kDCTBlockSize],
+                            &comp.coeffs[jpg_block_ix * kDCTBlockSize],
+                            kDCTBlockSize * sizeof(orig_block[0]));
+                    }
+                }
+
+                std::vector<CoeffData> block_order;
+                ComputeBlockZeroingOrder(block, orig_block, block_x, block_y, factor_x, factor_y, comp_mask, img, &block_order);
+
+                CoeffData * p = &output_order_cpu[block_ix * kBlockSize];
+                for (int i = 0; i < block_order.size(); i++)
+                {
+                    p[i].idx = block_order[i].idx;
+                    p[i].block_err = block_order[i].block_err;
+                }
+            }
+        }
+    }
+
+#ifdef __USE_OPENCL__
+    if (MODE_CHECKCL == g_mathMode)
+    {
+        int count = 0;
+        int check_size = output_order_gpu.size();
+        for (int i = 0; i < check_size; i++)
+        {
+            if (output_order_cpu[i].idx != output_order_gpu[i].idx ||
+                fabs(output_order_cpu[i].block_err - output_order_gpu[i].block_err) > 0.001)
+            {
+                count++;
+            }
+        }
+        if (count > 0)
+        {
+            LogError("CHK %s(%d) %d:%d\r\n", "SelectFrequencyMasking", __LINE__, count, check_size);
+        }
+    }
+#endif
+
+    std::vector<int> candidate_coeff_offsets(num_blocks + 1);
+    std::vector<uint8_t> candidate_coeffs;
+    std::vector<float> candidate_coeff_errors;
+
+    for (int block_y = 0, block_ix = 0; block_y < block_height; ++block_y) {
+        for (int block_x = 0; block_x < block_width; ++block_x, ++block_ix) {
+            CoeffData * p = &output_order[block_ix * kBlockSize];
+   
+            candidate_coeff_offsets[block_ix] = candidate_coeffs.size();
+            for (int i = 0; i < kBlockSize; i++)
+            {
+                if (p[i].block_err > 0 && p[i].block_err <= comparator_->BlockErrorLimit())
+                {
+                    candidate_coeffs.push_back(p[i].idx);
+                    candidate_coeff_errors.push_back(p[i].block_err);
+                }
+            }
+        }
+    }
+
+    //
+    comparator_->FinishBlockComparisons();
+    candidate_coeff_offsets[num_blocks] = candidate_coeffs.size();
+
+    SelectFrequencyBackEnd(jpg, img, comp_mask, target_mul, stop_early,
+        candidate_coeff_offsets, candidate_coeffs, candidate_coeff_errors);
+
+}
+
+void Processor::SelectFrequencyBackEnd(const JPEGData& jpg, OutputImage* img, 
+                                        const uint8_t comp_mask,
+                                        const double target_mul, 
+                                        bool stop_early,
+                                        std::vector<int> &candidate_coeff_offsets,
+                                        std::vector<uint8_t>& candidate_coeffs,
+                                        std::vector<float> &candidate_coeff_errors)
+{
+    const int ncomp = jpg.components.size();
+    const int width = img->width();
+    const int height = img->height();
+    const int last_c = Log2FloorNonZero(comp_mask);
+    if (static_cast<size_t>(last_c) >= jpg.components.size()) return;
+    const int factor_x = img->component(last_c).factor_x();
+    const int factor_y = img->component(last_c).factor_y();
+    const int block_width = (width + 8 * factor_x - 1) / (8 * factor_x);
+    const int block_height = (height + 8 * factor_y - 1) / (8 * factor_y);
+    const int num_blocks = block_width * block_height;
 
   std::vector<JpegHistogram> ac_histograms(ncomp);
   int jpg_header_size, dc_size;
@@ -891,10 +1040,7 @@ bool Process(const Params& params, ProcessStats* stats,
   }
   std::vector<uint8_t> rgb = DecodeJpegToRGB(jpg);
   if (rgb.empty()) {
-    fprintf(stderr, "Unsupported input JPEG file (e.g. unsupported "
-            "downsampling mode).\nPlease provide the input image as "
-            "a PNG file.\n");
-    return false;
+    return ProcessUnsupportedJpegData(params,stats,data,jpg_out);
   }
   GuetzliOutput out;
   ProcessStats dummy_stats;
@@ -903,13 +1049,60 @@ bool Process(const Params& params, ProcessStats* stats,
   }
   std::unique_ptr<ButteraugliComparator> comparator;
   if (jpg.width >= 32 && jpg.height >= 32) {
+#ifdef __USE_OPENCL__
     comparator.reset(
-        new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+        new ButteraugliComparatorEx(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
+#else
+   comparator.reset(
+       new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+           params.butteraugli_target, stats));
+#endif
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
   *jpg_out = out.jpeg_data;
   return ok;
+}
+
+bool ProcessUnsupportedJpegData(const Params& params, ProcessStats* stats,
+	const std::string& data,
+	std::string* jpg_out) {
+#ifdef __SUPPORT_FULL_JPEG__
+	struct jpeg_decompress_struct cinfo;
+	struct jpeg_error_mgr jerr;
+	cinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_decompress(&cinfo);
+	jpeg_mem_src(&cinfo, (unsigned char*)data.c_str(), data.length());
+
+	int rc = jpeg_read_header(&cinfo, TRUE);
+	if (rc != 1) {
+		fprintf(stderr, "File does not seem to be a normal JPEG\n");
+		exit(EXIT_FAILURE);
+	}
+
+	cinfo.out_color_space = JCS_RGB; //force RGB output
+	jpeg_start_decompress(&cinfo);
+	int xsize = cinfo.output_width;
+	int ysize = cinfo.output_height;
+	int pixel_size = cinfo.output_components;
+	unsigned long bmp_size = xsize * ysize * pixel_size;
+	unsigned char *bmp_buffer = (unsigned char*)malloc(bmp_size);
+	int row_stride = cinfo.output_width * cinfo.output_components;
+	JSAMPARRAY buffer = (*cinfo.mem->alloc_sarray)
+		((j_common_ptr)&cinfo, JPOOL_IMAGE, row_stride, 1);
+	while (cinfo.output_scanline < cinfo.output_height) {
+		unsigned char *buffer_array[1];
+		buffer_array[0] = bmp_buffer + (cinfo.output_scanline) * row_stride;
+		jpeg_read_scanlines(&cinfo, buffer_array, 1);
+	}
+	std::vector<uint8_t> temp_rgb(bmp_buffer, bmp_buffer + bmp_size);
+	return Process(params, stats, temp_rgb, xsize, ysize, jpg_out);
+#else
+	fprintf(stderr, "Unsupported input JPEG file (e.g. unsupported "
+		"downsampling mode).\nPlease provide the input image as "
+		"a PNG file.\n");
+	return false;
+#endif
 }
 
 bool Process(const Params& params, ProcessStats* stats,
@@ -927,9 +1120,15 @@ bool Process(const Params& params, ProcessStats* stats,
   }
   std::unique_ptr<ButteraugliComparator> comparator;
   if (jpg.width >= 32 && jpg.height >= 32) {
+#ifdef __USE_OPENCL__
     comparator.reset(
-        new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+        new ButteraugliComparatorEx(jpg.width, jpg.height, &rgb,
                                   params.butteraugli_target, stats));
+#else
+	  comparator.reset(
+		new ButteraugliComparator(jpg.width, jpg.height, &rgb,
+			params.butteraugli_target, stats));
+#endif
   }
   bool ok = ProcessJpegData(params, jpg, comparator.get(), &out, stats);
   *jpg_out = out.jpeg_data;
