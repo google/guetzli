@@ -16,7 +16,7 @@ ifeq ($(config),release)
   TARGET = $(TARGETDIR)/libguetzli_static.a
   OBJDIR = obj/Release/guetzli_static
   DEFINES +=
-  INCLUDES += -I. -Ithird_party/butteraugli
+  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O3 -g `pkg-config --static --cflags libpng || libpng-config --static --cflags`
@@ -43,7 +43,7 @@ ifeq ($(config),debug)
   TARGET = $(TARGETDIR)/libguetzli_static.a
   OBJDIR = obj/Debug/guetzli_static
   DEFINES +=
-  INCLUDES += -I. -Ithird_party/butteraugli
+  INCLUDES += -I. -Ithird_party/butteraugli -Iclguetzli
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g `pkg-config --static --cflags libpng || libpng-config --static --cflags`
@@ -65,6 +65,15 @@ all: $(TARGETDIR) $(OBJDIR) prebuild prelink $(TARGET)
 endif
 
 OBJECTS := \
+	$(OBJDIR)/clbutter_comparator.o \
+	$(OBJDIR)/clguetzli.cl.o \
+	$(OBJDIR)/clguetzli.o \
+	$(OBJDIR)/clguetzli_test.o \
+	$(OBJDIR)/cuguetzli.o \
+	$(OBJDIR)/cumem_pool.o \
+	$(OBJDIR)/ocl.o \
+	$(OBJDIR)/ocu.o \
+	$(OBJDIR)/utils.o \
 	$(OBJDIR)/butteraugli_comparator.o \
 	$(OBJDIR)/dct_double.o \
 	$(OBJDIR)/debug_print.o \
@@ -142,6 +151,33 @@ $(GCH): $(PCH)
 	$(SILENT) $(CXX) -x c++-header $(ALL_CXXFLAGS) -o "$@" -MF "$(@:%.gch=%.d)" -c "$<"
 endif
 
+$(OBJDIR)/clbutter_comparator.o: clguetzli/clbutter_comparator.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/clguetzli.cl.o: clguetzli/clguetzli.cl.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/clguetzli.o: clguetzli/clguetzli.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/clguetzli_test.o: clguetzli/clguetzli_test.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/cuguetzli.o: clguetzli/cuguetzli.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/cumem_pool.o: clguetzli/cumem_pool.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/ocl.o: clguetzli/ocl.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/ocu.o: clguetzli/ocu.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/utils.o: clguetzli/utils.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/butteraugli_comparator.o: guetzli/butteraugli_comparator.cc
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"

@@ -13,6 +13,8 @@ matrix:
           packages:
             - wget
             - libjpeg-progs
+            - netpbm
+            - oracle-java8-installer
 
     - os: osx
       env: BUILD_SYSTEM=bazel
@@ -29,6 +31,7 @@ matrix:
             - libpng-dev
             - pkg-config
             - libjpeg-progs
+            - netpbm
 
     - os: osx
       env: BUILD_SYSTEM=make

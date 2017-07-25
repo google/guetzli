@@ -40,6 +40,12 @@
 #include <algorithm>
 #include <array>
 
+#ifdef __USE_OPENCL__
+#include "clguetzli/clbutter_comparator.h"
+#include "clguetzli/clguetzli.h"
+#include "clguetzli/clguetzli_test.h"
+#endif
+
 // Restricted pointers speed up Convolution(); MSVC uses a different keyword.
 #ifdef _MSC_VER
 #define __restrict__ __restrict
@@ -59,7 +65,7 @@ inline double DotProduct(const float u[3], const double v[3]) {
 }
 
 // Computes a horizontal convolution and transposes the result.
-static void Convolution(size_t xsize, size_t ysize,
+void _Convolution(size_t xsize, size_t ysize,
                         size_t xstep,
                         size_t len, size_t offset,
                         const float* __restrict__ multipliers,
@@ -91,7 +97,7 @@ static void Convolution(size_t xsize, size_t ysize,
   }
 }
 
-void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
+void _Blur(size_t xsize, size_t ysize, float* channel, double sigma,
           double border_ratio) {
   PROFILER_FUNC;
   double m = 2.25;  // Accuracy increases when m is increased.
@@ -108,17 +114,28 @@ void Blur(size_t xsize, size_t ysize, float* channel, double sigma,
   int dxsize = (xsize + xstep - 1) / xstep;
   int dysize = (ysize + ystep - 1) / ystep;
   std::vector<float> tmp(dxsize * ysize);
+#ifdef __USE_OPENCL__
   Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
               border_ratio,
               tmp.data());
+#else
+  _Convolution(xsize, ysize, xstep, expn_size, diff, expn.data(), channel,
+	          border_ratio,
+	          tmp.data());
+#endif
   float* output = channel;
   std::vector<float> downsampled_output;
   if (xstep > 1) {
     downsampled_output.resize(dxsize * dysize);
     output = downsampled_output.data();
   }
+#ifdef __USE_OPENCL__
   Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
               border_ratio, output);
+#else
+  _Convolution(ysize, dxsize, ystep, expn_size, diff, expn.data(), tmp.data(),
+	          border_ratio, output);
+#endif
   if (xstep > 1) {
     for (size_t y = 0; y < ysize; y++) {
       for (size_t x = 0; x < xsize; x++) {
@@ -771,7 +788,7 @@ ButteraugliComparator::ButteraugliComparator(
   assert(step <= 4);
 }
 
-void MaskHighIntensityChange(
+void _MaskHighIntensityChange(
     size_t xsize, size_t ysize,
     const std::vector<std::vector<float> > &c0,
     const std::vector<std::vector<float> > &c1,
@@ -923,7 +940,7 @@ static inline double Gamma(double v) {
   return GammaPolynomial(static_cast<float>(v));
 }
 
-void OpsinDynamicsImage(size_t xsize, size_t ysize,
+void _OpsinDynamicsImage(size_t xsize, size_t ysize,
                         std::vector<std::vector<float> > &rgb) {
   PROFILER_FUNC;
   std::vector<std::vector<float> > blurred = rgb;
@@ -956,7 +973,7 @@ void OpsinDynamicsImage(size_t xsize, size_t ysize,
   }
 }
 
-static void ScaleImage(double scale, std::vector<float> *result) {
+void _ScaleImage(double scale, std::vector<float> *result) {
   PROFILER_FUNC;
   for (size_t i = 0; i < result->size(); ++i) {
     (*result)[i] *= static_cast<float>(scale);
@@ -965,7 +982,7 @@ static void ScaleImage(double scale, std::vector<float> *result) {
 
 // Making a cluster of local errors to be more impactful than
 // just a single error.
-void CalculateDiffmap(const size_t xsize, const size_t ysize,
+void _CalculateDiffmap(const size_t xsize, const size_t ysize,
                       const size_t step,
                       std::vector<float>* diffmap) {
   PROFILER_FUNC;
@@ -1018,7 +1035,11 @@ void CalculateDiffmap(const size_t xsize, const size_t ysize,
             += static_cast<float>(mul1) * blurred[y * (xsize - s) + x];
       }
     }
+#ifdef __USE_OPENCL__
     ScaleImage(scale, diffmap);
+#else
+	_ScaleImage(scale, diffmap);
+#endif
   }
 }
 
@@ -1050,7 +1071,11 @@ void ButteraugliComparator::DiffmapOpsinDynamicsImage(
     CombineChannels(mask_xyb, mask_xyb_dc, block_diff_dc, block_diff_ac,
                     edge_detector_map, &result);
   }
+#ifdef __USE_OPENCL__
   CalculateDiffmap(xsize_, ysize_, step_, &result);
+#else
+  _CalculateDiffmap(xsize_, ysize_, step_, &result);
+#endif
 }
 
 void ButteraugliComparator::BlockDiffMap(
@@ -1304,8 +1329,8 @@ double MaskDcB(double delta) {
 // square_size square with coordinates
 //   x - offset .. x + square_size - offset - 1,
 //   y - offset .. y + square_size - offset - 1.
-void MinSquareVal(size_t square_size, size_t offset,
-                  size_t xsize, size_t ysize,
+void _MinSquareVal(size_t square_size, size_t offset,
+				  size_t xsize, size_t ysize,
                   float *values) {
   PROFILER_FUNC;
   // offset is not negative and smaller than square_size.
@@ -1315,9 +1340,19 @@ void MinSquareVal(size_t square_size, size_t offset,
     const size_t minh = offset > y ? 0 : y - offset;
     const size_t maxh = std::min<size_t>(ysize, y + square_size - offset);
     for (size_t x = 0; x < xsize; ++x) {
+#ifdef __USE_C__
+      float min = values[x + minh * xsize];
+#else
       double min = values[x + minh * xsize];
+#endif
       for (size_t j = minh + 1; j < maxh; ++j) {
+#ifdef __USE_C__
+          float tmpf = values[x + j * xsize];
+          if (tmpf < min) min = tmpf;
+#else
         min = fmin(min, values[x + j * xsize]);
+#endif
+
       }
       tmp[x + y * xsize] = static_cast<float>(min);
     }
@@ -1328,7 +1363,12 @@ void MinSquareVal(size_t square_size, size_t offset,
     for (size_t y = 0; y < ysize; ++y) {
       double min = tmp[minw + y * xsize];
       for (size_t j = minw + 1; j < maxw; ++j) {
+#ifdef __USE_C__
+          float tmpf = tmp[j + y * xsize];
+          if (tmpf < min) min = tmpf;
+#else
         min = fmin(min, tmp[j + y * xsize]);
+#endif
       }
       values[x + y * xsize] = static_cast<float>(min);
     }
@@ -1336,7 +1376,7 @@ void MinSquareVal(size_t square_size, size_t offset,
 }
 
 // ===== Functions used by Mask only =====
-void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
+void _Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
   PROFILER_FUNC;
   if (xsize < 4 || ysize < 4) {
     // TODO: Make this work for small dimensions as well.
@@ -1347,7 +1387,11 @@ void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
   std::vector<float> result = *diffs;
   std::vector<float> tmp0 = *diffs;
   std::vector<float> tmp1 = *diffs;
+#ifdef __USE_OPENCL__
   ScaleImage(w, &tmp1);
+#else
+  _ScaleImage(w, &tmp1);
+#endif
   for (int y = 0; y < ysize; y++) {
     const int row0 = y * xsize;
     result[row0 + 1] += tmp0[row0];
@@ -1386,10 +1430,14 @@ void Average5x5(int xsize, int ysize, std::vector<float>* diffs) {
     }
   }
   *diffs = result;
+#ifdef __USE_OPENCL__
   ScaleImage(scale, diffs);
+#else
+  _ScaleImage(scale, diffs);
+#endif
 }
 
-void DiffPrecompute(
+void _DiffPrecompute(
     const std::vector<std::vector<float> > &xyb0,
     const std::vector<std::vector<float> > &xyb1,
     size_t xsize, size_t ysize,
@@ -1444,7 +1492,7 @@ void DiffPrecompute(
   }
 }
 
-void Mask(const std::vector<std::vector<float> > &xyb0,
+void _Mask(const std::vector<std::vector<float> > &xyb0,
           const std::vector<std::vector<float> > &xyb1,
           size_t xsize, size_t ysize,
           std::vector<std::vector<float> > *mask,
@@ -1454,6 +1502,7 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
   for (int i = 0; i < 3; ++i) {
     (*mask)[i].resize(xsize * ysize);
   }
+#ifdef __USE_OPENCL__
   DiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
   for (int i = 0; i < 3; ++i) {
     Average5x5(xsize, ysize, &(*mask)[i]);
@@ -1465,6 +1514,19 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
     };
     Blur(xsize, ysize, (*mask)[i].data(), sigma[i], 0.0);
   }
+#else
+  _DiffPrecompute(xyb0, xyb1, xsize, ysize, mask);
+  for (int i = 0; i < 3; ++i) {
+	  _Average5x5(xsize, ysize, &(*mask)[i]);
+	  _MinSquareVal(4, 0, xsize, ysize, (*mask)[i].data());
+	  static const double sigma[3] = {
+		  9.65781083553,
+		  14.2644604355,
+		  4.53358927369,
+	  };
+	  _Blur(xsize, ysize, (*mask)[i].data(), sigma[i], 0.0);
+  }
+#endif
   static const double w00 = 232.206464018;
   static const double w11 = 22.9455222245;
   static const double w22 = 503.962310606;
@@ -1491,10 +1553,17 @@ void Mask(const std::vector<std::vector<float> > &xyb0,
       (*mask_dc)[2][idx] = static_cast<float>(MaskDcB(p2));
     }
   }
+#ifdef __USE_OPENCL__
   for (int i = 0; i < 3; ++i) {
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask)[i]);
     ScaleImage(kGlobalScale * kGlobalScale, &(*mask_dc)[i]);
   }
+#else
+  for (int i = 0; i < 3; ++i) {
+    _ScaleImage(kGlobalScale * kGlobalScale, &(*mask)[i]);
+    _ScaleImage(kGlobalScale * kGlobalScale, &(*mask_dc)[i]);
+  }
+#endif
 }
 
 }  // namespace butteraugli
