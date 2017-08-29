@@ -44,7 +44,7 @@ Fixes:
 
 ## v0.2
 
-Released 2016-01-17.
+Released 2017-01-17.
 
 Fixes:
 
