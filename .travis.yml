@@ -11,8 +11,9 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - wget
             - libjpeg-progs
+            - netpbm # For pngtopnm in smoke_test.sh.
+            - wget
 
     - os: osx
       env: BUILD_SYSTEM=bazel
@@ -25,10 +26,11 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - wget
-            - libpng-dev
-            - pkg-config
             - libjpeg-progs
+            - libpng-dev
+            - netpbm # For pngtopnm in smoke_test.sh.
+            - pkg-config
+            - wget
 
     - os: osx
       env: BUILD_SYSTEM=make
