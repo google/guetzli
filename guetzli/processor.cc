@@ -719,7 +719,18 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
         coeff_t block[kDCTBlockSize] = { 0 };
         img->component(c).GetCoeffBlock(block_x, block_y, block);
         UpdateACHistogram(-1, block, quant, &ac_histograms[c]);
-        block[k] = newval;
+        double sum_of_hf = 0;
+        for (int ii = 3; ii < 64; ++ii) {
+          if ((ii & 7) < 3 && ii < 3 * 8) continue;
+          sum_of_hf += std::abs(comp.coeffs[jpg_block_ix * kDCTBlockSize + ii]);
+        }
+        int limit = sum_of_hf < 60 ? 4 : 8;
+        bool precious =
+            (k == 1 || k == 8) &&
+            std::abs(comp.coeffs[jpg_block_ix * kDCTBlockSize + k]) >= limit;
+        if (!precious || newval != 0) {
+          block[k] = newval;
+        }
         UpdateACHistogram(1, block, quant, &ac_histograms[c]);
         img->component(c).SetCoeffBlock(block_x, block_y, block);
         last_indexes[block_ix] += direction;
