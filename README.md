@@ -25,6 +25,7 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     *   On Fedora, do `dnf install libpng-devel`. 
     *   On Arch Linux, do `pacman -S libpng`.
     *   On Alpine Linux, do `apk add libpng-dev`.
+    *   On Mageia Cauldron, do `urpmi libpng-devel gcc-g++`, or `dnf install libpng-devel gcc-g++`, or install the binary from the Mageia repositoy using `urpmi guetzli`
 3.  Run `make` and expect the binary to be created in `bin/Release/guetzli`.
 
 ## On Windows
