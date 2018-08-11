@@ -58,10 +58,10 @@ bool ReadPNG(FILE* f, std::vector<Image8>* rgb) {
     case 1: {
       // GRAYSCALE
       for (int y = 0; y < ysize; ++y) {
-        ConstRestrict<const uint8_t*> row = row_pointers[y];
-        ConstRestrict<uint8_t*> row0 = (*rgb)[0].Row(y);
-        ConstRestrict<uint8_t*> row1 = (*rgb)[1].Row(y);
-        ConstRestrict<uint8_t*> row2 = (*rgb)[2].Row(y);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row = row_pointers[y];
+        uint8_t* const BUTTERAUGLI_RESTRICT row0 = (*rgb)[0].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row1 = (*rgb)[1].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row2 = (*rgb)[2].Row(y);
 
         for (int x = 0; x < xsize; ++x) {
           const uint8_t gray = row[x];
@@ -74,11 +74,11 @@ bool ReadPNG(FILE* f, std::vector<Image8>* rgb) {
       // GRAYSCALE_ALPHA
       rgb->push_back(Image8(xsize, ysize));
       for (int y = 0; y < ysize; ++y) {
-        ConstRestrict<const uint8_t*> row = row_pointers[y];
-        ConstRestrict<uint8_t*> row0 = (*rgb)[0].Row(y);
-        ConstRestrict<uint8_t*> row1 = (*rgb)[1].Row(y);
-        ConstRestrict<uint8_t*> row2 = (*rgb)[2].Row(y);
-        ConstRestrict<uint8_t*> row3 = (*rgb)[3].Row(y);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row = row_pointers[y];
+        uint8_t* const BUTTERAUGLI_RESTRICT row0 = (*rgb)[0].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row1 = (*rgb)[1].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row2 = (*rgb)[2].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row3 = (*rgb)[3].Row(y);
 
         for (int x = 0; x < xsize; ++x) {
           const uint8_t gray = row[2 * x + 0];
@@ -94,10 +94,10 @@ bool ReadPNG(FILE* f, std::vector<Image8>* rgb) {
     case 3: {
       // RGB
       for (int y = 0; y < ysize; ++y) {
-        ConstRestrict<const uint8_t*> row = row_pointers[y];
-        ConstRestrict<uint8_t*> row0 = (*rgb)[0].Row(y);
-        ConstRestrict<uint8_t*> row1 = (*rgb)[1].Row(y);
-        ConstRestrict<uint8_t*> row2 = (*rgb)[2].Row(y);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row = row_pointers[y];
+        uint8_t* const BUTTERAUGLI_RESTRICT row0 = (*rgb)[0].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row1 = (*rgb)[1].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row2 = (*rgb)[2].Row(y);
 
         for (int x = 0; x < xsize; ++x) {
           row0[x] = row[3 * x + 0];
@@ -111,11 +111,11 @@ bool ReadPNG(FILE* f, std::vector<Image8>* rgb) {
       // RGBA
       rgb->push_back(Image8(xsize, ysize));
       for (int y = 0; y < ysize; ++y) {
-        ConstRestrict<const uint8_t*> row = row_pointers[y];
-        ConstRestrict<uint8_t*> row0 = (*rgb)[0].Row(y);
-        ConstRestrict<uint8_t*> row1 = (*rgb)[1].Row(y);
-        ConstRestrict<uint8_t*> row2 = (*rgb)[2].Row(y);
-        ConstRestrict<uint8_t*> row3 = (*rgb)[3].Row(y);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row = row_pointers[y];
+        uint8_t* const BUTTERAUGLI_RESTRICT row0 = (*rgb)[0].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row1 = (*rgb)[1].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row2 = (*rgb)[2].Row(y);
+        uint8_t* const BUTTERAUGLI_RESTRICT row3 = (*rgb)[3].Row(y);
 
         for (int x = 0; x < xsize; ++x) {
           row0[x] = row[4 * x + 0];
@@ -187,10 +187,13 @@ bool ReadJPEG(FILE* f, std::vector<Image8>* rgb) {
       while (cinfo.output_scanline < cinfo.output_height) {
         jpeg_read_scanlines(&cinfo, buffer, 1);
 
-        ConstRestrict<const uint8_t*> row = buffer[0];
-        ConstRestrict<uint8_t*> row0 = (*rgb)[0].Row(cinfo.output_scanline - 1);
-        ConstRestrict<uint8_t*> row1 = (*rgb)[1].Row(cinfo.output_scanline - 1);
-        ConstRestrict<uint8_t*> row2 = (*rgb)[2].Row(cinfo.output_scanline - 1);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row = buffer[0];
+        uint8_t* const BUTTERAUGLI_RESTRICT row0 =
+            (*rgb)[0].Row(cinfo.output_scanline - 1);
+        uint8_t* const BUTTERAUGLI_RESTRICT row1 =
+            (*rgb)[1].Row(cinfo.output_scanline - 1);
+        uint8_t* const BUTTERAUGLI_RESTRICT row2 =
+            (*rgb)[2].Row(cinfo.output_scanline - 1);
 
         for (int x = 0; x < xsize; x++) {
           const uint8_t gray = row[x];
@@ -203,10 +206,13 @@ bool ReadJPEG(FILE* f, std::vector<Image8>* rgb) {
       while (cinfo.output_scanline < cinfo.output_height) {
         jpeg_read_scanlines(&cinfo, buffer, 1);
 
-        ConstRestrict<const uint8_t*> row = buffer[0];
-        ConstRestrict<uint8_t*> row0 = (*rgb)[0].Row(cinfo.output_scanline - 1);
-        ConstRestrict<uint8_t*> row1 = (*rgb)[1].Row(cinfo.output_scanline - 1);
-        ConstRestrict<uint8_t*> row2 = (*rgb)[2].Row(cinfo.output_scanline - 1);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row = buffer[0];
+        uint8_t* const BUTTERAUGLI_RESTRICT row0 =
+            (*rgb)[0].Row(cinfo.output_scanline - 1);
+        uint8_t* const BUTTERAUGLI_RESTRICT row1 =
+            (*rgb)[1].Row(cinfo.output_scanline - 1);
+        uint8_t* const BUTTERAUGLI_RESTRICT row2 =
+            (*rgb)[2].Row(cinfo.output_scanline - 1);
 
         for (int x = 0; x < xsize; x++) {
           row0[x] = row[3 * x + 0];
@@ -240,8 +246,8 @@ void FromSrgbToLinear(const std::vector<Image8>& rgb,
     for (int c = 0; c < 3; c++) {
       linear.push_back(ImageF(xsize, ysize));
       for (int y = 0; y < ysize; ++y) {
-        ConstRestrict<const uint8_t*> row_rgb = rgb[c].Row(y);
-        ConstRestrict<float*> row_linear = linear[c].Row(y);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row_rgb = rgb[c].Row(y);
+        float* const BUTTERAUGLI_RESTRICT row_linear = linear[c].Row(y);
         for (size_t x = 0; x < xsize; x++) {
           const int value = row_rgb[x];
           row_linear[x] = kSrgbToLinearTable[value];
@@ -252,9 +258,9 @@ void FromSrgbToLinear(const std::vector<Image8>& rgb,
     for (int c = 0; c < 3; c++) {
       linear.push_back(ImageF(xsize, ysize));
       for (int y = 0; y < ysize; ++y) {
-        ConstRestrict<const uint8_t*> row_rgb = rgb[c].Row(y);
-        ConstRestrict<float*> row_linear = linear[c].Row(y);
-        ConstRestrict<const uint8_t*> row_alpha = rgb[3].Row(y);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row_rgb = rgb[c].Row(y);
+        float* const BUTTERAUGLI_RESTRICT row_linear = linear[c].Row(y);
+        const uint8_t* const BUTTERAUGLI_RESTRICT row_alpha = rgb[3].Row(y);
         for (size_t x = 0; x < xsize; x++) {
           int value;
           if (row_alpha[x] == 255) {
@@ -276,7 +282,7 @@ void FromSrgbToLinear(const std::vector<Image8>& rgb,
 
 std::vector<Image8> ReadImageOrDie(const char* filename) {
   std::vector<Image8> rgb;
-  FILE* f = fopen(filename, "r");
+  FILE* f = fopen(filename, "rb");
   if (!f) {
     fprintf(stderr, "Cannot open %s\n", filename);
     exit(1);
@@ -302,6 +308,42 @@ std::vector<Image8> ReadImageOrDie(const char* filename) {
   return rgb;
 }
 
+static void ScoreToRgb(double score, double good_threshold,
+                        double bad_threshold, uint8_t rgb[3]) {
+  double heatmap[12][3] = {
+    { 0, 0, 0 },
+    { 0, 0, 1 },
+    { 0, 1, 1 },
+    { 0, 1, 0 }, // Good level
+    { 1, 1, 0 },
+    { 1, 0, 0 }, // Bad level
+    { 1, 0, 1 },
+    { 0.5, 0.5, 1.0 },
+    { 1.0, 0.5, 0.5 },  // Pastel colors for the very bad quality range.
+    { 1.0, 1.0, 0.5 },
+    { 1, 1, 1, },
+    { 1, 1, 1, },
+  };
+  if (score < good_threshold) {
+    score = (score / good_threshold) * 0.3;
+  } else if (score < bad_threshold) {
+    score = 0.3 + (score - good_threshold) /
+        (bad_threshold - good_threshold) * 0.15;
+  } else {
+    score = 0.45 + (score - bad_threshold) /
+        (bad_threshold * 12) * 0.5;
+  }
+  static const int kTableSize = sizeof(heatmap) / sizeof(heatmap[0]);
+  score = std::min<double>(std::max<double>(
+      score * (kTableSize - 1), 0.0), kTableSize - 2);
+  int ix = static_cast<int>(score);
+  double mix = score - ix;
+  for (int i = 0; i < 3; ++i) {
+    double v = mix * heatmap[ix + 1][i] + (1 - mix) * heatmap[ix][i];
+    rgb[i] = static_cast<uint8_t>(255 * pow(v, 0.5) + 0.5);
+  }
+}
+
 void CreateHeatMapImage(const ImageF& distmap, double good_threshold,
                         double bad_threshold, size_t xsize, size_t ysize,
                         std::vector<uint8_t>* heatmap) {
@@ -311,33 +353,7 @@ void CreateHeatMapImage(const ImageF& distmap, double good_threshold,
       int px = xsize * y + x;
       double d = distmap.Row(y)[x];
       uint8_t* rgb = &(*heatmap)[3 * px];
-      if (d < 0.5 * good_threshold) {
-        rgb[0] = 0;
-        rgb[1] = d * (255 - 153) / (0.5 * good_threshold) + 153;
-        rgb[2] = 0;
-      } else if (d < good_threshold) {
-        d -= 0.5 * good_threshold;
-        rgb[0] = d * 255 / (0.5 * good_threshold);
-        rgb[1] = 255;
-        rgb[2] = 0;
-      } else if (d < bad_threshold) {
-        d -= good_threshold;
-        rgb[0] = 255;
-        rgb[1] = 255 - d * 255 / (bad_threshold - good_threshold);
-        rgb[2] = 0;
-      } else if (d < 5 * bad_threshold) {
-        rgb[0] = 255;
-        rgb[1] = 0;
-        rgb[2] = 255 * (d - bad_threshold) / (4 * bad_threshold);
-      } else if (d < 10 * bad_threshold) {
-        rgb[0] = 255;
-        rgb[1] = 255 * (d - 5 * bad_threshold) / (5 * bad_threshold);
-        rgb[2] = 255;
-      } else {
-        rgb[0] = 255;
-        rgb[1] = 255;
-        rgb[2] = 255;
-      }
+      ScoreToRgb(d, good_threshold, bad_threshold, rgb);
     }
   }
 }
