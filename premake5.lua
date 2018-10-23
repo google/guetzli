@@ -33,14 +33,14 @@ workspace "guetzli"
       }
     removefiles "guetzli/guetzli.cc"
     filter "action:gmake"
-      linkoptions { "`pkg-config --static --libs libpng`" }
-      buildoptions { "`pkg-config --static --cflags libpng`" }
+      linkoptions { "`pkg-config --static --libs libpng || libpng-config --static --ldflags`" }
+      buildoptions { "`pkg-config --static --cflags libpng || libpng-config --static --cflags`" }
 
   project "guetzli"
     kind "ConsoleApp"
     filter "action:gmake"
-      linkoptions { "`pkg-config --libs libpng`" }
-      buildoptions { "`pkg-config --cflags libpng`" }
+      linkoptions { "`pkg-config --libs libpng || libpng-config --ldflags`" }
+      buildoptions { "`pkg-config --cflags libpng || libpng-config --cflags`" }
     filter "action:vs*"
       links { "shlwapi" }
     filter {}

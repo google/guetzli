@@ -37,8 +37,8 @@ experience classes: 'great', 'acceptable' and 'not acceptable'.
 
 ## Build instructions
 
-Install [Bazel](http://bazel.io) by following the
-[instructions](https://www.bazel.io/docs/install.html). Run `bazel build -c opt
+Install [Bazel](http://bazel.build) by following the
+[instructions](https://www.bazel.build/docs/install.html). Run `bazel build -c opt
 //:butteraugli` in the directory that contains this README file to build the
 [command-line utility](#cmdline-tool). If you want to use Butteraugli as a
 library, depend on the `//:butteraugli_lib` target.
