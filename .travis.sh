@@ -20,6 +20,7 @@ case "$1" in
 			sudo dpkg -i bazel_1.1.0-linux-x86_64.deb
 			;;
 		    "osx")
+			brew cask install homebrew/cask-versions/adoptopenjdk8
 			brew install bazel
 			;;
 		esac
