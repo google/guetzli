@@ -219,6 +219,7 @@ void Usage() {
       "\n"
       "Flags:\n"
       "  --verbose    - Print a verbose trace of all attempts to standard output.\n"
+      "  --overwrite  - Overwrite target file even if it exists.\n"
       "  --quality Q  - Visual quality to aim for, expressed as a JPEG quality value.\n"
       "                 Default value is %d.\n"
       "  --memlimit M - Memory limit in MB. Guetzli will fail if unable to stay under\n"
@@ -233,6 +234,7 @@ int main(int argc, char** argv) {
   std::set_terminate(TerminateHandler);
 
   int verbose = 0;
+  int overwrite = 0;
   int quality = kDefaultJPEGQuality;
   int memlimit_mb = kDefaultMemlimitMB;
 
@@ -254,6 +256,8 @@ int main(int argc, char** argv) {
       memlimit_mb = atoi(argv[opt_idx]);
     } else if (!strcmp(argv[opt_idx], "--nomemlimit")) {
       memlimit_mb = -1;
+    } else if (!strcmp(argv[opt_idx], "--override")) {
+        overwrite = 1;
     } else if (!strcmp(argv[opt_idx], "--")) {
       opt_idx++;
       break;
@@ -263,7 +267,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (argc - opt_idx != 2) {
+  if (argc - opt_idx != 2 && !overwrite) {
     Usage();
   }
 
@@ -278,6 +282,12 @@ int main(int argc, char** argv) {
 
   if (verbose) {
     stats.debug_output_file = stderr;
+  }
+
+  char* out_file = argv[opt_idx + 1];
+
+  if (overwrite) {
+    out_file = argv[opt_idx];
   }
 
   static const unsigned char kPNGMagicBytes[] = {
@@ -321,6 +331,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  WriteFileOrDie(argv[opt_idx + 1], out_data);
+  WriteFileOrDie(out_file, out_data);
   return 0;
 }
