@@ -31,6 +31,9 @@
 
 namespace {
 
+// The current guetzli version
+static const char* const  kVersion = "1.0.1";
+
 constexpr int kDefaultJPEGQuality = 95;
 
 // An upper estimate of memory usage of Guetzli. The bound is
@@ -67,7 +70,7 @@ bool ReadPNG(const std::string& data, int* xsize, int* ysize,
   std::istringstream memstream(data, std::ios::in | std::ios::binary);
   png_set_read_fn(png_ptr, static_cast<void*>(&memstream), [](png_structp png_ptr, png_bytep outBytes, png_size_t byteCountToRead) {
     std::istringstream& memstream = *static_cast<std::istringstream*>(png_get_io_ptr(png_ptr));
-    
+
     memstream.read(reinterpret_cast<char*>(outBytes), byteCountToRead);
 
     if (memstream.eof()) png_error(png_ptr, "unexpected end of data");
@@ -218,6 +221,7 @@ void Usage() {
       "guetzli [flags] input_filename output_filename\n"
       "\n"
       "Flags:\n"
+      "  --version    - Print version.\n"
       "  --verbose    - Print a verbose trace of all attempts to standard output.\n"
       "  --quality Q  - Visual quality to aim for, expressed as a JPEG quality value.\n"
       "                 Default value is %d.\n"
@@ -225,6 +229,12 @@ void Usage() {
       "                 the limit. Default limit is %d MB.\n"
       "  --nomemlimit - Do not limit memory usage.\n", kDefaultJPEGQuality, kDefaultMemlimitMB);
   exit(1);
+}
+
+void Version() {
+  fprintf(stdout,
+      "Guetzli %s\n", kVersion);
+  exit(0);
 }
 
 }  // namespace
@@ -240,6 +250,9 @@ int main(int argc, char** argv) {
   for(;opt_idx < argc;opt_idx++) {
     if (strnlen(argv[opt_idx], 2) < 2 || argv[opt_idx][0] != '-' || argv[opt_idx][1] != '-')
       break;
+    if (!strcmp(argv[opt_idx], "--version")) {
+      Version();
+    }
     if (!strcmp(argv[opt_idx], "--verbose")) {
       verbose = 1;
     } else if (!strcmp(argv[opt_idx], "--quality")) {
