@@ -21,7 +21,7 @@ sequential (nonprogressive) JPEGs due to faster decompression speeds they offer.
     If using your operating system
     package manager, install development versions of the packages if the
     distinction exists.
-    *   On Ubuntu, do `apt-get install libpng-dev`.
+    *   On Ubuntu, do `apt-get install libpng-dev make g++`.
     *   On Fedora, do `dnf install libpng-devel`. 
     *   On Arch Linux, do `pacman -S libpng`.
     *   On Alpine Linux, do `apk add libpng-dev`.
