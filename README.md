@@ -93,7 +93,10 @@ high quality
 image](https://github.com/google/guetzli/releases/download/v0/bees.png).
 
 You can pass a `--quality Q` parameter to set quality in units equivalent to
-libjpeg quality. You can also pass a `--verbose` flag to see a trace of encoding
+libjpeg quality (84 - 100). Guetzli works best with high qualities. 84 is the 
+lowest supported quality.
+
+You can also pass a `--verbose` flag to see a trace of encoding
 attempts made.
 
 Please note that JPEG images do not support alpha channel (transparency). If the
