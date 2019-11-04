@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "guetzli/jpeg_huffman_decode.h"
+#include "guetzli/processor.h"
 
 namespace guetzli {
 
@@ -144,14 +145,14 @@ bool ProcessSOF(const uint8_t* data, const size_t len,
         jpg->error = JPEG_INVALID_SAMPLING_FACTORS;
         return false;
       }
+      guetzli::Params params;
       c->width_in_blocks = jpg->MCU_cols * c->h_samp_factor;
       c->height_in_blocks = jpg->MCU_rows * c->v_samp_factor;
       const uint64_t num_blocks =
           static_cast<uint64_t>(c->width_in_blocks) * c->height_in_blocks;
-      if (num_blocks > (1ull << 21)) {
+      if (num_blocks > (1ull << 21) && !params.nomemlimit) {
         // Refuse to allocate more than 1 GB of memory for the coefficients,
         // that is 2M blocks x 64 coeffs x 2 bytes per coeff x max 4 components.
-        // TODO(user) Add this limit to a GuetzliParams struct.
         fprintf(stderr, "Image too large.\n");
         jpg->error = JPEG_IMAGE_TOO_LARGE;
         return false;
