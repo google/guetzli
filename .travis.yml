@@ -1,9 +1,11 @@
 language: cpp
 sudo: false
+dist: bionic
+osx_image: xcode11.2
+
 matrix:
   include:
     - os: linux
-      dist: trusty
       sudo: required
       env: BUILD_SYSTEM=bazel
       addons:
@@ -19,7 +21,6 @@ matrix:
       env: BUILD_SYSTEM=bazel
 
     - os: linux
-      dist: trusty
       env: BUILD_SYSTEM=make
       addons:
         apt:
@@ -34,7 +35,6 @@ matrix:
 
     - os: osx
       env: BUILD_SYSTEM=make
-
 
 install:
 - ./.travis.sh install
