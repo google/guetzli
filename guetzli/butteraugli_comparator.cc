@@ -277,79 +277,23 @@ void FFT8(Complex* a) {
 }
 
 // Same as FFT8, but all inputs are real.
-// TODO(szabadka): Since this does not need to be in-place, maybe there is a
-// faster FFT than this one, which is derived from DJB's in-place complex FFT.
 void RealFFT8(const double* in, Complex* out) {
-  double t1, t2, t3, t5, t6, t7, t8;
-  t8 = in[6];
-  t5 = in[2] - t8;
-  t8 += in[2];
-  out[2].real = t8;
-  out[6].imag = -t5;
-  out[4].imag = t5;
-  t8 = in[4];
-  t3 = in[0] - t8;
-  t8 += in[0];
-  out[0].real = t8;
-  out[4].real = t3;
-  out[6].real = t3;
-  t7 = in[5];
-  t3 = in[1] - t7;
-  t7 += in[1];
-  out[1].real = t7;
-  t8 = in[7];
-  t5 = in[3] - t8;
-  t8 += in[3];
-  out[3].real = t8;
-  t2 = -t5;
-  t6 = t3 - t5;
-  t8 = kSqrtHalf;
-  t6 *= t8;
-  out[5].real = out[4].real - t6;
-  t1 = t3 + t5;
-  t1 *= t8;
-  out[5].imag = out[4].imag - t1;
-  t6 += out[4].real;
-  out[4].real = t6;
-  t1 += out[4].imag;
-  out[4].imag = t1;
-  t5 = t2 - t3;
-  t5 *= t8;
-  out[7].imag = out[6].imag - t5;
-  t2 += t3;
-  t2 *= t8;
-  out[7].real = out[6].real - t2;
-  t2 += out[6].real;
-  out[6].real = t2;
-  t5 += out[6].imag;
-  out[6].imag = t5;
-  t5 = out[2].real;
-  t1 = out[0].real - t5;
-  t7 = out[3].real;
-  t5 += out[0].real;
-  t3 = out[1].real - t7;
-  t7 += out[1].real;
-  t8 = t5 + t7;
-  out[0].real = t8;
-  t5 -= t7;
-  out[1].real = t5;
-  out[2].imag = t3;
-  out[3].imag = -t3;
-  out[3].real = t1;
-  out[2].real = t1;
+  out[0].real = in[0] + in[1] + in[2] + in[3] + in[4] + in[5] + in[6] + in[7];
   out[0].imag = 0;
-  out[1].imag = 0;
-
-  // Reorder to the correct output order.
-  // TODO(szabadka): Modify the above computation so that this is not needed.
-  Complex tmp = out[2];
-  out[2] = out[3];
-  out[3] = out[5];
-  out[5] = out[7];
-  out[7] = out[4];
-  out[4] = out[1];
-  out[1] = out[6];
-  out[6] = tmp;
+  out[1].real = in[0] - in[4] + kSqrtHalf * (in[1] - in[3] - in[5] + in[7]);
+  out[1].imag = -in[2] + in[6] + kSqrtHalf * (-in[1] - in[3] + in[5] + in[7]);
+  out[2].real = in[0] - in[2] + in[4] - in[6];
+  out[2].imag = -in[1] + in[3] - in[5] + in[7];
+  out[3].real = in[0] - in[4] - kSqrtHalf * (in[1] - in[3] - in[5] + in[7]);
+  out[3].imag = in[2] - in[6] - kSqrtHalf * (in[1] + in[3] - in[5] - in[7]);
+  out[4].real = in[0] - in[1] + in[2] - in[3] + in[4] - in[5] + in[6] - in[7];
+  out[4].imag = 0;
+  out[5].real = in[0] - in[4] - kSqrtHalf * (in[1] - in[3] - in[5] + in[7]);
+  out[5].imag = -in[2] + in[6] - kSqrtHalf * (-in[1] - in[3] + in[5] + in[7]);
+  out[6].real = in[0] - in[2] + in[4] - in[6];
+  out[6].imag = in[1] - in[3] + in[5] - in[7];
+  out[7].real = in[0] - in[4] + kSqrtHalf * (in[1] - in[3] - in[5] + in[7]);
+  out[7].imag = in[2] - in[6] + kSqrtHalf * (in[1] + in[3] - in[5] - in[7]);
 }
 
 // Fills in block[kBlockEdgeHalf..(kBlockHalf+kBlockEdgeHalf)], and leaves the
