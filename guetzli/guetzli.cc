@@ -44,6 +44,10 @@ inline uint8_t BlendOnBlack(const uint8_t val, const uint8_t alpha) {
   return (static_cast<int>(val) * static_cast<int>(alpha) + 128) / 255;
 }
 
+inline uint8_t BlendOnWhite(const uint8_t val, const uint8_t alpha) {
+  return (static_cast<int>(val) * static_cast<int>(alpha) + 255 * (255 - static_cast<int>(alpha))+128) / 255;
+}
+
 bool ReadPNG(const std::string& data, int* xsize, int* ysize,
              std::vector<uint8_t>* rgb) {
   png_structp png_ptr =
@@ -136,9 +140,9 @@ bool ReadPNG(const std::string& data, int* xsize, int* ysize,
         uint8_t* row_out = &(*rgb)[3 * y * (*xsize)];
         for (int x = 0; x < *xsize; ++x) {
           const uint8_t alpha = row_in[4 * x + 3];
-          row_out[3 * x + 0] = BlendOnBlack(row_in[4 * x + 0], alpha);
-          row_out[3 * x + 1] = BlendOnBlack(row_in[4 * x + 1], alpha);
-          row_out[3 * x + 2] = BlendOnBlack(row_in[4 * x + 2], alpha);
+          row_out[3 * x + 0] = BlendOnWhite(row_in[4 * x + 0], alpha);
+          row_out[3 * x + 1] = BlendOnWhite(row_in[4 * x + 1], alpha);
+          row_out[3 * x + 2] = BlendOnWhite(row_in[4 * x + 2], alpha);
         }
       }
       break;
