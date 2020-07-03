@@ -151,10 +151,20 @@ bool ReadPNG(const std::string& data, int* xsize, int* ysize,
   return true;
 }
 
+FILE* OpenFile(const char* filename, const char* mode) {
+#if defined(_MSC_VER)
+  FILE *f;
+  errno_t res = fopen_s(&f, filename, mode);
+  return res == 0 ? f : NULL;
+#else
+  return fopen(filename, mode);
+#endif
+}
+
 std::string ReadFileOrDie(const char* filename) {
   bool read_from_stdin = strncmp(filename, "-", 2) == 0;
 
-  FILE* f = read_from_stdin ? stdin : fopen(filename, "rb");
+  FILE* f = read_from_stdin ? stdin : OpenFile(filename, "rb");
   if (!f) {
     perror("Can't open input file");
     exit(1);
@@ -191,7 +201,7 @@ std::string ReadFileOrDie(const char* filename) {
 void WriteFileOrDie(const char* filename, const std::string& contents) {
   bool write_to_stdout = strncmp(filename, "-", 2) == 0;
 
-  FILE* f = write_to_stdout ? stdout : fopen(filename, "wb");
+  FILE* f = write_to_stdout ? stdout : OpenFile(filename, "wb");
   if (!f) {
     perror("Can't open output file for writing");
     exit(1);
