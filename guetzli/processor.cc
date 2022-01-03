@@ -141,8 +141,6 @@ void Processor::MaybeOutput(const std::string& encoded_jpg) {
   GUETZLI_LOG(stats_, " Score[%.4f]", score);
   if (score < final_output_->score || final_output_->score < 0) {
     final_output_->jpeg_data = encoded_jpg;
-    final_output_->distmap = comparator_->distmap();
-    final_output_->distmap_aggregate = comparator_->distmap_aggregate();
     final_output_->score = score;
     GUETZLI_LOG(stats_, " (*)");
   }
@@ -721,7 +719,18 @@ void Processor::SelectFrequencyMasking(const JPEGData& jpg, OutputImage* img,
         coeff_t block[kDCTBlockSize] = { 0 };
         img->component(c).GetCoeffBlock(block_x, block_y, block);
         UpdateACHistogram(-1, block, quant, &ac_histograms[c]);
-        block[k] = newval;
+        double sum_of_hf = 0;
+        for (int ii = 3; ii < 64; ++ii) {
+          if ((ii & 7) < 3 && ii < 3 * 8) continue;
+          sum_of_hf += std::abs(comp.coeffs[jpg_block_ix * kDCTBlockSize + ii]);
+        }
+        int limit = sum_of_hf < 60 ? 4 : 8;
+        bool precious =
+            (k == 1 || k == 8) &&
+            std::abs(comp.coeffs[jpg_block_ix * kDCTBlockSize + k]) >= limit;
+        if (!precious || newval != 0) {
+          block[k] = newval;
+        }
         UpdateACHistogram(1, block, quant, &ac_histograms[c]);
         img->component(c).SetCoeffBlock(block_x, block_y, block);
         last_indexes[block_ix] += direction;
@@ -823,9 +832,6 @@ bool Processor::ProcessJpegData(const Params& params, const JPEGData& jpg_in,
   if (comparator_ == nullptr) {
     GUETZLI_LOG(stats, " <image too small for Butteraugli>\n");
     final_output_->jpeg_data = encoded_jpg;
-    final_output_->distmap =
-        std::vector<float>(jpg_in.width * jpg_in.height, 0.0);
-    final_output_->distmap_aggregate = 0;
     final_output_->score = encoded_jpg.size();
     // Butteraugli doesn't work with images this small.
     return true;
