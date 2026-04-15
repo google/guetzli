@@ -327,11 +327,14 @@ bool ProcessDHT(const uint8_t* data, const size_t len,
       }
     }
     huff.is_last = (*pos == start_pos + marker_len);
-    if (mode == JPEG_READ_ALL &&
-        !BuildJpegHuffmanTable(&huff.counts[0], &huff.values[0], huff_lut)) {
-      fprintf(stderr, "Failed to build Huffman table.\n");
-      jpg->error = JPEG_INVALID_HUFFMAN_CODE;
-      return false;
+    if (mode == JPEG_READ_ALL) {
+      int table_size =
+          BuildJpegHuffmanTable(&huff.counts[0], &huff.values[0], huff_lut);
+      if (!table_size || table_size > kJpegHuffmanLutSize) {
+        fprintf(stderr, "Failed to build Huffman table.\n");
+        jpg->error = JPEG_INVALID_HUFFMAN_CODE;
+        return false;
+      }
     }
     jpg->huffman_code.push_back(huff);
   }
@@ -444,6 +447,11 @@ struct BitReaderState {
     }
     uint8_t c = data_[pos_++];
     if (c == 0xff) {
+      if (pos_ >= len_) {
+        // Reached end of data after 0xff; treat as marker start.
+        next_marker_pos_ = pos_ - 1;
+        return c;
+      }
       uint8_t escape = data_[pos_];
       if (escape == 0) {
         ++pos_;

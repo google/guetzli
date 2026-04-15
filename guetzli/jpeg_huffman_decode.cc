@@ -116,6 +116,10 @@ int BuildJpegHuffmanTable(const int* count_in, const int* symbols,
     }
   }
 
+  if (total_size > kJpegHuffmanLutSize) {
+    return 0;
+  }
+
   return total_size;
 }
 
